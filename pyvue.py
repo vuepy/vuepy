@@ -2,14 +2,194 @@
 import ast
 import functools
 import re
+from collections import defaultdict
 from html.parser import HTMLParser
+from typing import SupportsIndex
 
 import ipywidgets as widgets
 import markdown
 from IPython.display import clear_output
 from IPython.display import display
+from sympy.parsing.sympy_parser import _T
 
-from observe import observe, Watcher
+
+class DepStoreField:
+    def __init__(self):
+        self._deps = {}
+
+    def __get__(self, instance, owner):
+        _id = id(instance)
+        if _id not in self._deps:
+            self._deps[_id] = defaultdict(Dep)
+
+        return self._deps[_id]
+
+    def __set__(self, instance, new_value):
+        pass
+
+    def __delete__(self, instance):
+        _id = id(instance)
+        if _id in self._deps:
+            del self._deps[_id]
+
+
+class ReactiveDict(dict):
+    _deps = DepStoreField()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __getitem__(self, attr):
+        return super().__getitem__(attr)
+
+    def __setitem__(self, attr, value):
+        if isinstance(value, list):
+            # 处理字典值为list被整个替换的情况
+            value = observe(value, None)
+        super().__setitem__(attr, value)
+
+        self._deps[attr].notify()
+
+    def __getattr__(self, attr):
+        return self.__getitem__(attr)
+
+    def __setattr__(self, attr, value):
+        self.__setitem__(attr, value)
+
+    def __delete__(self, instance):
+        del self._deps
+
+    def add_dep(self, attr, sub):
+        self._deps[attr].add_sub(sub)
+
+
+class ReactiveList(list):
+    _deps = DepStoreField()
+
+    def append(self, __object) -> None:
+        if isinstance(__object, dict):
+            __object = ReactiveDict(__object)
+        super().append(__object)
+
+        self._deps[0].notify()
+
+    def pop(self, __index: SupportsIndex = ...) -> _T:
+        ret = super().pop(__index)
+
+        self._deps[0].notify()
+
+        return ret
+
+    def __delete__(self, instance):
+        del self._deps
+
+    def add_dep(self, sub):
+        self._deps[0].add_sub(sub)
+
+
+class ListWatcher:
+    def __init__(self, vm):
+        self.vm = vm
+
+    def update(self):
+        self.vm.render()
+
+
+def observe(data, vm):
+    def define_reactive(_data):
+        for k, v in _data.items():
+            if not isinstance(v, (ReactiveList, ReactiveDict)):
+                _data[k] = observe(v, vm)
+        return _data
+
+    if isinstance(data, dict):
+        define_reactive(data)
+        if not isinstance(data, ReactiveDict):
+            return ReactiveDict(data)
+        return data
+    elif isinstance(data, list):
+        for i, item in enumerate(data):
+            if not isinstance(item, (ReactiveList, ReactiveDict)):
+                data[i] = observe(item, vm)
+
+        if not isinstance(data, ReactiveList):
+            data = ReactiveList(data)
+            # print('add dep')
+            # 处理list append、pop等操作的监控
+            if vm is not None:
+                data.add_dep(ListWatcher(vm))
+
+    return data
+
+
+class Dep:
+    target = None
+
+    def __init__(self):
+        self.subs = []
+
+    def add_sub(self, sub):
+        if sub in self.subs:
+            return
+
+        self.subs.append(sub)
+
+    def notify(self):
+        sub_count = len(self.subs)
+        for i in range(sub_count):
+            self.subs[i].update()
+            # sub.update()
+
+
+def get_attr_by_dot_chain(data, dot_chain):
+    attrs = dot_chain.split('.')
+    _data = data
+    for attr in attrs:
+        _data = getattr(_data, attr)
+    return _data
+
+
+def set_attr_by_dot_chain(data, dot_chain, val):
+    attrs = dot_chain.rsplit('.', 1)
+    if len(attrs) == 1:
+        attr_set = attrs[0]
+        _data = data
+    else:
+        _attr_get, attr_set = attrs
+        _data = get_attr_by_dot_chain(data, _attr_get)
+
+    setattr(_data, attr_set, val)
+
+
+class Watcher:
+    def __init__(self, scopes, expr_or_fn, callback, options=None):
+        self.vm = scopes
+        self.cb = callback
+        self.exp = expr_or_fn
+        self.options = options
+        self.base_data, self.attr = get_base_from_scopes(scopes, expr_or_fn)
+        self.value = self.get()
+        # if not hasattr(self.base_data, 'add_dep'):
+        #     self.base_data = observe(self.base_data, None)
+        self.base_data.add_dep(self.attr, self)
+
+    def get(self):
+        # Dep.target = self
+        # # value = getattr(self.vm, self.exp)
+        # value = get_attr_by_dot_chain(self.vm, self.exp)
+        # Dep.target = None
+        value = get_attr(self.base_data, self.attr)
+        return value
+
+    def update(self):
+        self.run()
+
+    def run(self):
+        value = self.get()
+        old_val = self.value
+        if value != old_val:
+            self.value = value
+            self.cb(self.vm, value, old_val)
 
 
 class MarkdownViewer(widgets.HTML):
@@ -197,24 +377,52 @@ class VueTemplate(HTMLParser):
         if not parsed_attr['v_if']:
             return None
 
+        # compile node
         kwargs = parsed_attr['kwargs']
-        on_event = parsed_attr['on_events']
-        v_model_vm = parsed_attr['v_model']
         v_slot = parsed_attr['v_slot']
         widget = widget_cls(**kwargs)
         if v_slot:
             widget.v_slot = v_slot
 
-        # process directive
-        def handle_value_change(_scopes, exp):
+        # compile :attr=exp
+        def handle_value_change_vm_to_view(widget, attr):
+            def warp(vm, val, old_val):
+                if val == old_val:
+                    return
+                setattr(widget, attr, val)
+            return warp
+
+        single_binds = parsed_attr[':']
+        for attr, exp in single_binds.items():
+            try:
+                _value = ast.literal_eval(exp)
+                continue
+            except Exception as e:
+                # self.vm.log(f"warning: literal parse attr {attr}={exp} failed, {e}")
+                pass
+            _value = get_attr_from_scopes(scopes, exp)
+            update_vm_to_view = handle_value_change_vm_to_view(widget, attr)
+            update_vm_to_view(scopes, _value, None)
+            Watcher(scopes, exp, update_vm_to_view)
+
+        # compile v-model
+        def handle_value_change_view_to_vm(_scopes, exp):
             def warp(change):
                 return set_attr_to_scopes(_scopes, exp, change['new'])
             return warp
 
+        v_model_vm = parsed_attr['v_model']
         if v_model_vm:
             # print(f">> register observe {widget_cls} {v_model_widget} -> {v_model_vm}")
-            widget.observe(handle_value_change(scopes, v_model_vm), names=f'{v_model_widget}')
+            update_view_to_vm = handle_value_change_view_to_vm(scopes, v_model_vm)
+            widget.observe(update_view_to_vm, names=f'{v_model_widget}')
+            _value = get_attr_from_scopes(scopes, v_model_vm)
+            update_vm_to_view = handle_value_change_vm_to_view(widget, v_model_widget)
+            update_vm_to_view(scopes, _value, None)
+            Watcher(scopes, v_model_vm, update_vm_to_view)
 
+        # compile @event
+        on_event = parsed_attr['on_events']
         for _event, (func_name, args_name) in on_event.items():
             func = getattr(self.vm.methods, func_name)
             if args_name:
@@ -233,6 +441,7 @@ class VueTemplate(HTMLParser):
     def _parse_tag_attr(self, attrs, scopes, v_model_widget='value'):
         kwargs = {}
         on_event = {}
+        single_bind = {}
         v_model_vm = None
         v_slot = None
         v_if = True
@@ -247,21 +456,22 @@ class VueTemplate(HTMLParser):
             # :attr=value
             ok, var = Directive.is_single_bound(attr, value)
             if ok:
-                try:
-                    _value = ast.literal_eval(value)
-                    kwargs[var] = _value
-                    continue
-                except Exception as e:
-                    self.vm.log(f"warning: parse attr {attr}={value} failed, {e}")
-                    pass
-                kwargs[var] = get_attr_from_scopes(scopes, value)
+                # try:
+                #     _value = ast.literal_eval(value)
+                #     kwargs[var] = _value
+                #     continue
+                # except Exception as e:
+                #     self.vm.log(f"warning: parse attr {attr}={value} failed, {e}")
+                #     pass
+                # kwargs[var] = get_attr_from_scopes(scopes, value)
+                single_bind[var] = value
                 continue
             # v-model
             ok, model_vm = Directive.is_v_model(attr, value)
             if ok:
                 v_model_vm = model_vm
-                # print(f'>> get v-model {widget_cls} {v_model_widget} ot {v_model_vm}')
-                kwargs[v_model_widget] = get_attr_from_scopes(scopes, v_model_vm)
+                # # print(f'>> get v-model {widget_cls} {v_model_widget} ot {v_model_vm}')
+                # kwargs[v_model_widget] = get_attr_from_scopes(scopes, v_model_vm)
                 continue
             # @click
             ok, event, func, args = Directive.is_event(attr, value)
@@ -286,6 +496,7 @@ class VueTemplate(HTMLParser):
 
         return {
             'v_if': v_if,
+            ':': single_bind,
             'kwargs': kwargs,
             'on_events': on_event,
             'v_model': v_model_vm,
@@ -306,7 +517,7 @@ class VueTemplate(HTMLParser):
             Tag.Template: widgets.VBox,
         }
 
-        scopes = [self.vm, for_scope]
+        scopes = [self.vm._data, for_scope]
         parsed_attr = self._parse_tag_attr(attrs, scopes)
 
         if tag == Tag.AppLayout.lower():
@@ -333,7 +544,7 @@ class VueTemplate(HTMLParser):
 
     def _leaf_tag_exit(self, node, for_scope: ForScope = None):
         tag = node['tag']
-        scopes = [self.vm]
+        scopes = [self.vm._data]
         if for_scope:
             scopes.append(for_scope)
 
@@ -399,6 +610,12 @@ class VueTemplate(HTMLParser):
             widget = self._gen_widget(node, for_scope)
             if widget:
                 _widgets.append(widget)
+
+        # todo 加到v-for的解析处
+        if not is_body:
+            base, attr = get_base_from_scopes([self.vm._data], v_for_stmt.iter)
+            # 处理字典值为list被整个替换的情况
+            base.add_dep(attr, ListWatcher(self.vm))
 
         return _widgets
 
@@ -555,6 +772,41 @@ def set_attr(scope, exp: str, value, reactive=False):
     return True
 
 
+def get_base_from_scope(scope, exp):
+    attrs = exp.rsplit('.', 1)
+    if len(attrs) == 1:
+        return scope, exp
+    else:
+        attr_base, attr = attrs
+        return _get_attr(scope, attr_base), attr
+
+
+def get_base_from_for_scope(scope: 'ForScope', exp):
+    attr_split = exp.split('.', 1)
+    if len(attr_split) == 1:
+        attr_base, attrs = exp, ''
+    else:
+        attr_base, attrs = attr_split
+
+    if attr_base == scope.for_stmt.target:
+        data_base = scope.target
+    else:
+        raise Exception(f"get base {exp} from {scope} failed")
+
+    if attrs:
+        return get_base_from_scope(data_base, attrs)
+    else:
+        raise Exception(f"get base {exp} from {scope} failed")
+
+
+def get_base_from_scopes(scopes, exp):
+    for scope in scopes[::-1]:
+        if isinstance(scope, ForScope):
+            return get_base_from_for_scope(scope, exp)
+        else:
+            return get_base_from_scope(scope, exp)
+
+
 def get_attr_from_scopes(scopes, exp):
     for scope in scopes[::-1]:
         data = get_attr(scope, exp)
@@ -571,16 +823,16 @@ def set_attr_to_scopes(scopes, exp, value, reactive=False):
 
 class Vue:
     def __init__(self, options):
+        options = VueOptions(options)
+        self._data = observe(options.data, self)
         self.debug_log = widgets.Output()
 
         self.dom = None
-        self.options = VueOptions(options)
+        self.options = options
         self._call_if_callable(self.options.before_create)
-        self._data = self.options.data
         self._call_if_callable(self.options.created)
-        observe(self._data)
 
-        self._proxy_data()
+        # self._proxy_data()
         self.methods = self.options.methods(self)
         self._proxy_methods()
 
@@ -593,6 +845,24 @@ class Vue:
     def _call_if_callable(self, func):
         if callable(func):
             func(self)
+
+    def __getattr__(self, key):
+        if key == '_data':
+            return super().__getattribute__(key)
+
+        if key in self._data:
+            return self._data[key]
+
+        return super().__getattribute__(key)
+
+    def __setattr__(self, key, value):
+        if key == '_data':
+            return super().__setattr__(key, value)
+
+        if key in self._data:
+            self._data[key] = value
+            return
+        return super().__setattr__(key, value)
 
     # TODO 全部代理
     def _proxy_data(self):
@@ -633,7 +903,9 @@ class Vue:
         return vue_template.compile(template)
 
     def render(self):
+        print('render')
         # clear_output()
+        # self._data = observe(self._data, self)
         with self.options.el:
             if callable(self.options.template):
                 self.dom = self.options.template(self)
