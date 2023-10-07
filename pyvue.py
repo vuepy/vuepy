@@ -10,7 +10,6 @@ import ipywidgets as widgets
 import markdown
 from IPython.display import clear_output
 from IPython.display import display
-from sympy.parsing.sympy_parser import _T
 
 
 class DepStoreField:
@@ -33,9 +32,17 @@ class DepStoreField:
             del self._deps[_id]
 
 
-class ReactiveDict(dict):
+class Reactive:
     _deps = DepStoreField()
 
+    def add_dep(self, attr, sub):
+        pass
+
+    def reset_deps(self):
+        pass
+
+
+class ReactiveDict(dict, Reactive):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -43,9 +50,6 @@ class ReactiveDict(dict):
         return super().__getitem__(attr)
 
     def __setitem__(self, attr, value):
-        if isinstance(value, list):
-            # 处理字典值为list被整个替换的情况
-            value = observe(value, None)
         super().__setitem__(attr, value)
 
         self._deps[attr].notify()
@@ -62,18 +66,18 @@ class ReactiveDict(dict):
     def add_dep(self, attr, sub):
         self._deps[attr].add_sub(sub)
 
+    def reset_deps(self):
+        for attr, dep in self._deps.items():
+            dep.reset_subs()
 
-class ReactiveList(list):
-    _deps = DepStoreField()
 
+class ReactiveList(list, Reactive):
     def append(self, __object) -> None:
-        if isinstance(__object, dict):
-            __object = ReactiveDict(__object)
         super().append(__object)
 
         self._deps[0].notify()
 
-    def pop(self, __index: SupportsIndex = ...) -> _T:
+    def pop(self, __index: SupportsIndex = ...):
         ret = super().pop(__index)
 
         self._deps[0].notify()
@@ -86,38 +90,36 @@ class ReactiveList(list):
     def add_dep(self, sub):
         self._deps[0].add_sub(sub)
 
+    def reset_deps(self):
+        self._deps[0].reset_subs()
+
 
 class ListWatcher:
-    def __init__(self, vm):
+    def __init__(self, vm, name):
         self.vm = vm
+        self.name = name
 
     def update(self):
         self.vm.render()
 
 
-def observe(data, vm):
-    def define_reactive(_data):
-        for k, v in _data.items():
-            if not isinstance(v, (ReactiveList, ReactiveDict)):
-                _data[k] = observe(v, vm)
-        return _data
+def observe(data):
+    if isinstance(data, Reactive):
+        data.reset_deps()
 
     if isinstance(data, dict):
-        define_reactive(data)
-        if not isinstance(data, ReactiveDict):
-            return ReactiveDict(data)
-        return data
+        for attr, item in data.items():
+            data[attr] = observe(item)
+        if not isinstance(data, Reactive):
+            data = ReactiveDict(data)
+
     elif isinstance(data, list):
         for i, item in enumerate(data):
-            if not isinstance(item, (ReactiveList, ReactiveDict)):
-                data[i] = observe(item, vm)
-
-        if not isinstance(data, ReactiveList):
+            if isinstance(item, Reactive):
+                continue
+            data[i] = observe(item)
+        if not isinstance(data, Reactive):
             data = ReactiveList(data)
-            # print('add dep')
-            # 处理list append、pop等操作的监控
-            if vm is not None:
-                data.add_dep(ListWatcher(vm))
 
     return data
 
@@ -134,11 +136,13 @@ class Dep:
 
         self.subs.append(sub)
 
+    def reset_subs(self):
+        self.subs.clear()
+
     def notify(self):
         sub_count = len(self.subs)
         for i in range(sub_count):
             self.subs[i].update()
-            # sub.update()
 
 
 def get_attr_by_dot_chain(data, dot_chain):
@@ -169,15 +173,9 @@ class Watcher:
         self.options = options
         self.base_data, self.attr = get_base_from_scopes(scopes, expr_or_fn)
         self.value = self.get()
-        # if not hasattr(self.base_data, 'add_dep'):
-        #     self.base_data = observe(self.base_data, None)
         self.base_data.add_dep(self.attr, self)
 
     def get(self):
-        # Dep.target = self
-        # # value = getattr(self.vm, self.exp)
-        # value = get_attr_by_dot_chain(self.vm, self.exp)
-        # Dep.target = None
         value = get_attr(self.base_data, self.attr)
         return value
 
@@ -456,22 +454,12 @@ class VueTemplate(HTMLParser):
             # :attr=value
             ok, var = Directive.is_single_bound(attr, value)
             if ok:
-                # try:
-                #     _value = ast.literal_eval(value)
-                #     kwargs[var] = _value
-                #     continue
-                # except Exception as e:
-                #     self.vm.log(f"warning: parse attr {attr}={value} failed, {e}")
-                #     pass
-                # kwargs[var] = get_attr_from_scopes(scopes, value)
                 single_bind[var] = value
                 continue
             # v-model
             ok, model_vm = Directive.is_v_model(attr, value)
             if ok:
                 v_model_vm = model_vm
-                # # print(f'>> get v-model {widget_cls} {v_model_widget} ot {v_model_vm}')
-                # kwargs[v_model_widget] = get_attr_from_scopes(scopes, v_model_vm)
                 continue
             # @click
             ok, event, func, args = Directive.is_event(attr, value)
@@ -613,9 +601,12 @@ class VueTemplate(HTMLParser):
 
         # todo 加到v-for的解析处
         if not is_body:
-            base, attr = get_base_from_scopes([self.vm._data], v_for_stmt.iter)
-            # 处理字典值为list被整个替换的情况
-            base.add_dep(attr, ListWatcher(self.vm))
+            list_base_dict, attr = get_base_from_scopes([self.vm._data], v_for_stmt.iter)
+            # 处理list被整个替换的情况
+            list_base_dict.add_dep(attr, ListWatcher(self.vm, f"{attr}: {v_for_stmt.iter} replace"))
+            # 处理list本身的变化，append、pop等操作
+            list_base = get_attr(list_base_dict, attr)
+            list_base.add_dep(ListWatcher(self.vm, f"{v_for_stmt.iter} modified"))
 
         return _widgets
 
@@ -634,15 +625,22 @@ class VueTemplate(HTMLParser):
         self.parent_node_stack.append(node)
 
     def handle_data(self, data: str) -> None:
+        def update_text(match):
+            exp = match.group(1)
+            scopes = [self.vm._data]
+            val = get_attr_from_scopes(scopes, exp)
+            attr_base, attr = get_base_from_scopes(scopes, exp)
+            attr_base.add_dep(attr, ListWatcher(self.vm, f'html {{{{ {exp} }}}}'))
+            return str(val)
+
         if not self.parent_node_stack:
             return
 
         parent = self.parent_node_stack[-1]
         if parent.get('type') == 'html':
-            parent['body'].append(data)
-
-    # def get_starttag_text(self) -> str | None:
-    #     print('starttag', super().get_starttag_text())
+            exp_pattern = r"\{\{\s*(.*?)\s*\}\}"
+            result = re.sub(exp_pattern, update_text, data)
+            parent['body'].append(result)
 
     def handle_endtag(self, tag):
         node = self.parent_node_stack.pop()
@@ -686,26 +684,6 @@ class VueOptions:
         self.before_update = options.get('before_update ')
         self.updated = options.get('updated ')
         self.render = options.get('render')
-
-
-class ReactiveField:
-    def __init__(self, field_name, data):
-        self.field_name = field_name
-        self._data = data
-
-    def __get__(self, instance, owner):
-        return self._data[self.field_name]
-
-    def __set__(self, instance: 'Vue', new_value):
-        self._data[self.field_name] = new_value
-
-        instance._call_if_callable(instance.options.before_update)
-        instance.render()
-        instance._call_if_callable(instance.options.updated)
-
-
-class Dict(dict):
-    pass
 
 
 def _get_attr(scope, exp, default=None):
@@ -824,7 +802,7 @@ def set_attr_to_scopes(scopes, exp, value, reactive=False):
 class Vue:
     def __init__(self, options):
         options = VueOptions(options)
-        self._data = observe(options.data, self)
+        self._data = observe(options.data)
         self.debug_log = widgets.Output()
 
         self.dom = None
@@ -832,7 +810,6 @@ class Vue:
         self._call_if_callable(self.options.before_create)
         self._call_if_callable(self.options.created)
 
-        # self._proxy_data()
         self.methods = self.options.methods(self)
         self._proxy_methods()
 
@@ -864,28 +841,6 @@ class Vue:
             return
         return super().__setattr__(key, value)
 
-    # TODO 全部代理
-    def _proxy_data(self):
-        for key, value in self._data.items():
-            if isinstance(value, dict):
-                item = Dict(value)
-                setattr(self.__class__, key, ReactiveField(key, self._data))
-                for sub_key, sub_value in value.items():
-                    # sub_self = self._data[key]
-                    # setattr(sub_self.__class__, sub_key, ReactiveField(sub_key, self._data[key]))
-                    setattr(item.__class__, sub_key, ReactiveField(sub_key, item))
-                self._data[key] = item
-            elif isinstance(value, list) and isinstance(value[0], dict):
-                for i, item in enumerate(value):
-                    item = Dict(item)
-                    for sub_key, sub_value in item.items():
-                        setattr(item.__class__, sub_key, ReactiveField(sub_key, item))
-                    value[i] = item
-                # TODO 响应式的list
-                setattr(self.__class__, key, value)
-            else:
-                setattr(self.__class__, key, ReactiveField(key, self._data))
-
     def _proxy_methods(self):
         pass
         # for func_name, func in self.options.methods.items():
@@ -903,14 +858,11 @@ class Vue:
         return vue_template.compile(template)
 
     def render(self):
-        print('render')
-        # clear_output()
-        # self._data = observe(self._data, self)
+        self._data = observe(self._data)
         with self.options.el:
             if callable(self.options.template):
                 self.dom = self.options.template(self)
             else:
                 self.dom = self._compile_template(self.options.template)
-
             clear_output(True)
             display(self.dom)
