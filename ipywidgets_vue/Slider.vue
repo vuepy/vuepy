@@ -3,12 +3,15 @@
 </template>
 
 <script>
+// https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20List.html#intslider
+// https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20List.html#selectionslider
+// https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20List.html#selectionrangeslider
 // https://element-plus.org/zh-CN/component/slider.html#属性
 export default {
-  name: 'FloatSlider',
+  name: "Slider",
   props: {
-    value: {
-      type: Number,
+    value: { // v-model for numeric slider, SelectionSlider
+      type: [Number, String],
       default: 0,
     },
     min: {
@@ -22,6 +25,15 @@ export default {
     step: {
       type: Number,
       default: 1,
+    },
+    index: { // v-model for SelectionRangeSlider
+      type: Array,
+      default: () => [] // (start, end)
+    },
+    options: {
+      // SelectionSlider, SelectionRangeSlider
+      type: Array,
+      default: () => []
     },
     disabled: {
       type: Boolean,
@@ -41,7 +53,7 @@ export default {
       type: Boolean,
       default: false,
     },
-  },
+  }
 }
 </script>
 

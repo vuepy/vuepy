@@ -1,20 +1,22 @@
 <template>
+  <div>
+<!--    TODO 如何表示可变数量的slot-->
+    <slot name="radio1"></slot>
+  </div>
 
 </template>
 
 <script>
+// https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20List.html#radiobuttons
+// https://element-plus.org/zh-CN/component/radio.html
 export default {
-  // https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20List.html#dropdown
-  // https://element-plus.org/zh-CN/component/select.html
-  name: 'Dropdown',
+  name: "RadioButtons",
   props: {
     value: {
       type: [String, Number],
       default: null
     },
     options: {
-      // ['1', '2', '3'] value: '1'
-      // [('One', 1), ('Two', 2), ('Three', 3)] value: 1
       type: Array,
       default: () => []
     },

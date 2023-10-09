@@ -40,6 +40,8 @@ export default {
   components: { AppLayout, FloatSlider, Box, Dropdown, Textarea, Button, HBox, MarkdownViewer},
   data() {
     return {
+      False: false,
+      True: true,
       top_p: 1,
       models: [],
       model: 'llama',
