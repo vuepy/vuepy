@@ -2,6 +2,7 @@
 import ast
 import functools
 import re
+from _typeshed import SupportsLessThanT
 from collections import defaultdict
 from html.parser import HTMLParser
 from typing import SupportsIndex
@@ -74,15 +75,36 @@ class ReactiveDict(dict, Reactive):
 class ReactiveList(list, Reactive):
     def append(self, __object) -> None:
         super().append(__object)
+        self._deps[0].notify()
 
+    def extend(self, __iterable) -> None:
+        super().extend(__iterable)
+        self._deps[0].notify()
+
+    def insert(self, __index: SupportsIndex, __object) -> None:
+        super().insert(__index, __object)
+        self._deps[0].notify()
+
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        self._deps[0].notify()
+
+    def sort(self, *, key: None = ..., reverse: bool = ...) -> None:
+        super().sort(key=key, reverse=reverse)
+        self._deps[0].notify()
+
+    def reverse(self) -> None:
+        super().reverse()
         self._deps[0].notify()
 
     def pop(self, __index: SupportsIndex = ...):
         ret = super().pop(__index)
-
         self._deps[0].notify()
-
         return ret
+
+    def remove(self, __value) -> None:
+        super().remove(__value)
+        self._deps[0].notify()
 
     def __delete__(self, instance):
         del self._deps
@@ -392,16 +414,14 @@ class VueTemplate(HTMLParser):
 
         single_binds = parsed_attr[':']
         for attr, exp in single_binds.items():
+            update_vm_to_view = handle_value_change_vm_to_view(widget, attr)
             try:
                 _value = ast.literal_eval(exp)
-                continue
+                update_vm_to_view(scopes, _value, None)
             except Exception as e:
-                # self.vm.log(f"warning: literal parse attr {attr}={exp} failed, {e}")
-                pass
-            _value = get_attr_from_scopes(scopes, exp)
-            update_vm_to_view = handle_value_change_vm_to_view(widget, attr)
-            update_vm_to_view(scopes, _value, None)
-            Watcher(scopes, exp, update_vm_to_view)
+                _value = get_attr_from_scopes(scopes, exp)
+                update_vm_to_view(scopes, _value, None)
+                Watcher(scopes, exp, update_vm_to_view)
 
         # compile v-model
         def handle_value_change_view_to_vm(_scopes, exp):
