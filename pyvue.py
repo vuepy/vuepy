@@ -2,7 +2,6 @@
 import ast
 import functools
 import re
-from _typeshed import SupportsLessThanT
 from collections import defaultdict
 from html.parser import HTMLParser
 from typing import SupportsIndex
@@ -137,8 +136,6 @@ def observe(data):
 
     elif isinstance(data, list):
         for i, item in enumerate(data):
-            if isinstance(item, Reactive):
-                continue
             data[i] = observe(item)
         if not isinstance(data, Reactive):
             data = ReactiveList(data)
@@ -645,22 +642,36 @@ class VueTemplate(HTMLParser):
         self.parent_node_stack.append(node)
 
     def handle_data(self, data: str) -> None:
-        def update_text(match):
-            exp = match.group(1)
-            scopes = [self.vm._data]
-            val = get_attr_from_scopes(scopes, exp)
-            attr_base, attr = get_base_from_scopes(scopes, exp)
-            attr_base.add_dep(attr, ListWatcher(self.vm, f'html {{{{ {exp} }}}}'))
-            return str(val)
+        def update_text(scopes, for_idx):
+            def warp(match):
+                exp = match.group(1)
+                val = get_attr_from_scopes(scopes, exp)
+                attr_base, attr = get_base_from_scopes(scopes, exp)
+                attr_base.add_dep(attr, ListWatcher(self.vm, f'html {for_idx} {{{{ {exp} }}}}'))
+                return str(val)
+            return warp
 
         if not self.parent_node_stack:
             return
 
         parent = self.parent_node_stack[-1]
-        if parent.get('type') == 'html':
-            exp_pattern = r"\{\{\s*(.*?)\s*\}\}"
-            result = re.sub(exp_pattern, update_text, data)
-            parent['body'].append(result)
+        exp_pattern = r"\{\{\s*(.*?)\s*\}\}"
+        if not self.is_in_for_stmt:
+            if parent.get('type') == 'html':
+                scopes = [self.vm._data]
+                result = re.sub(exp_pattern, update_text(scopes, -1), data)
+                parent['body'].append(result)
+            return
+
+        # TODO node的类型判断可以优化
+        if parent['body'] and parent['body'][0].get('type') == 'html':
+            v_for_stmt = self.v_for_stack[-1]
+            _iter = getattr(self.vm, v_for_stmt.iter)
+            for i, target in enumerate(_iter):
+                for_scope = ForScope(i, v_for_stmt, self.vm)
+                scopes = [self.vm._data, for_scope]
+                result = re.sub(exp_pattern, update_text(scopes, i), data)
+                parent['body'][i]['body'].append(result)
 
     def handle_endtag(self, tag):
         node = self.parent_node_stack.pop()
@@ -799,17 +810,27 @@ def get_base_from_for_scope(scope: 'ForScope', exp):
 
 def get_base_from_scopes(scopes, exp):
     for scope in scopes[::-1]:
-        if isinstance(scope, ForScope):
-            return get_base_from_for_scope(scope, exp)
-        else:
-            return get_base_from_scope(scope, exp)
+        try:
+            if isinstance(scope, ForScope):
+                return get_base_from_for_scope(scope, exp)
+            else:
+                return get_base_from_scope(scope, exp)
+        except Exception:
+            pass
+    else:
+        raise Exception(f"get base {exp} from {scopes} failed")
 
 
 def get_attr_from_scopes(scopes, exp):
     for scope in scopes[::-1]:
-        data = get_attr(scope, exp)
-        if data is not None:
-            return data
+        try:
+            data = get_attr(scope, exp)
+            if data is not None:
+                return data
+        except Exception:
+            pass
+    else:
+        raise Exception(f"get attr {exp} from {scopes} failed")
 
 
 def set_attr_to_scopes(scopes, exp, value, reactive=False):

@@ -18,8 +18,8 @@
       <Button description="Add message" button_style="info" icon="plus-circle" @click="handle_add_msg"></Button>
       <Button description='show/edit' icon="edit" @click="handle_edit_msg(1)" button_style='info'></Button>
       <Button description="Submit" button_style="success" @click="handle_on_submit"></Button>
-      <p style="background: #ffaa00">
-        <span>model: {{ model }}, top_p: {{ top_p }}</span>
+      <p style="background: #ffaa00" v-for="msg in messages">
+        <span>model: {{ model }}, top_p: {{ top_p }} {{ msg.role }}</span>
       </p>
     </template>
   </AppLayout>
