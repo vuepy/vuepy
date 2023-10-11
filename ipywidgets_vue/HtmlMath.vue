@@ -3,9 +3,8 @@
 </template>
 
 <script>
-// el-input
 export default {
-  name: 'Textarea',
+  name: "HtmlMath",
   props: {
     value: {
       type: String
@@ -17,10 +16,6 @@ export default {
     description: {
       type: String,
       default: ''
-    },
-    disabled: {
-      type: Boolean,
-      default: false
     },
   },
 }

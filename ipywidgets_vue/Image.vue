@@ -3,24 +3,24 @@
 </template>
 
 <script>
-// el-input
 export default {
-  name: 'Textarea',
+  name: "Image",
   props: {
     value: {
-      type: String
-    },
-    placeholder: {
       type: String,
       default: ''
     },
-    description: {
+    format: {
       type: String,
-      default: ''
+      default: 'png'
     },
-    disabled: {
-      type: Boolean,
-      default: false
+    width: {
+      type: Number,
+      default: 300
+    },
+    height: {
+      type: Number,
+      default: 400
     },
   },
 }

@@ -3,30 +3,26 @@
 </template>
 
 <script>
+// el-input-number
 export default {
-  name: 'Button',
+  name: "FloatsInput",
   props: {
-    icon: String,
-    button_style: {
+    value: {
+      type: Array,
+      default: () => []
+    },
+    tagStyle: {
       type: String,
       default: '',
       validator: function (value) {
         return ['success', 'info', 'warning', 'danger', ''].includes(value)
       },
     },
-    description: {
+    format: {
       type: String,
-      default: ''
-    },
-    tooltip: {
-      type: String,
-      default: ''
-    },
-    disabled: {
-      type: Boolean,
-      default: false
-    },
-  }
+      default: '', // '.2f'
+    }
+  },
 }
 </script>
 

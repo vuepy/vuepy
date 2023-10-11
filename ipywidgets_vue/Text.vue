@@ -5,7 +5,7 @@
 <script>
 // el-input
 export default {
-  name: 'Textarea',
+  name: "Text",
   props: {
     value: {
       type: String

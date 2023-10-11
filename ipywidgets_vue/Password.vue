@@ -3,9 +3,8 @@
 </template>
 
 <script>
-// el-input
 export default {
-  name: 'Textarea',
+  name: "Password",
   props: {
     value: {
       type: String

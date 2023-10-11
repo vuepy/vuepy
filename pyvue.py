@@ -517,7 +517,7 @@ class VueTemplate(HTMLParser):
         attrs = node['attrs']
         widgets_map = {
             Tag.AppLayout: widgets.AppLayout,
-            Tag.Box: widgets.Box,
+            Tag.Box: widgets.VBox,
             Tag.HBox: widgets.HBox,
             Tag.Template: widgets.VBox,
         }

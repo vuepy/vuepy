@@ -5,7 +5,7 @@
       <FloatSlider v-model="top_p" description="top_p" min=0 max=1 step=0.01 :continuous_update=False></FloatSlider>
     </template>
     <template v-slot:center>
-      <Box v-for="(i, msg) in messages">
+      <HBox v-for="(i, msg) in messages">
         <Button width='60px' v-model="msg.role" @click="handle_change_role"></Button>
         <!--
         -->
@@ -13,7 +13,7 @@
         <Textarea v-else width='450px' v-model="msg.content"></Textarea>
         <Button width='40px' icon="edit" @click="handle_edit_msg(i)" button_style='info'></Button>
         <Button width='40px' icon="minus-circle" @click="handle_del_msg(i)" button_style='danger'></Button>
-      </Box>
+      </HBox>
       <hr/>
       <Button description="Add message" button_style="info" icon="plus-circle" @click="handle_add_msg"></Button>
       <Button description='show/edit' icon="edit" @click="handle_edit_msg(1)" button_style='info'></Button>

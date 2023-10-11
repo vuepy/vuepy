@@ -3,24 +3,25 @@
 </template>
 
 <script>
-// el-input
+// el-autocomplete.
 export default {
-  name: 'Textarea',
+  name: "Combobox",
   props: {
     value: {
-      type: String
-    },
-    placeholder: {
       type: String,
-      default: ''
+      default: null
     },
-    description: {
-      type: String,
-      default: ''
+    options: {
+      type: Array,
+      default: () => []
     },
     disabled: {
       type: Boolean,
       default: false
+    },
+    description: {
+      type: String,
+      default: ''
     },
   },
 }
