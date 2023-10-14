@@ -6,6 +6,10 @@
 export default {
   name: 'HBox',
   props: {
+    children: {
+      type: Array,
+      default: () => []
+    }
   }
 }
 </script>

@@ -231,12 +231,13 @@ class Tag:
     FloatSlider = "FloatSlider".lower()
     Dropdown = "Dropdown".lower()
     Textarea = "Textarea".lower()
+    Text = "Text".lower()
     Button = 'Button'.lower()
     MarkdownViewer = 'MarkdownViewer'.lower()
     Template = 'template'
 
     container_tags = (AppLayout, Box, HBox, Template)
-    leaf_tags = (FloatSlider, Dropdown, Textarea, Button, MarkdownViewer)
+    leaf_tags = (FloatSlider, Dropdown, Textarea, Button, MarkdownViewer, Text)
 
     @classmethod
     def is_container(cls, t):
@@ -558,6 +559,7 @@ class VueTemplate(HTMLParser):
             Tag.Dropdown: widgets.Dropdown,
             Tag.Button: widgets.Button,
             Tag.Textarea: widgets.Textarea,
+            Tag.Text: widgets.Text,
             Tag.MarkdownViewer: MarkdownViewer,
         }
         v_model_widget = 'value'

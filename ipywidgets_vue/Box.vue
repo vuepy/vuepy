@@ -4,7 +4,13 @@
 
 <script>
 export default {
-  name: 'Box'
+  name: 'Box',
+  props: {
+    children: {
+      type: Array,
+      default: () => []
+    }
+  }
 }
 </script>
 
