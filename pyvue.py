@@ -209,7 +209,7 @@ class Watcher:
             self.cb(self.vm, value, old_val)
 
 
-class MarkdownViewer(widgets.HTML):
+class _MarkdownViewer(widgets.HTML):
     with open('codehilite') as f:
         css_style = ''.join(f.read())
 
@@ -227,29 +227,137 @@ class MarkdownViewer(widgets.HTML):
 class Tag:
     AppLayout = "AppLayout".lower()
     Box = "Box".lower()
-    HBox = "HBox".lower()
-    FloatSlider = "FloatSlider".lower()
-    Dropdown = "Dropdown".lower()
-    Textarea = "Textarea".lower()
-    Text = "Text".lower()
     Button = 'Button'.lower()
+    Checkbox = 'Checkbox'.lower()
+    ColorsInput = 'ColorsInput'.lower()
+    Combobox = 'Combobox'.lower()
+    Controller = 'Controller'.lower()
+    Dropdown = "Dropdown".lower()
+    FileUpload = 'FileUpload'.lower()
+    FloatsInput = 'FloatsInput'.lower()
+    FloatSlider = 'FloatSlider'.lower()
+    HBox = 'HBox'.lower()
+    HtmlMath = 'HtmlMath'.lower()
+    Image = 'Image'.lower()
+    InputNumber = 'InputNumber'.lower()
+    IntsInput = 'IntsInput'.lower()
+    Label = 'Label'.lower()
     MarkdownViewer = 'MarkdownViewer'.lower()
+    Password = 'Password'.lower()
+    Play = 'Play'.lower()
+    Progress = 'Progress'.lower()
+    RadioButtons = 'RadioButtons'.lower()
+    Select = 'Select'.lower()
+    Slider = 'Slider'.lower()
+    Stack = 'Stack'.lower()
+    TagsInput = 'TagsInput'.lower()
+    Text = 'Text'.lower()
+    Textarea = 'Textarea'.lower()
+    ToggleButton = 'ToggleButton'.lower()
+    ToggleButtons = 'ToggleButtons'.lower()
+    Valid = 'Valid'.lower()
     Template = 'template'
 
-    container_tags = (AppLayout, Box, HBox, Template)
-    leaf_tags = (FloatSlider, Dropdown, Textarea, Button, MarkdownViewer, Text)
+    _container_tags = (
+        AppLayout,
+        Box,
+        HBox,
+        Stack,
+        Template,
+    )
+    _leaf_tags = (
+        FloatSlider,
+        Checkbox,
+        ColorsInput,
+        Combobox,
+        Controller,
+        Dropdown,
+        FileUpload,
+        FloatsInput,
+        FloatSlider,
+        Dropdown,
+        Textarea,
+        Button,
+        HtmlMath,
+        Image,
+        InputNumber,
+        IntsInput,
+        Label,
+        MarkdownViewer,
+        Password,
+        Play,
+        Progress,
+        RadioButtons,
+        Text,
+        Select,
+        Slider,
+        TagsInput,
+        Text,
+        Textarea,
+        ToggleButton,
+        ToggleButtons,
+        Valid,
+    )
+
+    _tag_to_widget = {
+        AppLayout: widgets.AppLayout,
+        Box: widgets.VBox,
+        Button: widgets.Button,
+        Checkbox: widgets.Checkbox,
+        ColorsInput: widgets.ColorsInput,
+        Combobox: widgets.Combobox,
+        Controller: widgets.Controller,
+        Dropdown: widgets.Dropdown,
+        FileUpload: widgets.FileUpload,
+        FloatsInput: widgets.FloatsInput,
+        FloatSlider: widgets.FloatSlider,
+        HBox: widgets.HBox,
+        HtmlMath: widgets.HTMLMath,
+        Image: widgets.Image,
+        InputNumber: widgets.IntText,  # TODO IntText, FloatText
+        IntsInput: widgets.IntsInput,
+        Label: widgets.Label,
+        MarkdownViewer: _MarkdownViewer,
+        Password: widgets.Password,
+        Play: widgets.Play,
+        Progress: widgets.FloatProgress,
+        RadioButtons: widgets.RadioButtons,
+        Select: widgets.Select,
+        Slider: widgets.FloatSlider,  # TODO xxxSlider
+        Stack: widgets.Stack,
+        TagsInput: widgets.TagsInput,
+        Template: widgets.VBox,
+        Text: widgets.Text,
+        Textarea: widgets.Textarea,
+        ToggleButton: widgets.ToggleButton,
+        ToggleButtons: widgets.ToggleButtons,
+        Valid: widgets.Valid,
+    }
+
+    _tag_to_v_model = {
+        Button: 'description',
+        Stack: 'selected_index',
+    }
 
     @classmethod
     def is_container(cls, t):
-        return t in [i.lower() for i in cls.container_tags]
+        return t in [i.lower() for i in cls._container_tags]
 
     @classmethod
     def is_leaf(cls, t):
-        return t in [i.lower() for i in cls.leaf_tags]
+        return t in [i.lower() for i in cls._leaf_tags]
 
     @classmethod
     def get_widget(cls, t):
         return getattr(widgets, getattr(cls, t))
+
+    @classmethod
+    def impl(cls, tag):
+        return cls._tag_to_widget[tag]
+
+    @classmethod
+    def v_model(cls, tag):
+        return cls._tag_to_v_model.get(tag, 'value')
 
 
 class VForStatement:
@@ -516,25 +624,20 @@ class VueTemplate(HTMLParser):
     def _container_tag_exit(self, node, for_scope=None):
         tag = node['tag']
         attrs = node['attrs']
-        widgets_map = {
-            Tag.AppLayout: widgets.AppLayout,
-            Tag.Box: widgets.VBox,
-            Tag.HBox: widgets.HBox,
-            Tag.Template: widgets.VBox,
-        }
-
-        scopes = [self.vm._data, for_scope]
+        scopes = [self.vm._data, for_scope] if for_scope else [self.vm._data]
         parsed_attr = self._parse_tag_attr(attrs, scopes)
 
+        # TODO can move to Tag class
+        widget_cls = Tag.impl(tag)
         if tag == Tag.AppLayout.lower():
             kwargs = parsed_attr.get('kwargs', {})
             for child in node['body']:
                 kwargs[child.v_slot] = child
-            widget = widgets_map[tag](**kwargs)
+            widget = widget_cls(**kwargs)
         elif tag == Tag.Box.lower() or tag == Tag.HBox.lower():
-            widget = widgets_map[tag](node['body'])
+            widget = widget_cls(node['body'])
         elif tag == Tag.Template.lower():
-            widget = widgets_map[tag](node['body'])
+            widget = widget_cls(node['body'])
         else:
             raise Exception(f'error: container_tag_exit, {tag} not support.')
 
@@ -550,23 +653,8 @@ class VueTemplate(HTMLParser):
 
     def _leaf_tag_exit(self, node, for_scope: ForScope = None):
         tag = node['tag']
-        scopes = [self.vm._data]
-        if for_scope:
-            scopes.append(for_scope)
-
-        widgets_map = {
-            Tag.FloatSlider: widgets.FloatSlider,
-            Tag.Dropdown: widgets.Dropdown,
-            Tag.Button: widgets.Button,
-            Tag.Textarea: widgets.Textarea,
-            Tag.Text: widgets.Text,
-            Tag.MarkdownViewer: MarkdownViewer,
-        }
-        v_model_widget = 'value'
-        if tag == Tag.Button:
-            v_model_widget = 'description'
-
-        return self._widget_factory(widgets_map[tag], node['attrs'], scopes, v_model_widget)
+        scopes = [self.vm._data, for_scope] if for_scope else [self.vm._data]
+        return self._widget_factory(Tag.impl(tag), node['attrs'], scopes, Tag.v_model(tag))
 
     def _html_tag_enter(self, tag, attrs):
         ast_node = {'type': 'html', 'tag': tag, 'attrs': attrs, 'body': []}
@@ -843,10 +931,11 @@ def set_attr_to_scopes(scopes, exp, value, reactive=False):
 
 
 class Vue:
-    def __init__(self, options):
+    def __init__(self, options, debug=False):
         options = VueOptions(options)
         self._data = observe(options.data)
         self.debug_log = widgets.Output()
+        self.debug = debug
 
         self.dom = None
         self.options = options
@@ -859,6 +948,9 @@ class Vue:
         self.mount(self.options.el)
 
     def log(self, msg):
+        if not self.debug:
+            return
+
         with self.debug_log:
             print(msg)
 
