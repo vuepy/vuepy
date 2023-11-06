@@ -12,6 +12,12 @@ from IPython.display import clear_output
 from IPython.display import display
 
 
+def get_template_from_vue(vue_file):
+    with open(vue_file) as f:
+        str_template = re.search('<template>(.*)</template>', f.read(), flags=re.S)[1]
+    return str_template
+
+
 class DepStoreField:
     def __init__(self):
         self._deps = {}
@@ -394,7 +400,7 @@ class Directive:
     v_model = 'v-model'
     event_prefix = '@'
     single_bound_prefix = ':'
-    layout_attrs = {'width', 'height'}
+    layout_attrs = {'width', 'height', 'padding', 'border'}
 
     @classmethod
     def is_v_if(cls, attr, value):
@@ -445,6 +451,81 @@ class Directive:
     @classmethod
     def is_layout(cls, attr: str, value):
         return attr in cls.layout_attrs
+
+
+class VueComponentAst:
+    V_IF = 'v-if'
+    V_FOR = 'v-for'
+    V_SLOT = 'v-slot:'
+    V_JS_LINK = 'v-js-link'
+    V_MODEL = 'v-model'
+    EVENT_PREFIX = '@'
+    SINGLE_BOUND_PREFIX = ':'
+    LAYOUT_ATTRS = {'width', 'height', 'padding', 'border'}
+
+    def __init__(self, tag):
+        self.tag = tag
+        self.v_if = True
+        self.kwargs = {}
+        self.single_bind_var = {}
+        self.v_model_vm = None
+        self.on_event = {}
+        self.layout = {}
+        self.v_slot = None
+
+    @classmethod
+    def is_v_if(cls, attr):
+        return attr == cls.V_IF
+
+    @classmethod
+    def is_v_slot(cls, attr):
+        return attr.startswith(cls.V_SLOT)
+
+    @classmethod
+    def is_v_model(cls, attr):
+        return attr == cls.V_MODEL
+
+    @classmethod
+    def is_event(cls, attr):
+        return attr.startswith(cls.EVENT_PREFIX)
+
+    @classmethod
+    def is_single_bound(cls, attr):
+        return attr.startswith(cls.SINGLE_BOUND_PREFIX)
+
+    @classmethod
+    def is_layout(cls, attr):
+        return attr in cls.LAYOUT_ATTRS
+
+    @classmethod
+    def parse(cls, tag, attr_dict):
+        component = cls(tag)
+        for attr, value in attr_dict.items():
+            if cls.is_v_if(attr):
+                # todo
+                component.v_if = value
+            elif cls.is_single_bound(attr):
+                component.single_bind_var[attr] = value
+            elif cls.is_v_model(attr):
+                component.v_model_vm = value
+            elif cls.is_event(attr):
+                event = attr.lstrip(cls.EVENT_PREFIX)
+                func = value
+                component.on_event[event] = func
+            elif cls.is_v_slot(attr):
+                component.v_slot = value
+            elif cls.is_layout(attr):
+                component.layout[attr] = value
+            else:
+                component.kwargs[attr] = value
+
+
+class VueComponentGen:
+    pass
+
+
+class VueComponentEval:
+    pass
 
 
 class VueTemplate(HTMLParser):
@@ -516,6 +597,7 @@ class VueTemplate(HTMLParser):
                 if val == old_val:
                     return
                 setattr(widget, attr, val)
+
             return warp
 
         single_binds = parsed_attr[':']
@@ -533,6 +615,7 @@ class VueTemplate(HTMLParser):
         def handle_value_change_view_to_vm(_scopes, exp):
             def warp(change):
                 return set_attr_to_scopes(_scopes, exp, change['new'])
+
             return warp
 
         v_model_vm = parsed_attr['v_model']
@@ -739,6 +822,7 @@ class VueTemplate(HTMLParser):
                 attr_base, attr = get_base_from_scopes(scopes, exp)
                 attr_base.add_dep(attr, ListWatcher(self.vm, f'html {for_idx} {{{{ {exp} }}}}'))
                 return str(val)
+
             return warp
 
         if not self.parent_node_stack:
