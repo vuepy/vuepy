@@ -18,6 +18,10 @@ export default {
       type: String,
       default: ''
     },
+    continuous_update: {
+      type: Boolean,
+      default: false,
+    },
     disabled: {
       type: Boolean,
       default: false
