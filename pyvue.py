@@ -11,6 +11,8 @@ import markdown
 from IPython.display import clear_output
 from IPython.display import display
 
+from codegen import CodeTransformer
+
 
 def get_template_from_vue(vue_file):
     with open(vue_file) as f:
@@ -374,6 +376,11 @@ class VForStatement:
 
     @classmethod
     def parse(cls, s):
+        """
+        (i, target) in iter
+        :param s:
+        :return:
+        """
         i_target, iters = [i.strip() for i in s.split('in')]
         i_target = [i.strip() for i in i_target.strip('()').split(',')]
         if len(i_target) == 1:
@@ -390,6 +397,13 @@ class ForScope:
         self.i = i_val
         self.iter = get_attr(vm, for_stmt.iter)
         self.target = self.iter[self.i]
+
+    def to_ns(self):
+        return {
+            self.for_stmt.i: self.i,
+            self.for_stmt.target: self.target,
+            self.for_stmt.iter: self.iter,
+        }
 
 
 class Directive:
@@ -465,7 +479,7 @@ class VueComponentAst:
 
     def __init__(self, tag):
         self.tag = tag
-        self.v_if = True
+        self.v_if = ''
         self.kwargs = {}
         self.single_bind_var = {}
         self.v_model_vm = None
@@ -519,9 +533,51 @@ class VueComponentAst:
             else:
                 component.kwargs[attr] = value
 
+        return component
+
 
 class VueComponentGen:
-    pass
+    @staticmethod
+    def handle_value_change_vm_to_view(widget, attr):
+        def warp(vm, val, old_val):
+            if val == old_val:
+                return
+            setattr(widget, attr, val)
+
+        return warp
+
+    def gen(self, comp_ast: VueComponentAst, namespaces):
+        # code_obj, vars = eval(exp,
+        tr = CodeTransformer(namespaces)
+        if comp_ast.v_if:
+            v_if_ast = ast.parse(comp_ast.v_if, mode='eval')
+            v_if_deps = tr.get_deps(v_if_ast)
+            v_if_obj = compile(v_if_ast, '<exp>', 'eval')
+            v_if_val = eval(v_if_obj, {'__builtin__': None}, namespaces)
+            for var in v_if_deps:
+                ListWatcher(vm, f'')
+                attr_base, attr = get_base_from_scopes(scopes, exp)
+                attr_base.add_dep(attr, ListWatcher(self.vm, f'v_if {comp_ast.v_if}'))
+
+            if not v_if_val:
+                return
+
+        widgets_cls = Tag.impl(comp_ast.tag)
+        widget = widgets_cls(**comp_ast.kwargs)
+        if comp_ast.v_slot:
+            widget.v_slot = comp_ast.v_slot
+
+        for attr, exp in comp_ast.single_bind_var.items():
+            update_vm_to_view = self.handle_value_change_vm_to_view(widget, attr)
+            try:
+                _value = ast.literal_eval(exp)
+                update_vm_to_view(scopes, _value, None)
+            except Exception as e:
+                _value = get_attr_from_scopes(scopes, exp)
+                update_vm_to_view(scopes, _value, None)
+                Watcher(scopes, exp, update_vm_to_view)
+
+
 
 
 class VueComponentEval:

@@ -8,6 +8,7 @@ class CodeTransformer(ast.NodeTransformer):
     def __init__(self, data, methods):
         self.data = data
         self.methods = methods
+        self._deps = []
 
     def visit_Call(self, node: Call) -> Any:
         func = node.func
@@ -26,6 +27,11 @@ class CodeTransformer(ast.NodeTransformer):
             raise ValueError(f"var {node.id} is not defined")
 
         return node
+
+    def get_deps(self, code_ast):
+        self._deps = []
+        self.visit(code_ast)
+        return self._deps
 
 
 def obj_to_ns(obj):
