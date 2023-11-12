@@ -11,13 +11,13 @@
         -->
         <MarkdownViewer v-if="is_bot(msg.role)" :value="msg.content"></MarkdownViewer>
         <Textarea v-else width='450px' v-model="msg.content"></Textarea>
-        <Button width='40px' icon="edit" @click="handle_edit_msg(i)" button_style='info'></Button>
+        <Button width='40px' icon="edit" @click="handle_edit_msg" button_style='info'></Button>
         <Button width='40px' icon="minus-circle" @click="handle_del_msg(i)" button_style='danger'></Button>
       </HBox>
       <hr/>
       <Button description="Add message" button_style="info" icon="plus-circle" @click="handle_add_msg"></Button>
-      <Button description='show/edit' icon="edit" @click="handle_edit_msg(1)" button_style='info'></Button>
-      <Button description="Submit" button_style="success" @click="handle_on_submit"></Button>
+      <Button description='show/edit' icon="edit" @click="handle_edit_msg" button_style='info'></Button>
+      <Button description="Submit" button_style="success" @click="handle_on_submit()"></Button>
       <p style="background: #ffaa00" v-for="msg in messages">
         <span>model: {{ model }}, top_p: {{ top_p }} {{ msg.role }}</span>
       </p>

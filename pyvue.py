@@ -1,12 +1,13 @@
 #!coding: utf-8
+import abc
 import ast
-import functools
+import os
 import re
 import types
 from _ast import Attribute
 from collections import defaultdict
 from html.parser import HTMLParser
-from typing import SupportsIndex, Any, Dict, List
+from typing import SupportsIndex, Any, Dict
 
 import ipywidgets as widgets
 import markdown
@@ -123,15 +124,6 @@ class ReactiveList(list, Reactive):
         self._deps[0].reset_subs()
 
 
-class ListWatcher:
-    def __init__(self, vm, name):
-        self.vm = vm
-        self.name = name
-
-    def update(self):
-        self.vm.render()
-
-
 def observe(data):
     if isinstance(data, Reactive):
         data.reset_deps()
@@ -172,67 +164,74 @@ class Dep:
             self.subs[i].update()
 
 
-def get_attr_by_dot_chain(data, dot_chain):
-    attrs = dot_chain.split('.')
-    _data = data
-    for attr in attrs:
-        _data = getattr(_data, attr)
-    return _data
+class WatcherBase(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def update(self):
+        pass
 
 
-def set_attr_by_dot_chain(data, dot_chain, val):
-    attrs = dot_chain.rsplit('.', 1)
-    if len(attrs) == 1:
-        attr_set = attrs[0]
-        _data = data
-    else:
-        _attr_get, attr_set = attrs
-        _data = get_attr_by_dot_chain(data, _attr_get)
-
-    setattr(_data, attr_set, val)
-
-
-class Watcher:
-    def __init__(self, scopes, expr_or_fn, callback, options=None):
-        self.vm = scopes
-        self.cb = callback
-        self.exp = expr_or_fn
-        self.options = options
-        self.base_data, self.attr = get_base_from_scopes(scopes, expr_or_fn)
-        self.value = self.get()
-        self.base_data.add_dep(self.attr, self)
-
-    def get(self):
-        value = get_attr(self.base_data, self.attr)
-        return value
+class WatcherForRerender(WatcherBase):
+    def __init__(self, vm, name):
+        self.vm = vm
+        self.name = name
 
     def update(self):
-        self.run()
+        self.vm.render()
 
-    def run(self):
-        value = self.get()
+
+class WatcherForAttrUpdate(WatcherBase):
+    def __init__(self, ns: "VueCompNamespace", attr_chain, val_expr_or_fn, callback, options=None):
+        self.callback = callback
+        self.val_expr_or_fn = val_expr_or_fn
+        self.attr_chain = attr_chain
+        self.ns = ns
+        obj, self.attr = ns.get_obj_and_attr(attr_chain)
+        obj.add_dep(self.attr, self)
+        self.value = self.get_val()
+
+    def get_val(self):
+        if callable(self.val_expr_or_fn):
+            return self.val_expr_or_fn()
+        else:
+            return self.val_expr_or_fn.eval(self.ns)
+
+    def update(self):
+        new_val = self.get_val()
         old_val = self.value
-        if value != old_val:
-            self.value = value
-            self.cb(self.vm, value, old_val)
+        if new_val == old_val:
+            return
+
+        self.value = new_val
+        self.callback(new_val, old_val)
 
 
 class _MarkdownViewer(widgets.HTML):
-    with open('codehilite') as f:
+    codehilite = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'codehilite')
+    with open(codehilite) as f:
         css_style = ''.join(f.read())
 
-    def __init__(self, value):
-        extra = [
-            'markdown.extensions.extra',
-            'markdown.extensions.codehilite',
-            'markdown.extensions.tables',
-            # 'markdown.extensions.nl2br',
-        ]
-        html = markdown.markdown(value, extensions=extra)
-        super().__init__(f"<style>{self.css_style}</style>" + html)
+    extra = [
+        'markdown.extensions.extra',
+        'markdown.extensions.codehilite',
+        'markdown.extensions.tables',
+        # 'markdown.extensions.nl2br',
+    ]
+
+    def __init__(self, value=''):
+        super().__init__(self.render(value))
+
+    def render(self, md):
+        html = markdown.markdown(md, extensions=self.extra)
+        return f"<style>{self.css_style}</style>" + html
+
+    def __setattr__(self, key, value):
+        if key == 'value':
+            value = self.render(value)
+
+        super().__setattr__(key, value)
 
 
-class Tag:
+class VueCompTag:
     AppLayout = "AppLayout".lower()
     Box = "Box".lower()
     Button = 'Button'.lower()
@@ -395,7 +394,7 @@ class ForScope:
     def __init__(self, i_val, for_stmt: VForStatement, vm: 'Vue'):
         self.for_stmt = for_stmt
         self.i = i_val
-        self.iter = get_attr(vm, for_stmt.iter)
+        self.iter = VueCompNamespace.get_by_attr_chain(vm, for_stmt.iter)
         self.target = self.iter[self.i]
 
     def to_ns(self):
@@ -406,67 +405,6 @@ class ForScope:
         }
 
 
-class Directive:
-    v_if = 'v-if'
-    v_for = 'v-for'
-    v_slot = 'v-slot:'
-    v_js_link = 'v-js-link'
-    v_model = 'v-model'
-    event_prefix = '@'
-    single_bound_prefix = ':'
-    layout_attrs = {'width', 'height', 'padding', 'border'}
-
-    @classmethod
-    def is_v_if(cls, attr, value):
-        return attr == cls.v_if
-
-    @classmethod
-    def is_v_for(cls, attr, value):
-        if attr == cls.v_for:
-            pass
-
-    @classmethod
-    def is_v_slot(cls, attr, value):
-        if not attr.startswith(cls.v_slot):
-            return False, None
-        return True, attr.split(':')[1]
-
-    @classmethod
-    def is_v_js_link(cls, attr, value):
-        if attr == cls.v_js_link:
-            return True, None
-        return False, None
-
-    @classmethod
-    def is_v_model(cls, attr, value):
-        if attr == cls.v_model:
-            return True, value
-        return False, None
-
-    @classmethod
-    def is_event(cls, attr: str, func):
-        if not attr.startswith(cls.event_prefix):
-            return False, attr, None, None
-        event = attr.lstrip(cls.event_prefix)
-        match = re.match('(.*)\((.*)\)', func)
-        if not match:
-            return True, event, func, None
-
-        func = match[1]
-        args = [i.strip() for i in match[2].split(',')]
-        return True, event, func, args
-
-    @classmethod
-    def is_single_bound(cls, attr: str, value):
-        if attr.startswith(cls.single_bound_prefix):
-            return True, attr.lstrip(cls.single_bound_prefix)
-        return False, None
-
-    @classmethod
-    def is_layout(cls, attr: str, value):
-        return attr in cls.layout_attrs
-
-
 class VueCompExprAst:
     def __init__(self, exp_ast, vars=None):
         self.vars = vars if vars else []
@@ -475,20 +413,19 @@ class VueCompExprAst:
     def add_var(self, var):
         self.vars.append(var)
 
-    def __call__(self, ns):
-        return vue_comp_expr_eval(self.exp_ast, ns)
+    def eval(self, ns, local_vars=None):
+        return vue_comp_expr_eval(self, ns, local_vars)
 
 
 class VueCompExprParser:
     @staticmethod
-    def parse(exp_str):
+    def parse(exp_str) -> ast.Expression:
         return ast.parse(exp_str, mode='eval')
 
 
 class VueCompExprTransformer(ast.NodeTransformer):
-    def __init__(self, exp_ast):
-        self.exp_ast = exp_ast
-        self.ast = VueCompExprAst(exp_ast)
+    def __init__(self):
+        self.vars = []
         self._in_attr = False
 
     @classmethod
@@ -504,33 +441,37 @@ class VueCompExprTransformer(ast.NodeTransformer):
             return node
 
         self._in_attr = True
-        self.ast.add_var(self.get_attr_chain(node))
+        self.vars.append(self.get_attr_chain(node))
 
         self.generic_visit(node)
         self._in_attr = False
         return node
 
-    def transformer(self):
-        self.visit(self.exp_ast)
-        return self.ast
+    def transformer(self, exp_ast: ast.Expression):
+        if isinstance(exp_ast.body, ast.Name):
+            self.vars = [exp_ast.body.id]
+        else:
+            self.visit(exp_ast)
+
+        return VueCompExprAst(exp_ast, self.vars)
 
 
 def vue_comp_expr_parse(expr_str):
     _ast = VueCompExprParser.parse(expr_str)
-    transformer = VueCompExprTransformer(_ast)
-    return transformer.transformer()
+    transformer = VueCompExprTransformer()
+    return transformer.transformer(_ast)
 
 
 def vue_comp_expr_compile(expr_ast: VueCompExprAst):
     return compile(expr_ast.exp_ast, "<string>", "eval")
 
 
-def vue_comp_expr_eval(expr_ast: VueCompExprAst, ns):
+def vue_comp_expr_eval(expr_ast: VueCompExprAst, ns: "VueCompNamespace", local_vars=None):
     code_obj = expr_ast if isinstance(expr_ast, types.CodeType) else vue_comp_expr_compile(expr_ast)
-    return eval(code_obj, {"__builtin__": None}, ns)
+    return eval(code_obj, {"__builtin__": None}, ns.to_py_eval_ns(local_vars))
 
 
-class VueComponentAst:
+class VueCompAst:
     V_IF = 'v-if'
     V_FOR = 'v-for'
     V_SLOT = 'v-slot:'
@@ -579,111 +520,180 @@ class VueComponentAst:
         comp = cls(tag)
         for attr, value in attr_dict.items():
             if cls.is_v_if(attr):
-                # todo
                 comp.v_if = vue_comp_expr_parse(value)
+
             elif cls.is_single_bound(attr):
+                attr = attr.lstrip(cls.SINGLE_BOUND_PREFIX)
                 comp.v_binds[attr] = vue_comp_expr_parse(value)
+
             elif cls.is_v_model(attr):
                 comp.v_model_vm = value
+
             elif cls.is_event(attr):
                 event = attr.lstrip(cls.EVENT_PREFIX)
                 func_ast = vue_comp_expr_parse(value)
-                if isinstance(func_ast.body, (ast.Name, ast.Attribute)):
-                    func_ast = ast.Expression(
-                        ast.Call(func=func_ast.body, args=[ast.Name(id='__ev', ctx=ast.Load())]))
+                if isinstance(func_ast.exp_ast.body, (ast.Name, ast.Attribute)):
+                    exp_ast = ast.Expression(
+                        ast.Call(func=func_ast.exp_ast.body,
+                                 args=[ast.Name(id='__owner', ctx=ast.Load())],
+                                 keywords=[])
+                    )
+                    ast.fix_missing_locations(exp_ast)
+                    func_ast.exp_ast = exp_ast
+
                 comp.v_on[event] = func_ast
+
             elif cls.is_v_slot(attr):
-                comp.v_slot = value
+                comp.v_slot = attr.split(':', 1)[1]
+
             elif cls.is_layout(attr):
                 comp.layout[attr] = value
+
             else:
                 comp.kwargs[attr] = value
 
         return comp
 
 
-class Namespace:
-    def __init__(self, root, vars):
-        self.vars = vars
+class Nil:
+    pass
+
+
+class VueCompNamespace:
+    def __init__(self, root, global_vars, local_vars=None):
+        self.local_vars = local_vars or {}
+        self.global_vars = global_vars
         self.root = root
+        self.ns_list = [
+            self.local_vars,
+            self.global_vars,
+        ]
+
+    def to_py_eval_ns(self, tmp_vars=None):
+        return {
+            **self.global_vars,
+            **self.local_vars,
+            **(tmp_vars or {}),
+        }
+
+    @staticmethod
+    def _getattr(obj, attr, default=Nil):
+        if isinstance(obj, dict):
+            return obj[attr] if default is Nil else obj.get(attr, default)
+        else:
+            return getattr(obj, attr) if default is Nil else getattr(obj, attr, default)
+
+    @classmethod
+    def get_by_attr_chain(cls, obj, attr_chain, default=Nil):
+        for attr in attr_chain.split('.'):
+            obj = cls._getattr(obj, attr, Nil)
+            if obj is Nil:
+                break
+        else:
+            return obj
+
+        raise Exception(f"get attr {attr_chain} from ns failed")
+
+    def get_obj_and_attr(self, attr_chain):
+        obj_attr_tuple = attr_chain.rsplit('.', 1)
+        for ns in self.ns_list:
+            if len(obj_attr_tuple) == 1:
+                if attr_chain not in ns:
+                    continue
+                else:
+                    return self.root, attr_chain
+
+            obj_attr_chain, attr = obj_attr_tuple
+            obj = self.get_by_attr_chain(ns, obj_attr_chain)
+            if obj is not Nil:
+                return obj, attr
+
+        raise Exception(f"get attr {attr_chain} from ns failed")
+
+    def getattr(self, attr_chain, default=Nil):
+        obj, attr = self.get_obj_and_attr(attr_chain)
+        return self._getattr(obj, attr)
 
 
-class VueComponentCodeGen:
+class VueCompCodeGen:
     @staticmethod
     def handle_value_change_vm_to_view(widget, attr):
-        def warp(vm, val, old_val):
+        def warp(val, old_val):
             if val == old_val:
                 return
             setattr(widget, attr, val)
-
         return warp
 
-    def gen(self, comp_ast: VueComponentAst, vm, ns):
-        def getattr_chain(ns: Namespace, attr_chain):
-            return _get_attr(ns, attr_chain)
-
-        def get_obj_and_attr(attr_chain, ns: Namespace):
-            if isinstance(ns, List):
-                for _ns in ns[::-1]:
-                    obj, attr = get_obj_and_attr(attr_chain, _ns)
-                    if obj:
-                        return obj, attr
-                raise Exception("get obj and attr failed")
-
-            obj_attr_tuple = attr_chain.rsplit('.', 1)
-            if len(obj_attr_tuple) == 1:
-                return ns.root, attr_chain
-
-            obj_attr_chain, attr = obj_attr_tuple
-            return getattr_chain(ns, obj_attr_chain), attr
-
+    @classmethod
+    def gen(cls, comp_ast: VueCompAst, vm: 'Vue', ns: VueCompNamespace):
         # v-if
         if comp_ast.v_if:
-            for attr in comp_ast.v_if.vars:
-                obj, attr = get_obj_and_attr(attr, ns)
-                obj.add_dep(attr, ListWatcher(vm, f'v_if {comp_ast.v_if}'))
+            for attr_chain in comp_ast.v_if.vars:
+                obj, attr = ns.get_obj_and_attr(attr_chain)
+                obj.add_dep(attr, WatcherForRerender(vm, f'v_if {comp_ast.v_if}'))
 
-            if not comp_ast.v_if(ns):
-                return
+            if not comp_ast.v_if.eval(ns):
+                return widgets.HTML("")
 
-        widgets_cls = Tag.impl(comp_ast.tag)
+        widgets_cls = VueCompTag.impl(comp_ast.tag)
         widget = widgets_cls(**comp_ast.kwargs)
         # v-slot
         if comp_ast.v_slot:
             widget.v_slot = comp_ast.v_slot
 
         # v-bind:
-        for attr, exp_ast in comp_ast.v_binds.items():
-            update_vm_to_view = self.handle_value_change_vm_to_view(widget, attr)
-            _value = exp_ast(ns)
-            update_vm_to_view(None, _value, None)
-            if exp_ast.vars:
-                # TODO watcher 重写
-                Watcher(ns, exp_ast, update_vm_to_view)
+        for widget_attr, exp_ast in comp_ast.v_binds.items():
+            update_vm_to_view = cls.handle_value_change_vm_to_view(widget, widget_attr)
+            _value = exp_ast.eval(ns)
+            update_vm_to_view(_value, None)
+            for attr_chain in exp_ast.vars:
+                WatcherForAttrUpdate(ns, attr_chain, exp_ast, update_vm_to_view)
 
         # v-model:widget=vm
         if comp_ast.v_model_vm:
             vm_attr = comp_ast.v_model_vm
-            obj, attr = get_obj_and_attr(vm_attr, ns)
+            obj, attr = ns.get_obj_and_attr(vm_attr)
             # vm to view
-            widget_attr = Tag.v_model(comp_ast.tag)
-            update_vm_to_view = self.handle_value_change_vm_to_view(widget, widget_attr)
-            _value = getattr(obj, attr)
-            update_vm_to_view(None, _value, None)
-            Watcher(ns, vm_attr, update_vm_to_view)
+            widget_attr = VueCompTag.v_model(comp_ast.tag)
+            update_vm_to_view = cls.handle_value_change_vm_to_view(widget, widget_attr)
+            _value = ns.getattr(vm_attr)
+            update_vm_to_view(_value, None)
+            WatcherForAttrUpdate(ns, vm_attr, lambda: ns.getattr(vm_attr), update_vm_to_view)
+
             # view to vm
             def handle_value_change_view_to_vm(obj, attr):
                 def warp(change):
                     return setattr(obj, attr, change['new'])
+
                 return warp
-            update_view_to_vm = handle_value_change_view_to_vm(obj, vm_attr)
+
+            update_view_to_vm = handle_value_change_view_to_vm(obj, attr)
             widget.observe(update_view_to_vm, names=f'{widget_attr}')
 
         # v-on
-        for ev, func_ast in comp_ast.v_on:
-            getattr(widget, f"on_{ev}")(lambda e: func_ast({'__ev': e, **ns}))
+        for ev, func_ast in comp_ast.v_on.items():
+            getattr(widget, f"on_{ev}")(lambda owner: func_ast.eval(ns, {'__owner': owner}))
 
         return widget
+
+
+class VueCompHtmlTemplateRender:
+    @staticmethod
+    def replace(vm: "Vue", ns: VueCompNamespace, for_idx):
+        def warp(match):
+            exp = match.group(1)
+            exp_ast = vue_comp_expr_parse(exp)
+            for attr_chain in exp_ast.vars:
+                obj, attr = ns.get_obj_and_attr(attr_chain)
+                obj.add_dep(attr, WatcherForRerender(vm, f'html {for_idx} attr {attr} {{{{ {exp} }}}}'))
+            return str(exp_ast.eval(ns))
+        return warp
+
+    @classmethod
+    def render(cls, template, vm: 'Vue', ns: VueCompNamespace, for_idx=-1):
+        exp_pattern = r"\{\{\s*(.*?)\s*\}\}"
+        result = re.sub(exp_pattern, cls.replace(vm, ns, for_idx), template)
+        return result
 
 
 class VueTemplate(HTMLParser):
@@ -717,146 +727,24 @@ class VueTemplate(HTMLParser):
         pass
 
     def _gen_ast_node(self, tag, attrs, for_scope=None):
-        if Tag.is_container(tag):
+        if VueCompTag.is_container(tag):
             node = self._container_tag_enter(tag, attrs, for_scope)
-        elif Tag.is_leaf(tag):
+        elif VueCompTag.is_leaf(tag):
             node = self._leaf_tag_enter(tag, attrs, for_scope)
         else:
             node = self._html_tag_enter(tag, attrs)
-            # raise Exception(f"tag '{tag}' not support.")
         return node
 
     def _gen_widget(self, node, for_scope=None):
         tag = node['tag']
-        if Tag.is_container(tag):
+        if VueCompTag.is_container(tag):
             widget = self._container_tag_exit(node, for_scope)
-        elif Tag.is_leaf(tag):
+        elif VueCompTag.is_leaf(tag):
             widget = self._leaf_tag_exit(node, for_scope)
         else:
             widget = self._html_tag_exit(node, for_scope)
 
         return widget
-
-    def _widget_factory(self, widget_cls, attrs, scopes, v_model_widget='value'):
-        parsed_attr = self._parse_tag_attr(attrs, scopes, v_model_widget)
-        if not parsed_attr['v_if']:
-            return None
-
-        # compile node
-        kwargs = parsed_attr['kwargs']
-        v_slot = parsed_attr['v_slot']
-        widget = widget_cls(**kwargs)
-        if v_slot:
-            widget.v_slot = v_slot
-
-        # compile :attr=exp
-        def handle_value_change_vm_to_view(widget, attr):
-            def warp(vm, val, old_val):
-                if val == old_val:
-                    return
-                setattr(widget, attr, val)
-
-            return warp
-
-        single_binds = parsed_attr[':']
-        for attr, exp in single_binds.items():
-            update_vm_to_view = handle_value_change_vm_to_view(widget, attr)
-            try:
-                _value = ast.literal_eval(exp)
-                update_vm_to_view(scopes, _value, None)
-            except Exception as e:
-                _value = get_attr_from_scopes(scopes, exp)
-                update_vm_to_view(scopes, _value, None)
-                Watcher(scopes, exp, update_vm_to_view)
-
-        # compile v-model
-        def handle_value_change_view_to_vm(_scopes, exp):
-            def warp(change):
-                return set_attr_to_scopes(_scopes, exp, change['new'])
-
-            return warp
-
-        v_model_vm = parsed_attr['v_model']
-        if v_model_vm:
-            # print(f">> register observe {widget_cls} {v_model_widget} -> {v_model_vm}")
-            update_view_to_vm = handle_value_change_view_to_vm(scopes, v_model_vm)
-            widget.observe(update_view_to_vm, names=f'{v_model_widget}')
-            _value = get_attr_from_scopes(scopes, v_model_vm)
-            update_vm_to_view = handle_value_change_vm_to_view(widget, v_model_widget)
-            update_vm_to_view(scopes, _value, None)
-            Watcher(scopes, v_model_vm, update_vm_to_view)
-
-        # compile @event
-        on_event = parsed_attr['on_events']
-        for _event, (func_name, args_name) in on_event.items():
-            func = getattr(self.vm.methods, func_name)
-            if args_name:
-                args = []
-                for arg_name in args_name:
-                    if arg_name[0].isalpha() or arg_name[0] == '_':
-                        arg = get_attr_from_scopes(scopes, arg_name)
-                    else:
-                        arg = ast.literal_eval(arg_name)
-                    args.append(arg)
-                func = functools.partial(func, *args)
-            getattr(widget, f'on_{_event}')(func)
-
-        return widget
-
-    def _parse_tag_attr(self, attrs, scopes, v_model_widget='value'):
-        kwargs = {}
-        on_event = {}
-        single_bind = {}
-        v_model_vm = None
-        v_slot = None
-        v_if = True
-        layout = {}
-
-        for attr, value in attrs.items():
-            ok = Directive.is_v_if(attr, value)
-            if ok:
-                # Todo
-                v_if = False
-                continue
-            # :attr=value
-            ok, var = Directive.is_single_bound(attr, value)
-            if ok:
-                single_bind[var] = value
-                continue
-            # v-model
-            ok, model_vm = Directive.is_v_model(attr, value)
-            if ok:
-                v_model_vm = model_vm
-                continue
-            # @click
-            ok, event, func, args = Directive.is_event(attr, value)
-            if ok:
-                on_event[event] = (func, args)
-                continue
-            # TODO 去除不需要的参数
-            ok, slot = Directive.is_v_slot(attr, value)
-            if ok:
-                v_slot = slot
-                continue
-
-            ok = Directive.is_layout(attr, value)
-            if ok:
-                layout[attr] = value
-                continue
-
-            kwargs[attr] = value
-
-        if layout:
-            kwargs['layout'] = layout
-
-        return {
-            'v_if': v_if,
-            ':': single_bind,
-            'kwargs': kwargs,
-            'on_events': on_event,
-            'v_model': v_model_vm,
-            'v_slot': v_slot,
-        }
 
     def _container_tag_enter(self, tag, attrs, for_scope=None):
         ast_node = {"tag": tag, 'attrs': attrs, 'body': []}
@@ -864,27 +752,27 @@ class VueTemplate(HTMLParser):
 
     def _container_tag_exit(self, node, for_scope=None):
         tag = node['tag']
-        attrs = node['attrs']
-        scopes = [self.vm._data, for_scope] if for_scope else [self.vm._data]
-        parsed_attr = self._parse_tag_attr(attrs, scopes)
+        comp_ast = VueCompAst.parse(tag, node['attrs'])
 
         # TODO can move to Tag class
-        widget_cls = Tag.impl(tag)
-        if tag == Tag.AppLayout.lower():
-            kwargs = parsed_attr.get('kwargs', {})
+        widget_cls = VueCompTag.impl(tag)
+        if tag == VueCompTag.AppLayout.lower():
+            kwargs = comp_ast.kwargs
             for child in node['body']:
                 kwargs[child.v_slot] = child
             widget = widget_cls(**kwargs)
-        elif tag == Tag.Box.lower() or tag == Tag.HBox.lower():
+
+        elif tag == VueCompTag.Box.lower() or tag == VueCompTag.HBox.lower():
             widget = widget_cls(node['body'])
-        elif tag == Tag.Template.lower():
+
+        elif tag == VueCompTag.Template.lower():
             widget = widget_cls(node['body'])
+
         else:
             raise Exception(f'error: container_tag_exit, {tag} not support.')
 
-        v_slot = parsed_attr.get('v_slot')
-        if v_slot:
-            widget.v_slot = v_slot
+        if comp_ast.v_slot:
+            widget.v_slot = comp_ast.v_slot
 
         return widget
 
@@ -893,9 +781,11 @@ class VueTemplate(HTMLParser):
         return ast_node
 
     def _leaf_tag_exit(self, node, for_scope: ForScope = None):
-        tag = node['tag']
-        scopes = [self.vm._data, for_scope] if for_scope else [self.vm._data]
-        return self._widget_factory(Tag.impl(tag), node['attrs'], scopes, Tag.v_model(tag))
+        comp_ast = VueCompAst.parse(node['tag'], node['attrs'])
+        local = for_scope.to_ns() if for_scope else None
+        ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local)
+        widget = VueCompCodeGen.gen(comp_ast, self.vm, ns)
+        return widget
 
     def _html_tag_enter(self, tag, attrs):
         ast_node = {'type': 'html', 'tag': tag, 'attrs': attrs, 'body': []}
@@ -949,18 +839,19 @@ class VueTemplate(HTMLParser):
 
         # todo 加到v-for的解析处
         if not is_body:
-            list_base_dict, attr = get_base_from_scopes([self.vm._data], v_for_stmt.iter)
+            ns = VueCompNamespace(self.vm._data, self.vm.to_ns())
+            list_base_root, attr = ns.get_obj_and_attr(v_for_stmt.iter)
             # 处理list被整个替换的情况
-            list_base_dict.add_dep(attr, ListWatcher(self.vm, f"{attr}: {v_for_stmt.iter} replace"))
+            list_base_root.add_dep(attr, WatcherForRerender(self.vm, f"{attr}: {v_for_stmt.iter} replace"))
             # 处理list本身的变化，append、pop等操作
-            list_base = get_attr(list_base_dict, attr)
-            list_base.add_dep(ListWatcher(self.vm, f"{v_for_stmt.iter} modified"))
+            list_base = ns.getattr(v_for_stmt.iter)
+            list_base.add_dep(WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified"))
 
         return _widgets
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
-        v_for_stmt = attrs.pop(Directive.v_for, None)
+        v_for_stmt = attrs.pop(VueCompAst.V_FOR, None)
         if v_for_stmt or self.v_for_stack:
             is_header = bool(v_for_stmt)
             if is_header:
@@ -973,36 +864,26 @@ class VueTemplate(HTMLParser):
         self.parent_node_stack.append(node)
 
     def handle_data(self, data: str) -> None:
-        def update_text(scopes, for_idx):
-            def warp(match):
-                exp = match.group(1)
-                val = get_attr_from_scopes(scopes, exp)
-                attr_base, attr = get_base_from_scopes(scopes, exp)
-                attr_base.add_dep(attr, ListWatcher(self.vm, f'html {for_idx} {{{{ {exp} }}}}'))
-                return str(val)
-
-            return warp
-
         if not self.parent_node_stack:
             return
 
         parent = self.parent_node_stack[-1]
-        exp_pattern = r"\{\{\s*(.*?)\s*\}\}"
         if not self.is_in_for_stmt:
-            if parent.get('type') == 'html':
-                scopes = [self.vm._data]
-                result = re.sub(exp_pattern, update_text(scopes, -1), data)
-                parent['body'].append(result)
-            return
+            if parent.get('type') != 'html':
+                return
+
+            ns = VueCompNamespace(self.vm._data, self.vm.to_ns())
+            result = VueCompHtmlTemplateRender.render(data, self.vm, ns, -1)
+            parent['body'].append(result)
 
         # TODO node的类型判断可以优化
-        if parent['body'] and parent['body'][0].get('type') == 'html':
+        elif parent['body'] and parent['body'][0].get('type') == 'html':
             v_for_stmt = self.v_for_stack[-1]
             _iter = getattr(self.vm, v_for_stmt.iter)
             for i, target in enumerate(_iter):
                 for_scope = ForScope(i, v_for_stmt, self.vm)
-                scopes = [self.vm._data, for_scope]
-                result = re.sub(exp_pattern, update_text(scopes, i), data)
+                ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), for_scope.to_ns())
+                result = VueCompHtmlTemplateRender.render(data, self.vm, ns, i)
                 parent['body'][i]['body'].append(result)
 
     def handle_endtag(self, tag):
@@ -1049,129 +930,6 @@ class VueOptions:
         self.render = options.get('render')
 
 
-def _get_attr(scope, exp, default=None):
-    attr_chain = exp.split('.')
-    data = scope
-    for attr in attr_chain:
-        # TODO 可以用自定义的Nil替代，区分值为None的情况
-        if isinstance(data, dict):
-            data = data.get(attr, default)
-        else:
-            data = getattr(data, attr, default)
-    return data
-
-
-def get_attr_from_for_scope(scope: 'ForScope', exp: str, default=None):
-    attr_split = exp.split('.', 1)
-    if len(attr_split) == 1:
-        attr_base, attrs = exp, ''
-    else:
-        attr_base, attrs = attr_split
-
-    if attr_base == scope.for_stmt.iter:
-        data_base = scope.iter
-    elif attr_base == scope.for_stmt.target:
-        data_base = scope.target
-    elif attr_base == scope.for_stmt.i:
-        return scope.i
-    else:
-        raise Exception(f"get {exp} from {scope} failed")
-
-    if attrs:
-        data = _get_attr(data_base, attrs, default)
-    else:
-        data = data_base
-    return data
-
-
-def get_attr(scope, exp, default=None):
-    if isinstance(scope, ForScope):
-        return get_attr_from_for_scope(scope, exp, default)
-    return _get_attr(scope, exp, default)
-
-
-def set_attr(scope, exp: str, value, reactive=False):
-    attrs = exp.rsplit('.', 1)
-    if len(attrs) == 1:
-        attr_set = attrs[0]
-        data = scope
-    else:
-        _attr_get, attr_set = attrs
-        data = get_attr(scope, _attr_get)
-
-    if data is None:
-        return False
-
-    if reactive:
-        setattr(data, attr_set, value)
-    else:
-        if isinstance(data, Vue):
-            data._data[attr_set] = value
-        else:
-            data[attr_set] = value
-
-    return True
-
-
-def get_base_from_scope(scope, exp):
-    attrs = exp.rsplit('.', 1)
-    if len(attrs) == 1:
-        return scope, exp
-    else:
-        attr_base, attr = attrs
-        return _get_attr(scope, attr_base), attr
-
-
-def get_base_from_for_scope(scope: 'ForScope', exp):
-    attr_split = exp.split('.', 1)
-    if len(attr_split) == 1:
-        attr_base, attrs = exp, ''
-    else:
-        attr_base, attrs = attr_split
-
-    if attr_base == scope.for_stmt.target:
-        data_base = scope.target
-    else:
-        raise Exception(f"get base {exp} from {scope} failed")
-
-    if attrs:
-        return get_base_from_scope(data_base, attrs)
-    else:
-        raise Exception(f"get base {exp} from {scope} failed")
-
-
-def get_base_from_scopes(scopes, exp):
-    for scope in scopes[::-1]:
-        try:
-            if isinstance(scope, ForScope):
-                return get_base_from_for_scope(scope, exp)
-            else:
-                return get_base_from_scope(scope, exp)
-        except Exception:
-            pass
-    else:
-        raise Exception(f"get base {exp} from {scopes} failed")
-
-
-def get_attr_from_scopes(scopes, exp):
-    for scope in scopes[::-1]:
-        try:
-            data = get_attr(scope, exp)
-            if data is not None:
-                return data
-        except Exception:
-            pass
-    else:
-        raise Exception(f"get attr {exp} from {scopes} failed")
-
-
-def set_attr_to_scopes(scopes, exp, value, reactive=False):
-    for scope in scopes[::-1]:
-        if set_attr(scope, exp, value, reactive):
-            return True
-    return False
-
-
 class Vue:
     def __init__(self, options, debug=False):
         options = VueOptions(options)
@@ -1188,6 +946,16 @@ class Vue:
         self._proxy_methods()
 
         self.mount(self.options.el)
+
+    def to_ns(self):
+        methods = {
+            m: getattr(self.methods, m)
+            for m in dir(self.methods) if not m.startswith('_')
+        }
+        return {
+            **methods,
+            **self._data,
+        }
 
     def log(self, msg):
         if not self.debug:
