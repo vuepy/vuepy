@@ -5,6 +5,11 @@
       <FloatSlider v-model="top_p" description="top_p" min=0 max=1 step=0.01 :continuous_update=False></FloatSlider>
     </template>
     <template v-slot:center>
+      <Dropdown :options="attr_options" v-model="option" description="options" width="200px"></Dropdown>
+      <HBox v-for="(i, n) in option.in">
+        <span>{{ n }}</span>
+      </HBox>
+
       <HBox v-for="(i, msg) in messages">
         <Button width='60px' v-model="msg.role" @click="handle_change_role"></Button>
         <!--
@@ -35,6 +40,19 @@ import Button from './Button'
 import HBox from './HBox'
 import MarkdownViewer from "./MarkdownViewer";
 
+
+const attr_chain_list = [
+  ('op1', {
+    'name': 'l1',
+    'in': [1, 2, 4],
+  }),
+  ('op2', {
+    'name': 'l2',
+    'in': [5, 6, 7],
+  }),
+]
+
+
 export default {
   name: 'app',
   components: { AppLayout, FloatSlider, Box, Dropdown, Textarea, Button, HBox, MarkdownViewer},
@@ -42,6 +60,10 @@ export default {
     return {
       False: false,
       True: true,
+
+      attr_options: attr_chain_list,
+      option: attr_chain_list[0][1],
+
       top_p: 1,
       models: [],
       model: 'llama',

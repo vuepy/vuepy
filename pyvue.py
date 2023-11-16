@@ -380,7 +380,7 @@ class VForStatement:
         :param s:
         :return:
         """
-        i_target, iters = [i.strip() for i in s.split('in')]
+        i_target, iters = [i.strip() for i in s.split(' in ')]
         i_target = [i.strip() for i in i_target.strip('()').split(',')]
         if len(i_target) == 1:
             i, target = None, i_target[0]
@@ -597,6 +597,9 @@ class VueCompNamespace:
     def get_obj_and_attr(self, attr_chain):
         obj_attr_tuple = attr_chain.rsplit('.', 1)
         for ns in self.ns_list:
+            if not ns:
+                continue
+
             if len(obj_attr_tuple) == 1:
                 if attr_chain not in ns:
                     continue
@@ -647,7 +650,11 @@ class VueCompCodeGen:
             _value = exp_ast.eval(ns)
             update_vm_to_view(_value, None)
             for attr_chain in exp_ast.vars:
-                WatcherForAttrUpdate(ns, attr_chain, exp_ast, update_vm_to_view)
+                attr_chain_prev = attr_chain
+                while attr_chain_prev != attr_chain:
+                    WatcherForAttrUpdate(ns, attr_chain, exp_ast, update_vm_to_view)
+                    attr_chain_prev = attr_chain
+                    attr_chain = attr_chain.rsplit('.', 1)[0]
 
         # v-model:widget=vm
         if comp_ast.v_model_vm:
@@ -683,9 +690,14 @@ class VueCompHtmlTemplateRender:
         def warp(match):
             exp = match.group(1)
             exp_ast = vue_comp_expr_parse(exp)
+            # TODO html可以设置value，按需更新
             for attr_chain in exp_ast.vars:
-                obj, attr = ns.get_obj_and_attr(attr_chain)
-                obj.add_dep(attr, WatcherForRerender(vm, f'html {for_idx} attr {attr} {{{{ {exp} }}}}'))
+                attr_chain_prev = ''
+                while attr_chain_prev != attr_chain:
+                    obj, attr = ns.get_obj_and_attr(attr_chain)
+                    obj.add_dep(attr, WatcherForRerender(vm, f'html {for_idx} attr {attr} {{{{ {exp} }}}}'))
+                    attr_chain_prev = attr_chain
+                    attr_chain = attr_chain.rsplit('.', 1)[0]
             return str(exp_ast.eval(ns))
         return warp
 
@@ -806,7 +818,8 @@ class VueTemplate(HTMLParser):
 
     def _for_stmt_enter(self, for_stmt: VForStatement, tag, attrs, is_body):
         body = []
-        for i, target in enumerate(getattr(self.vm, for_stmt.iter)):
+        _iter = VueCompNamespace.get_by_attr_chain(self.vm._data, for_stmt.iter)
+        for i, target in enumerate(_iter):
             for_scope = (i, target)
             body.append(self._gen_ast_node(tag, attrs, for_scope))
 
@@ -828,7 +841,7 @@ class VueTemplate(HTMLParser):
         _widgets = []
         # v_for_stmt = v_for_ast_node['v_for']
         v_for_stmt = self.v_for_stack[-1]
-        _iter = getattr(self.vm, v_for_stmt.iter)
+        _iter = VueCompNamespace.get_by_attr_chain(self.vm._data, v_for_stmt.iter)
         for i, target in enumerate(_iter):
             # for_scope = (v_for_stmt.i, i, v_for_stmt.target, target, v_for_stmt.target)
             for_scope = ForScope(i, v_for_stmt, self.vm)
@@ -842,10 +855,16 @@ class VueTemplate(HTMLParser):
             ns = VueCompNamespace(self.vm._data, self.vm.to_ns())
             list_base_root, attr = ns.get_obj_and_attr(v_for_stmt.iter)
             # 处理list被整个替换的情况
-            list_base_root.add_dep(attr, WatcherForRerender(self.vm, f"{attr}: {v_for_stmt.iter} replace"))
+            attr_chain = v_for_stmt.iter
+            attr_chain_prev = ''
+            while attr_chain_prev != attr_chain:
+                obj, attr = ns.get_obj_and_attr(attr_chain)
+                obj.add_dep(attr, WatcherForRerender(self.vm, f"{attr}: {v_for_stmt.iter} replace"))
+                attr_chain_prev = attr_chain
+                attr_chain = attr_chain.rsplit('.', 1)[0]
             # 处理list本身的变化，append、pop等操作
-            list_base = ns.getattr(v_for_stmt.iter)
-            list_base.add_dep(WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified"))
+            obj_iter = ns.getattr(v_for_stmt.iter)
+            obj_iter.add_dep(WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified"))
 
         return _widgets
 
@@ -879,7 +898,7 @@ class VueTemplate(HTMLParser):
         # TODO node的类型判断可以优化
         elif parent['body'] and parent['body'][0].get('type') == 'html':
             v_for_stmt = self.v_for_stack[-1]
-            _iter = getattr(self.vm, v_for_stmt.iter)
+            _iter = VueCompNamespace.get_by_attr_chain(self.vm._data, v_for_stmt.iter)
             for i, target in enumerate(_iter):
                 for_scope = ForScope(i, v_for_stmt, self.vm)
                 ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), for_scope.to_ns())
