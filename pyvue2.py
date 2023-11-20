@@ -7,7 +7,7 @@ import types
 from _ast import Attribute
 from collections import defaultdict
 from html.parser import HTMLParser
-from typing import SupportsIndex, Any, Dict, List
+from typing import SupportsIndex, Any, Dict
 
 import ipywidgets as widgets
 import markdown
@@ -21,52 +21,24 @@ def get_template_from_vue(vue_file):
     return str_template
 
 
-class WatcherBase(metaclass=abc.ABCMeta):
-    @abc.abstractmethod
-    def update(self):
-        # effect when_deps_change(update) ?
-        pass
-
-
-class Dep:
-    def __init__(self):
-        self.subs: List[WatcherBase] = []
-
-    def add_sub(self, sub):
-        if sub in self.subs:
-            return
-
-        self.subs.append(sub)
-
-    def reset_subs(self):
-        self.subs.clear()
-
-    def notify(self):
-        # sub_count = len(self.subs)
-        # for i in range(sub_count):
-        #     self.subs[i].update()
-        for sub in self.subs:
-            sub.update()
-
-
 class DepStoreField:
     def __init__(self):
-        self._deps: Dict[int, Dict[str, Dep]] = {}
+        self._deps = {}
 
     def __get__(self, instance, owner):
-        instance_id = id(instance)
-        if instance_id not in self._deps:
-            self._deps[instance_id] = defaultdict(Dep)
+        _id = id(instance)
+        if _id not in self._deps:
+            self._deps[_id] = defaultdict(Dep)
 
-        return self._deps[instance_id]
+        return self._deps[_id]
 
     def __set__(self, instance, new_value):
         pass
 
     def __delete__(self, instance):
-        instance_id = id(instance)
-        if instance_id in self._deps:
-            del self._deps[instance_id]
+        _id = id(instance)
+        if _id in self._deps:
+            del self._deps[_id]
 
 
 class Reactive:
@@ -84,20 +56,11 @@ class ReactiveDict(dict, Reactive):
         super().__init__(*args, **kwargs)
 
     def __getitem__(self, attr):
-        # function track(target, key) {
-        #   if (activeEffect) {
-        #     const effects = getSubscribersForProperty(target, key)
-        #     effects.add(activeEffect)
-        #   }
-        # }
         return super().__getitem__(attr)
 
     def __setitem__(self, attr, value):
         super().__setitem__(attr, value)
-        # function trigger(target, key) {
-        #   const effects = getSubscribersForProperty(target, key)
-        #   effects.forEach((effect) => effect())
-        # }
+
         self._deps[attr].notify()
 
     def __getattr__(self, attr):
@@ -180,30 +143,31 @@ def observe(data):
     return data
 
 
-class VueRef(Reactive):
-    def __init__(self, value):
-        super().__init__()
-        self._value = value
+class Dep:
+    target = None
 
-    @property
-    def value(self):
-        return self._value
+    def __init__(self):
+        self.subs = []
 
-    @value.setter
-    def value(self, new_value):
-        self._value = new_value
-        self._deps['value'].notify()
+    def add_sub(self, sub):
+        if sub in self.subs:
+            return
 
-    def add_dep(self, sub):
-        self._deps['value'].add_sub(sub)
+        self.subs.append(sub)
+
+    def reset_subs(self):
+        self.subs.clear()
+
+    def notify(self):
+        sub_count = len(self.subs)
+        for i in range(sub_count):
+            self.subs[i].update()
 
 
-def ref(value):
-    return VueRef(value)
-
-
-def reactive(obj):
-    return observe(obj)
+class WatcherBase(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def update(self):
+        pass
 
 
 class WatcherForRerender(WatcherBase):
@@ -974,7 +938,6 @@ class VueOptions:
     def __init__(self, options):
         self.el = options.get('el')
         self.data = options.get('data')
-        self.setup = options.get('setup')
         self.methods = options.get('methods', {})
         self.template = options.get('template')
 
@@ -990,8 +953,7 @@ class VueOptions:
 class Vue:
     def __init__(self, options, debug=False):
         options = VueOptions(options)
-        # self._data = observe(options.data)
-        self._data = options.setup(None, None, self)
+        self._data = observe(options.data)
         self.debug_log = widgets.Output()
         self.debug = debug
 
@@ -1007,8 +969,8 @@ class Vue:
 
     def to_ns(self):
         methods = {
-            # m: getattr(self.methods, m)
-            # for m in dir(self.methods) if not m.startswith('_')
+            m: getattr(self.methods, m)
+            for m in dir(self.methods) if not m.startswith('_')
         }
         return {
             **methods,
