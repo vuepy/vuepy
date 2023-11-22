@@ -253,8 +253,8 @@ class _MarkdownViewer(widgets.HTML):
         # 'markdown.extensions.nl2br',
     ]
 
-    def __init__(self, value=''):
-        super().__init__(self.render(value))
+    def __init__(self, value='', **kwargs):
+        super().__init__(self.render(value), **kwargs)
 
     def render(self, md):
         html = markdown.markdown(md, extensions=self.extra)
@@ -588,6 +588,9 @@ class VueCompAst:
             else:
                 comp.kwargs[attr] = value
 
+        if comp.layout:
+            comp.kwargs['layout'] = comp.layout
+
         return comp
 
 
@@ -686,7 +689,7 @@ class VueCompCodeGen:
             _value = exp_ast.eval(ns)
             update_vm_to_view(_value, None)
             for attr_chain in exp_ast.vars:
-                attr_chain_prev = attr_chain
+                attr_chain_prev = None
                 while attr_chain_prev != attr_chain:
                     WatcherForAttrUpdate(ns, attr_chain, exp_ast, update_vm_to_view)
                     attr_chain_prev = attr_chain
