@@ -653,8 +653,7 @@ class VueCompNamespace:
         raise Exception(f"get attr {attr_chain} from ns failed")
 
     def getattr(self, attr_chain, default=Nil):
-        obj, attr = self.get_obj_and_attr(attr_chain)
-        return self._getattr(obj, attr)
+        return self.get_by_attr_chain(self.to_py_eval_ns(), attr_chain, default)
 
 
 class VueCompCodeGen:
