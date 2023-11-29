@@ -50,8 +50,14 @@ class Dep:
 
 
 class DepStoreField:
+    _deps: Dict[int, Dict[str, Dep]] = {}
+
     def __init__(self):
-        self._deps: Dict[int, Dict[str, Dep]] = {}
+        pass
+
+    @classmethod
+    def reset(cls):
+        cls._deps = {}
 
     def __get__(self, instance, owner):
         instance_id = id(instance)
@@ -216,13 +222,10 @@ class WatcherForRerender(WatcherBase):
 
 
 class WatcherForAttrUpdate(WatcherBase):
-    def __init__(self, ns: "VueCompNamespace", attr_chain, val_expr_or_fn, callback, options=None):
+    def __init__(self, ns: "VueCompNamespace", val_expr_or_fn, callback, options=None):
         self.callback = callback
         self.val_expr_or_fn = val_expr_or_fn
-        self.attr_chain = attr_chain
         self.ns = ns
-        obj, self.attr = ns.get_obj_and_attr(attr_chain)
-        obj.add_dep(self.attr, self)
         self.value = self.get_val()
 
     def get_val(self):
@@ -670,8 +673,18 @@ class VueCompCodeGen:
         # v-if
         if comp_ast.v_if:
             for attr_chain in comp_ast.v_if.vars:
-                obj, attr = ns.get_obj_and_attr(attr_chain)
-                obj.add_dep(attr, WatcherForRerender(vm, f'v_if {comp_ast.v_if}'))
+                _attrs = attr_chain.split('.')
+                if len(_attrs) == 1:
+                    continue
+                base_attr, attrs = _attrs[0], _attrs[1:]
+                obj = ns.getattr(base_attr)
+                watcher = WatcherForRerender(vm, f'v_if {comp_ast.v_if}')
+                for attr in attrs:
+                    if isinstance(obj, VueRef):
+                        obj.add_dep(watcher)
+                    elif isinstance(obj, Reactive):
+                        obj.add_dep(attr, watcher)
+                    obj = VueCompNamespace.get_by_attr_chain(obj, attr)
 
             if not comp_ast.v_if.eval(ns):
                 return widgets.HTML("")
@@ -688,22 +701,39 @@ class VueCompCodeGen:
             _value = exp_ast.eval(ns)
             update_vm_to_view(_value, None)
             for attr_chain in exp_ast.vars:
-                attr_chain_prev = None
-                while attr_chain_prev != attr_chain:
-                    WatcherForAttrUpdate(ns, attr_chain, exp_ast, update_vm_to_view)
-                    attr_chain_prev = attr_chain
-                    attr_chain = attr_chain.rsplit('.', 1)[0]
+                _attrs = attr_chain.split('.')
+                if len(_attrs) == 1:
+                    continue
+                base_attr, attrs = _attrs[0], _attrs[1:]
+                obj = ns.getattr(base_attr)
+                watcher = WatcherForAttrUpdate(ns, exp_ast, update_vm_to_view)
+                for attr in attrs:
+                    if isinstance(obj, VueRef):
+                        obj.add_dep(watcher)
+                    elif isinstance(obj, Reactive):
+                        obj.add_dep(attr, watcher)
+                    obj = VueCompNamespace.get_by_attr_chain(obj, attr)
 
         # v-model:widget=vm
         if comp_ast.v_model_vm:
-            vm_attr = comp_ast.v_model_vm
-            obj, attr = ns.get_obj_and_attr(vm_attr)
+            attr_chain = comp_ast.v_model_vm
             # vm to view
             widget_attr = VueCompTag.v_model(comp_ast.tag)
             update_vm_to_view = cls.handle_value_change_vm_to_view(widget, widget_attr)
-            _value = ns.getattr(vm_attr)
+            _value = ns.getattr(attr_chain)
             update_vm_to_view(_value, None)
-            WatcherForAttrUpdate(ns, vm_attr, lambda: ns.getattr(vm_attr), update_vm_to_view)
+
+            _attrs = attr_chain.split('.')
+            if len(_attrs) >= 1:
+                base_attr, attrs = _attrs[0], _attrs[1:]
+                obj = ns.getattr(base_attr)
+                watcher = WatcherForAttrUpdate(ns, lambda: ns.getattr(attr_chain), update_vm_to_view)
+                for attr in attrs:
+                    if isinstance(obj, VueRef):
+                        obj.add_dep(watcher)
+                    elif isinstance(obj, Reactive):
+                        obj.add_dep(attr, watcher)
+                    obj = VueCompNamespace.get_by_attr_chain(obj, attr)
 
             # view to vm
             def handle_value_change_view_to_vm(obj, attr):
@@ -712,6 +742,7 @@ class VueCompCodeGen:
 
                 return warp
 
+            obj, attr = ns.get_obj_and_attr(attr_chain)
             update_view_to_vm = handle_value_change_view_to_vm(obj, attr)
             widget.observe(update_view_to_vm, names=f'{widget_attr}')
 
@@ -730,12 +761,18 @@ class VueCompHtmlTemplateRender:
             exp_ast = vue_comp_expr_parse(exp)
             # TODO html可以设置value，按需更新
             for attr_chain in exp_ast.vars:
-                attr_chain_prev = ''
-                while attr_chain_prev != attr_chain:
-                    obj, attr = ns.get_obj_and_attr(attr_chain)
-                    obj.add_dep(attr, WatcherForRerender(vm, f'html {for_idx} attr {attr} {{{{ {exp} }}}}'))
-                    attr_chain_prev = attr_chain
-                    attr_chain = attr_chain.rsplit('.', 1)[0]
+                _attrs = attr_chain.split('.')
+                if len(_attrs) == 1:
+                    continue
+                base_attr, attrs = _attrs[0], _attrs[1:]
+                obj = ns.getattr(base_attr)
+                watcher = WatcherForRerender(vm, f'html {for_idx} attr {attr_chain} {{{{ {exp} }}}}')
+                for attr in attrs:
+                    if isinstance(obj, VueRef):
+                        obj.add_dep(watcher)
+                    elif isinstance(obj, Reactive):
+                        obj.add_dep(attr, watcher)
+                    obj = VueCompNamespace.get_by_attr_chain(obj, attr)
             return str(exp_ast.eval(ns))
         return warp
 
@@ -891,18 +928,23 @@ class VueTemplate(HTMLParser):
         # todo 加到v-for的解析处
         if not is_body:
             ns = VueCompNamespace(self.vm._data, self.vm.to_ns())
-            list_base_root, attr = ns.get_obj_and_attr(v_for_stmt.iter)
             # 处理list被整个替换的情况
             attr_chain = v_for_stmt.iter
-            attr_chain_prev = ''
-            while attr_chain_prev != attr_chain:
-                obj, attr = ns.get_obj_and_attr(attr_chain)
-                obj.add_dep(attr, WatcherForRerender(self.vm, f"{attr}: {v_for_stmt.iter} replace"))
-                attr_chain_prev = attr_chain
-                attr_chain = attr_chain.rsplit('.', 1)[0]
+            _attrs = attr_chain.split('.')
+            if len(_attrs) > 1:
+                base_attr, attrs = _attrs[0], _attrs[1:]
+                obj = ns.getattr(base_attr)
+                for attr in attrs:
+                    watcher = WatcherForRerender(self.vm, f"{attr}: {v_for_stmt.iter} replace")
+                    if isinstance(obj, VueRef):
+                        obj.add_dep(watcher)
+                    elif isinstance(obj, Reactive):
+                        obj.add_dep(attr, watcher)
+                    obj = VueCompNamespace.get_by_attr_chain(obj, attr)
             # 处理list本身的变化，append、pop等操作
             obj_iter = ns.getattr(v_for_stmt.iter)
-            obj_iter.add_dep(WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified"))
+            if isinstance(obj_iter, Reactive):
+                obj_iter.add_dep(WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified"))
 
         return _widgets
 
@@ -1002,7 +1044,7 @@ class Vue:
         self._call_if_callable(self.options.before_create)
         self._call_if_callable(self.options.created)
 
-        self.methods = self.options.methods(self)
+        # self.methods = self.options.methods(self)
         self._proxy_methods()
 
         self.mount(self.options.el)
@@ -1063,7 +1105,7 @@ class Vue:
         return vue_template.compile(template)
 
     def render(self):
-        self._data = observe(self._data)
+        DepStoreField.reset()
         with self.options.el:
             if callable(self.options.template):
                 self.dom = self.options.template(self)
