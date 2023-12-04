@@ -1,6 +1,7 @@
 #!coding: utf-8
 import abc
 import ast
+import inspect
 import os
 import re
 import types
@@ -219,6 +220,28 @@ class WatcherForRerender(WatcherBase):
 
     def update(self):
         self.vm.render()
+
+
+class WatcherForWatchFunc(WatcherBase):
+    def __init__(self, source, callback, options=None):
+        self.source = source
+        self.callback = callback
+        self.value = self.get_val()
+
+    def get_val(self):
+        if isinstance(self.source, VueRef):
+            return self.source.value
+        else:
+            return self.source
+
+    def update(self):
+        old_val = self.value
+        new_val = self.get_val()
+        if new_val == self.value:
+            return
+
+        self.value = new_val
+        self.callback(new_val, old_val)
 
 
 class WatcherForAttrUpdate(WatcherBase):
@@ -1012,6 +1035,31 @@ class VueTemplate(HTMLParser):
         if len(self.widgets) == 1:
             return self.widgets[0]
         return widgets.VBox(self.widgets)
+
+
+def watch(source, callback, options=None):
+    def _watch_reactive_obj(data: Reactive, source, callback):
+        watcher = WatcherForWatchFunc(source, callback)
+        if isinstance(data, dict):
+            for attr, item in data.items():
+                data.add_dep(attr, watcher)
+                _watch_reactive_obj(item, source, callback)
+
+        elif isinstance(data, list):
+            for i, item in enumerate(data):
+                data.add_dep(watcher)
+                _watch_reactive_obj(item, source, callback)
+
+    options = options or {}
+    if isinstance(source, VueRef):
+        watcher = WatcherForWatchFunc(source, callback, options)
+        source.add_dep(watcher)
+    elif isinstance(source, Reactive):
+        _watch_reactive_obj(source, source, callback)
+    elif callable(source):
+        deep = options.get('deep', True)
+        f_str = inspect.getsource(source)
+        # TODO ast return
 
 
 class VueOptions:
