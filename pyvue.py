@@ -1,10 +1,12 @@
 #!coding: utf-8
 import abc
 import ast
+import enum
 import inspect
 import os
 import re
 import types
+import weakref
 from _ast import Attribute
 from collections import defaultdict
 from html.parser import HTMLParser
@@ -27,6 +29,83 @@ class WatcherBase(metaclass=abc.ABCMeta):
     def update(self):
         # effect when_deps_change(update) ?
         pass
+
+
+class PubEnum(enum.Enum):
+    PROPERTY = 'property'
+    SETUP = 'setup'
+
+
+# WeakMap<target, Map<key, Set<effect>>>
+SUBS_FOR_PROPERTY_MAP = weakref.WeakKeyDictionary()
+SUBS_FOR_SETUP_PROPERTY_MAP = weakref.WeakKeyDictionary()
+SUBS_MAP = {
+    PubEnum.PROPERTY: weakref.WeakKeyDictionary(),
+    PubEnum.SETUP: weakref.WeakKeyDictionary(),
+}
+
+
+def get_subscribers_for_property(target, key, pub=PubEnum.PROPERTY):
+    subs_map = SUBS_MAP[pub]
+    if target not in subs_map:
+        subs_map[target] = {}
+
+    if key not in subs_map[target]:
+        subs_map[target][key] = []
+
+    return subs_map[target][key]
+
+
+def add_subscribers_for_property(target, key, sub: WatcherBase, pub=PubEnum.PROPERTY):
+    effects = get_subscribers_for_property(target, key, pub)
+    effects.append(sub)
+
+
+def clear_subscribers_for_property(target, key, pub=PubEnum.PROPERTY):
+    effects = get_subscribers_for_property(target, key, pub)
+    effects.clear()
+
+
+def trigger_subscribers_for_property(target, key):
+    for pub in PubEnum:
+        effects = get_subscribers_for_property(target, key, pub)
+        for effect in effects:
+            effect.update()
+
+
+g_active_effect = None
+g_pub = None
+
+
+def track(target, key):
+    if not g_active_effect:
+        return
+    if g_pub:
+        add_subscribers_for_property(target, key, g_active_effect, g_pub)
+    else:
+        add_subscribers_for_property(target, key, g_active_effect, PubEnum.PROPERTY)
+
+
+def trigger(target, key):
+    trigger_subscribers_for_property(target, key)
+
+
+class ActivateEffect:
+    def __init__(self, effect, pub=PubEnum.PROPERTY):
+        self.effect = effect
+        self.pub = pub
+
+    def __enter__(self):
+        global g_active_effect
+        global g_pub
+        g_active_effect = self.effect
+        g_pub = self.pub
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        global g_active_effect
+        global g_pub
+        g_active_effect = None
+        g_pub = None
 
 
 class Dep:
@@ -91,21 +170,13 @@ class ReactiveDict(dict, Reactive):
         super().__init__(*args, **kwargs)
 
     def __getitem__(self, attr):
-        # function track(target, key) {
-        #   if (activeEffect) {
-        #     const effects = getSubscribersForProperty(target, key)
-        #     effects.add(activeEffect)
-        #   }
-        # }
+        track(self, attr)
         return super().__getitem__(attr)
 
     def __setitem__(self, attr, value):
         super().__setitem__(attr, value)
-        # function trigger(target, key) {
-        #   const effects = getSubscribersForProperty(target, key)
-        #   effects.forEach((effect) => effect())
-        # }
-        self._deps[attr].notify()
+        # self._deps[attr].notify()
+        trigger(self, attr)
 
     def __getattr__(self, attr):
         return self.__getitem__(attr)
@@ -125,44 +196,55 @@ class ReactiveDict(dict, Reactive):
 
 
 class ReactiveList(list, Reactive):
+    _SUB_KEY = '__sub_key'
+
     def append(self, __object) -> None:
         super().append(__object)
-        self._deps[0].notify()
+        # self._deps[0].notify()
+        trigger(self, self._SUB_KEY)
 
     def extend(self, __iterable) -> None:
         super().extend(__iterable)
-        self._deps[0].notify()
+        # self._deps[0].notify()
+        trigger(self, self._SUB_KEY)
 
     def insert(self, __index: SupportsIndex, __object) -> None:
         super().insert(__index, __object)
-        self._deps[0].notify()
+        # self._deps[0].notify()
+        trigger(self, self._SUB_KEY)
 
     def __setitem__(self, key, value):
         super().__setitem__(key, value)
-        self._deps[0].notify()
+        # self._deps[0].notify()
+        trigger(self, self._SUB_KEY)
 
     def sort(self, *, key: None = ..., reverse: bool = ...) -> None:
         super().sort(key=key, reverse=reverse)
-        self._deps[0].notify()
+        # self._deps[0].notify()
+        trigger(self, self._SUB_KEY)
 
     def reverse(self) -> None:
         super().reverse()
-        self._deps[0].notify()
+        # self._deps[0].notify()
+        trigger(self, self._SUB_KEY)
 
     def pop(self, __index: SupportsIndex = ...):
         ret = super().pop(__index)
-        self._deps[0].notify()
+        # self._deps[0].notify()
+        trigger(self, self._SUB_KEY)
         return ret
 
     def remove(self, __value) -> None:
         super().remove(__value)
-        self._deps[0].notify()
+        # self._deps[0].notify()
+        trigger(self, self._SUB_KEY)
 
     def __delete__(self, instance):
         del self._deps
 
     def add_dep(self, sub):
-        self._deps[0].add_sub(sub)
+        # self._deps[0].add_sub(sub)
+        add_subscribers_for_property(self, self._SUB_KEY, sub)
 
     def reset_deps(self):
         self._deps[0].reset_subs()
@@ -188,21 +270,26 @@ def observe(data):
 
 
 class VueRef(Reactive):
+    _SUB_KEY = '__sub_key'
+
     def __init__(self, value):
         super().__init__()
         self._value = value
 
     @property
     def value(self):
+        track(self, self._SUB_KEY)
         return self._value
 
     @value.setter
     def value(self, new_value):
         self._value = new_value
-        self._deps['value'].notify()
+        # self._deps['value'].notify()
+        trigger(self, self._SUB_KEY)
 
     def add_dep(self, sub):
-        self._deps['value'].add_sub(sub)
+        # self._deps['value'].add_sub(sub)
+        add_subscribers_for_property(self, self._SUB_KEY, sub)
 
 
 def ref(value):
@@ -213,6 +300,41 @@ def reactive(obj):
     return observe(obj)
 
 
+def computed(func, setter=None):
+    val_ref = ref(None)
+    watcher = WatcherForComputed(val_ref, func)
+    with ActivateEffect(watcher, PubEnum.SETUP):
+        val_ref.value = func()
+    return val_ref
+
+
+def watch(source, callback, options=None):
+    def _watch_reactive_obj(data: Reactive, source, callback):
+        # watcher = WatcherForWatchFunc(source, callback)
+        if isinstance(data, dict):
+            for attr, item in data.items():
+                # data.add_dep(attr, watcher)
+                _watch_reactive_obj(item, source, callback)
+
+        elif isinstance(data, list):
+            for i, item in enumerate(data):
+                # data.add_dep(watcher)
+                _watch_reactive_obj(item, source, callback)
+
+    options = options or {}
+    watcher = WatcherForWatchFunc(source, callback, options)
+    with ActivateEffect(watcher, PubEnum.SETUP):
+        if isinstance(source, VueRef):
+            # watcher = WatcherForWatchFunc(source, callback, options)
+            # source.add_dep(watcher)
+            _ = source.value
+        elif isinstance(source, Reactive):
+            _watch_reactive_obj(source, source, callback)
+        elif callable(source):
+            deep = options.get('deep', True)
+            _ = source()
+
+
 class WatcherForRerender(WatcherBase):
     def __init__(self, vm, name):
         self.vm = vm
@@ -220,6 +342,25 @@ class WatcherForRerender(WatcherBase):
 
     def update(self):
         self.vm.render()
+
+
+class WatcherForComputed(WatcherBase):
+    def __init__(self, source, func, options=None):
+        self.source = source
+        self.func = func
+        self.value = self.get_val()
+
+    def get_val(self):
+        return self.func()
+
+    def update(self):
+        old_val = self.value
+        new_val = self.get_val()
+        if new_val == self.value:
+            return
+
+        self.value = new_val
+        self.source.value = new_val
 
 
 class WatcherForWatchFunc(WatcherBase):
@@ -695,22 +836,24 @@ class VueCompCodeGen:
     def gen(cls, comp_ast: VueCompAst, vm: 'Vue', ns: VueCompNamespace):
         # v-if
         if comp_ast.v_if:
-            for attr_chain in comp_ast.v_if.vars:
-                _attrs = attr_chain.split('.')
-                if len(_attrs) == 1:
-                    continue
-                base_attr, attrs = _attrs[0], _attrs[1:]
-                obj = ns.getattr(base_attr)
-                watcher = WatcherForRerender(vm, f'v_if {comp_ast.v_if}')
-                for attr in attrs:
-                    if isinstance(obj, VueRef):
-                        obj.add_dep(watcher)
-                    elif isinstance(obj, Reactive):
-                        obj.add_dep(attr, watcher)
-                    obj = VueCompNamespace.get_by_attr_chain(obj, attr)
+            # for attr_chain in comp_ast.v_if.vars:
+            #     _attrs = attr_chain.split('.')
+            #     if len(_attrs) == 1:
+            #         continue
+            #     base_attr, attrs = _attrs[0], _attrs[1:]
+            #     obj = ns.getattr(base_attr)
+            #     watcher = WatcherForRerender(vm, f'v_if {comp_ast.v_if}')
+            #     for attr in attrs:
+            #         if isinstance(obj, VueRef):
+            #             obj.add_dep(watcher)
+            #         elif isinstance(obj, Reactive):
+            #             obj.add_dep(attr, watcher)
+            #         obj = VueCompNamespace.get_by_attr_chain(obj, attr)
 
-            if not comp_ast.v_if.eval(ns):
-                return widgets.HTML("")
+            watcher = WatcherForRerender(vm, f'v_if {comp_ast.v_if}')
+            with ActivateEffect(watcher):
+                if not comp_ast.v_if.eval(ns):
+                    return widgets.HTML("")
 
         widgets_cls = VueCompTag.impl(comp_ast.tag)
         widget = widgets_cls(**comp_ast.kwargs)
@@ -721,21 +864,23 @@ class VueCompCodeGen:
         # v-bind:
         for widget_attr, exp_ast in comp_ast.v_binds.items():
             update_vm_to_view = cls.handle_value_change_vm_to_view(widget, widget_attr)
-            _value = exp_ast.eval(ns)
+            watcher = WatcherForAttrUpdate(ns, exp_ast, update_vm_to_view)
+            with ActivateEffect(watcher):
+                _value = exp_ast.eval(ns)
             update_vm_to_view(_value, None)
-            for attr_chain in exp_ast.vars:
-                _attrs = attr_chain.split('.')
-                if len(_attrs) == 1:
-                    continue
-                base_attr, attrs = _attrs[0], _attrs[1:]
-                obj = ns.getattr(base_attr)
-                watcher = WatcherForAttrUpdate(ns, exp_ast, update_vm_to_view)
-                for attr in attrs:
-                    if isinstance(obj, VueRef):
-                        obj.add_dep(watcher)
-                    elif isinstance(obj, Reactive):
-                        obj.add_dep(attr, watcher)
-                    obj = VueCompNamespace.get_by_attr_chain(obj, attr)
+            # for attr_chain in exp_ast.vars:
+            #     _attrs = attr_chain.split('.')
+            #     if len(_attrs) == 1:
+            #         continue
+            #     base_attr, attrs = _attrs[0], _attrs[1:]
+            #     obj = ns.getattr(base_attr)
+            #     watcher = WatcherForAttrUpdate(ns, exp_ast, update_vm_to_view)
+            #     for attr in attrs:
+            #         if isinstance(obj, VueRef):
+            #             obj.add_dep(watcher)
+            #         elif isinstance(obj, Reactive):
+            #             obj.add_dep(attr, watcher)
+            #         obj = VueCompNamespace.get_by_attr_chain(obj, attr)
 
         # v-model:widget=vm
         if comp_ast.v_model_vm:
@@ -743,20 +888,22 @@ class VueCompCodeGen:
             # vm to view
             widget_attr = VueCompTag.v_model(comp_ast.tag)
             update_vm_to_view = cls.handle_value_change_vm_to_view(widget, widget_attr)
-            _value = ns.getattr(attr_chain)
+            watcher = WatcherForAttrUpdate(ns, lambda: ns.getattr(attr_chain), update_vm_to_view)
+            with ActivateEffect(watcher):
+                _value = ns.getattr(attr_chain)
             update_vm_to_view(_value, None)
 
-            _attrs = attr_chain.split('.')
-            if len(_attrs) >= 1:
-                base_attr, attrs = _attrs[0], _attrs[1:]
-                obj = ns.getattr(base_attr)
-                watcher = WatcherForAttrUpdate(ns, lambda: ns.getattr(attr_chain), update_vm_to_view)
-                for attr in attrs:
-                    if isinstance(obj, VueRef):
-                        obj.add_dep(watcher)
-                    elif isinstance(obj, Reactive):
-                        obj.add_dep(attr, watcher)
-                    obj = VueCompNamespace.get_by_attr_chain(obj, attr)
+            # _attrs = attr_chain.split('.')
+            # if len(_attrs) >= 1:
+            #     base_attr, attrs = _attrs[0], _attrs[1:]
+            #     obj = ns.getattr(base_attr)
+            #     watcher = WatcherForAttrUpdate(ns, lambda: ns.getattr(attr_chain), update_vm_to_view)
+            #     for attr in attrs:
+            #         if isinstance(obj, VueRef):
+            #             obj.add_dep(watcher)
+            #         elif isinstance(obj, Reactive):
+            #             obj.add_dep(attr, watcher)
+            #         obj = VueCompNamespace.get_by_attr_chain(obj, attr)
 
             # view to vm
             def handle_value_change_view_to_vm(obj, attr):
@@ -783,20 +930,23 @@ class VueCompHtmlTemplateRender:
             exp = match.group(1)
             exp_ast = vue_comp_expr_parse(exp)
             # TODO html可以设置value，按需更新
-            for attr_chain in exp_ast.vars:
-                _attrs = attr_chain.split('.')
-                if len(_attrs) == 1:
-                    continue
-                base_attr, attrs = _attrs[0], _attrs[1:]
-                obj = ns.getattr(base_attr)
-                watcher = WatcherForRerender(vm, f'html {for_idx} attr {attr_chain} {{{{ {exp} }}}}')
-                for attr in attrs:
-                    if isinstance(obj, VueRef):
-                        obj.add_dep(watcher)
-                    elif isinstance(obj, Reactive):
-                        obj.add_dep(attr, watcher)
-                    obj = VueCompNamespace.get_by_attr_chain(obj, attr)
-            return str(exp_ast.eval(ns))
+            # for attr_chain in exp_ast.vars:
+            #     _attrs = attr_chain.split('.')
+            #     if len(_attrs) == 1:
+            #         continue
+            #     base_attr, attrs = _attrs[0], _attrs[1:]
+            #     obj = ns.getattr(base_attr)
+            #     watcher = WatcherForRerender(vm, f'html {for_idx} attr {attr_chain} {{{{ {exp} }}}}')
+            #     for attr in attrs:
+            #         if isinstance(obj, VueRef):
+            #             obj.add_dep(watcher)
+            #         elif isinstance(obj, Reactive):
+            #             obj.add_dep(attr, watcher)
+            #         obj = VueCompNamespace.get_by_attr_chain(obj, attr)
+            watcher = WatcherForRerender(vm, f'html {for_idx} {{{{ {exp} }}}}')
+            with ActivateEffect(watcher):
+                _value = exp_ast.eval(ns)
+            return str(_value)
         return warp
 
     @classmethod
@@ -953,21 +1103,26 @@ class VueTemplate(HTMLParser):
             ns = VueCompNamespace(self.vm._data, self.vm.to_ns())
             # 处理list被整个替换的情况
             attr_chain = v_for_stmt.iter
-            _attrs = attr_chain.split('.')
+            _attrs = attr_chain.split('.', )
             if len(_attrs) > 1:
-                base_attr, attrs = _attrs[0], _attrs[1:]
+                base_attr, attrs = _attrs
                 obj = ns.getattr(base_attr)
-                for attr in attrs:
-                    watcher = WatcherForRerender(self.vm, f"{attr}: {v_for_stmt.iter} replace")
-                    if isinstance(obj, VueRef):
-                        obj.add_dep(watcher)
-                    elif isinstance(obj, Reactive):
-                        obj.add_dep(attr, watcher)
-                    obj = VueCompNamespace.get_by_attr_chain(obj, attr)
+                watcher = WatcherForRerender(self.vm, f"for_stme {v_for_stmt.iter} replace")
+                with ActivateEffect(watcher):
+                    VueCompNamespace.get_by_attr_chain(obj, _attrs)
+                # for attr in attrs:
+                #     watcher = WatcherForRerender(self.vm, f"{attr}: {v_for_stmt.iter} replace")
+                #     if isinstance(obj, VueRef):
+                #         obj.add_dep(watcher)
+                #     elif isinstance(obj, Reactive):
+                #         obj.add_dep(attr, watcher)
+                #     obj = VueCompNamespace.get_by_attr_chain(obj, attr)
             # 处理list本身的变化，append、pop等操作
-            obj_iter = ns.getattr(v_for_stmt.iter)
-            if isinstance(obj_iter, Reactive):
-                obj_iter.add_dep(WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified"))
+            watcher = WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified")
+            with ActivateEffect(watcher):
+                obj_iter = ns.getattr(v_for_stmt.iter)
+            # if isinstance(obj_iter, Reactive):
+            #     obj_iter.add_dep(WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified"))
 
         return _widgets
 
@@ -1035,31 +1190,6 @@ class VueTemplate(HTMLParser):
         if len(self.widgets) == 1:
             return self.widgets[0]
         return widgets.VBox(self.widgets)
-
-
-def watch(source, callback, options=None):
-    def _watch_reactive_obj(data: Reactive, source, callback):
-        watcher = WatcherForWatchFunc(source, callback)
-        if isinstance(data, dict):
-            for attr, item in data.items():
-                data.add_dep(attr, watcher)
-                _watch_reactive_obj(item, source, callback)
-
-        elif isinstance(data, list):
-            for i, item in enumerate(data):
-                data.add_dep(watcher)
-                _watch_reactive_obj(item, source, callback)
-
-    options = options or {}
-    if isinstance(source, VueRef):
-        watcher = WatcherForWatchFunc(source, callback, options)
-        source.add_dep(watcher)
-    elif isinstance(source, Reactive):
-        _watch_reactive_obj(source, source, callback)
-    elif callable(source):
-        deep = options.get('deep', True)
-        f_str = inspect.getsource(source)
-        # TODO ast return
 
 
 class VueOptions:
