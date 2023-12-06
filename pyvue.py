@@ -37,23 +37,25 @@ class PubEnum(enum.Enum):
 
 
 # WeakMap<target, Map<key, Set<effect>>>
-SUBS_FOR_PROPERTY_MAP = weakref.WeakKeyDictionary()
-SUBS_FOR_SETUP_PROPERTY_MAP = weakref.WeakKeyDictionary()
 SUBS_MAP = {
-    PubEnum.PROPERTY: weakref.WeakKeyDictionary(),
-    PubEnum.SETUP: weakref.WeakKeyDictionary(),
+    PubEnum.PROPERTY: {},
+    PubEnum.SETUP: {},
 }
 
 
-def get_subscribers_for_property(target, key, pub=PubEnum.PROPERTY):
+def get_subscribers_for_property_by_id(target_id, key, pub=PubEnum.PROPERTY):
     subs_map = SUBS_MAP[pub]
-    if target not in subs_map:
-        subs_map[target] = {}
+    if target_id not in subs_map:
+        subs_map[target_id] = {}
 
-    if key not in subs_map[target]:
-        subs_map[target][key] = []
+    if key not in subs_map[target_id]:
+        subs_map[target_id][key] = []
 
-    return subs_map[target][key]
+    return subs_map[target_id][key]
+
+
+def get_subscribers_for_property(target, key, pub=PubEnum.PROPERTY):
+    return get_subscribers_for_property_by_id(id(target), key, pub)
 
 
 def add_subscribers_for_property(target, key, sub: WatcherBase, pub=PubEnum.PROPERTY):
@@ -71,6 +73,8 @@ def trigger_subscribers_for_property(target, key):
         effects = get_subscribers_for_property(target, key, pub)
         for effect in effects:
             effect.update()
+            if isinstance(effect, WatcherForRerender):
+                return
 
 
 g_active_effect = None
@@ -80,6 +84,7 @@ g_pub = None
 def track(target, key):
     if not g_active_effect:
         return
+
     if g_pub:
         add_subscribers_for_property(target, key, g_active_effect, g_pub)
     else:
@@ -155,12 +160,14 @@ class DepStoreField:
             del self._deps[instance_id]
 
 
-class Reactive:
+class Reactive(metaclass=abc.ABCMeta):
     _deps = DepStoreField()
 
+    @abc.abstractmethod
     def add_dep(self, attr, sub):
         pass
 
+    @abc.abstractmethod
     def reset_deps(self):
         pass
 
@@ -191,8 +198,12 @@ class ReactiveDict(dict, Reactive):
         self._deps[attr].add_sub(sub)
 
     def reset_deps(self):
-        for attr, dep in self._deps.items():
-            dep.reset_subs()
+        # for attr, dep in self._deps.items():
+        #     dep.reset_subs()
+        for k, v in self.items():
+            clear_subscribers_for_property(self, k, PubEnum.PROPERTY)
+            if isinstance(v, Reactive):
+                v.reset_deps()
 
 
 class ReactiveList(list, Reactive):
@@ -247,7 +258,11 @@ class ReactiveList(list, Reactive):
         add_subscribers_for_property(self, self._SUB_KEY, sub)
 
     def reset_deps(self):
-        self._deps[0].reset_subs()
+        # self._deps[0].reset_subs()
+        clear_subscribers_for_property(self, self._SUB_KEY, PubEnum.PROPERTY)
+        for item in self:
+            if isinstance(item, Reactive):
+                item.reset_deps()
 
 
 def observe(data):
@@ -290,6 +305,11 @@ class VueRef(Reactive):
     def add_dep(self, sub):
         # self._deps['value'].add_sub(sub)
         add_subscribers_for_property(self, self._SUB_KEY, sub)
+
+    def reset_deps(self):
+        clear_subscribers_for_property(self, self._SUB_KEY, PubEnum.PROPERTY)
+        if isinstance(self._value, Reactive):
+            self._value.reset_deps()
 
 
 def ref(value):
@@ -1103,13 +1123,13 @@ class VueTemplate(HTMLParser):
             ns = VueCompNamespace(self.vm._data, self.vm.to_ns())
             # 处理list被整个替换的情况
             attr_chain = v_for_stmt.iter
-            _attrs = attr_chain.split('.', )
+            _attrs = attr_chain.split('.', 1)
             if len(_attrs) > 1:
-                base_attr, attrs = _attrs
+                base_attr, sub_attr_chain = _attrs
                 obj = ns.getattr(base_attr)
                 watcher = WatcherForRerender(self.vm, f"for_stme {v_for_stmt.iter} replace")
                 with ActivateEffect(watcher):
-                    VueCompNamespace.get_by_attr_chain(obj, _attrs)
+                    VueCompNamespace.get_by_attr_chain(obj, sub_attr_chain)
                 # for attr in attrs:
                 #     watcher = WatcherForRerender(self.vm, f"{attr}: {v_for_stmt.iter} replace")
                 #     if isinstance(obj, VueRef):
@@ -1118,11 +1138,11 @@ class VueTemplate(HTMLParser):
                 #         obj.add_dep(attr, watcher)
                 #     obj = VueCompNamespace.get_by_attr_chain(obj, attr)
             # 处理list本身的变化，append、pop等操作
-            watcher = WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified")
-            with ActivateEffect(watcher):
-                obj_iter = ns.getattr(v_for_stmt.iter)
-            # if isinstance(obj_iter, Reactive):
-            #     obj_iter.add_dep(WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified"))
+            # watcher = WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified")
+            # with ActivateEffect(watcher):
+            obj_iter = ns.getattr(v_for_stmt.iter)
+            if isinstance(obj_iter, Reactive):
+                obj_iter.add_dep(WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified"))
 
         return _widgets
 
@@ -1282,8 +1302,13 @@ class Vue:
         vue_template = VueTemplate(self)
         return vue_template.compile(template)
 
+    def clear_property_subs(self):
+        for item in self._data.values():
+            if isinstance(item, Reactive):
+                item.reset_deps()
+
     def render(self):
-        DepStoreField.reset()
+        self.clear_property_subs()
         with self.options.el:
             if callable(self.options.template):
                 self.dom = self.options.template(self)
