@@ -44,7 +44,7 @@ def setup(props, ctx, vm):
         print(f"bash build-metal/bin/quantize {org_model.value} {quantize_model.value} {quantize_opt.value}")
 
     def refresh_models():
-        chat_models.value = get_gguf_models()
+        chat_models.value = get_gguf_models(hf_models_path.value)
 
     def exec_chat():
         print(f"bash chat.sh -m {chat.model} -i {chat.first_instruction}")
