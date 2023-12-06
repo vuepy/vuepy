@@ -19,7 +19,7 @@ def setup(props, ctx, vm):
         'model': None,
         'system': 'You are a helpful assistant. 你是一个乐于助人的助手。',
         'first_instruction': '',
-        'ctx-size': 2048,  # // size of the prompt context (default: 512, 0 = loaded from model)
+        'ctx_size': 2048,  # // size of the prompt context (default: 512, 0 = loaded from model)
         'threads': 8,
         'temp': 0.1,  # // temperature (default: 0.8
         'top_k': 1000,  # // top-k sampling (default: 40, 0=disabled
