@@ -455,6 +455,8 @@ class _MarkdownViewer(widgets.HTML):
 
 
 class VueCompTag:
+    Accordion = "Accordion ".lower()
+    AccordionItem = "AccordionItem".lower()
     AppLayout = "AppLayout".lower()
     Box = "Box".lower()
     Button = 'Button'.lower()
@@ -488,14 +490,16 @@ class VueCompTag:
     Valid = 'Valid'.lower()
     Template = 'template'
 
-    _container_tags = (
+    _container_tags = {
+        Accordion,
+        AccordionItem,
         AppLayout,
         Box,
         HBox,
         Stack,
         Template,
-    )
-    _leaf_tags = (
+    }
+    _leaf_tags = {
         FloatSlider,
         Checkbox,
         ColorsInput,
@@ -527,9 +531,11 @@ class VueCompTag:
         ToggleButton,
         ToggleButtons,
         Valid,
-    )
+    }
 
     _tag_to_widget = {
+        Accordion: widgets.Accordion,
+        AccordionItem: widgets.VBox,
         AppLayout: widgets.AppLayout,
         Box: widgets.VBox,
         Button: widgets.Button,
@@ -565,17 +571,18 @@ class VueCompTag:
     }
 
     _tag_to_v_model = {
+        Accordion: 'selected_index',
         Button: 'description',
         Stack: 'selected_index',
     }
 
     @classmethod
-    def is_container(cls, t):
-        return t in [i.lower() for i in cls._container_tags]
+    def is_container(cls, tag):
+        return tag in cls._container_tags
 
     @classmethod
-    def is_leaf(cls, t):
-        return t in [i.lower() for i in cls._leaf_tags]
+    def is_leaf(cls, tag):
+        return tag in cls._leaf_tags
 
     @classmethod
     def get_widget(cls, t):
