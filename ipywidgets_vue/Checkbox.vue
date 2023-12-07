@@ -23,7 +23,8 @@ export default {
     indent: {
       type: Boolean,
       default: true,
-    }
+    },
+    tooltip: String,
   }
 
 }

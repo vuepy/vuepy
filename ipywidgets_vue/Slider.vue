@@ -53,6 +53,7 @@ export default {
       type: Boolean,
       default: false,
     },
+    tooltip: String,
   }
 }
 </script>

@@ -28,6 +28,7 @@ export default {
       type: String,
       default: ''
     },
+    tooltip: String,
     disabled: {
       type: Boolean,
       default: false

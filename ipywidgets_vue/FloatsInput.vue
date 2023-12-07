@@ -21,7 +21,8 @@ export default {
     format: {
       type: String,
       default: '', // '.2f'
-    }
+    },
+    tooltip: String,
   },
 }
 </script>

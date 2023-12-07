@@ -22,7 +22,8 @@ export default {
     format: {
       type: String,
       default: '', // '$,d'
-    }
+    },
+    tooltip: String,
   },
 }
 </script>
