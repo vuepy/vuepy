@@ -11,8 +11,14 @@ def setup(props, ctx, vm):
     hf_models_path = ref('/Users/kuroro/CMC/models/codellama/instruct/7b')
     org_models = ref(get_gguf_models(hf_models_path.value))
     org_model = ref(None)
-    quantize_model = ref('')
     quantize_opt = ref('q4_0')
+
+    def calc_quantize_model():
+        org_model_value = org_model.value or ""
+        value = f".{quantize_opt.value}.".join(org_model_value.rsplit('.', 1))
+        return value if org_model_value else ''
+
+    quantize_model = computed(calc_quantize_model)
 
     chat_models = ref(get_gguf_models(hf_models_path.value))
     chat = reactive({
