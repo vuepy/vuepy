@@ -10,15 +10,19 @@
         <span v-for="(i, n) in option.value.in">{{ n }}</span>
       </HBox>
 
-      <HBox v-for="(i, msg) in messages.value">
-        <Button width='60px' v-model="msg.role" @click="handle_change_role"></Button>
-        <!--
-        -->
-        <MarkdownViewer v-if="is_bot(msg.role)" :value="msg.content"></MarkdownViewer>
-        <Textarea v-else width='450px' v-model="msg.content"></Textarea>
-        <Button width='40px' icon="edit" @click="handle_edit_msg" button_style='info'></Button>
-        <Button width='40px' icon="minus-circle" @click="handle_del_msg(i)" button_style='danger'></Button>
-      </HBox>
+      <Box v-for="(i, msg) in messages.value">
+        <HBox>
+          <Button width='60px' v-model="msg.role" @click="handle_change_role"></Button>
+          <Textarea v-else width='450px' v-model="msg.content"></Textarea>
+          <Button width='40px' icon="edit" @click="handle_edit_msg" button_style='info'></Button>
+          <Button width='40px' icon="minus-circle" @click="handle_del_msg(i)" button_style='danger'></Button>
+        </HBox>
+        <MarkdownViewer
+            v-if="is_bot(msg.role)"
+            :value="msg.content"
+            border="1px solid #cccccc" padding="10px"
+        ></MarkdownViewer>
+      </Box>
       <hr/>
       <Button description="Add message" button_style="info" icon="plus-circle" @click="handle_add_msg()"></Button>
       <Button description='show/edit' icon="edit" @click="handle_edit_msg" button_style='info'></Button>

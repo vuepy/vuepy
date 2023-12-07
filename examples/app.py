@@ -1,3 +1,5 @@
+import threading
+import time
 from pprint import pprint
 import enum
 from pyvue import *
@@ -21,6 +23,20 @@ attr_chain_list = [
         'in': [5, 6, 7],
     }),
 ]
+
+md_str = '''
+## h2
+hello world
+```python
+def f():
+  print("hello world!")
+  
+f()
+>>> hello world!
+
+```
+
+'''
 
 
 def setup(props, ctx, vm):
@@ -49,10 +65,20 @@ def setup(props, ctx, vm):
         messages.value.append(msg)
 
     def handle_edit_msg(owner):
+        def edit_work():
+            msg = messages.value[1]
+            msg.content = ''
+            for s in md_str:
+                msg.content += s
+                time.sleep(0.05)
+
         if owner.icon == 'edit':
             state = 'eye'
+            thread = threading.Thread(target=edit_work, args=())
+            thread.start()
         else:
             state = 'edit'
+
         owner.icon = state
 
     def handle_del_msg(i):
