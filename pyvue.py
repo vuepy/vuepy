@@ -207,7 +207,7 @@ class ReactiveDict(dict, Reactive):
 
 
 class ReactiveList(list, Reactive):
-    _SUB_KEY = '__sub_key'
+    _SUB_KEY = '__reactive_list_sub_key'
 
     def append(self, __object) -> None:
         super().append(__object)
@@ -285,7 +285,7 @@ def observe(data):
 
 
 class VueRef(Reactive):
-    _SUB_KEY = '__sub_key'
+    _SUB_KEY = '__ref_sub_key'
 
     def __init__(self, value):
         super().__init__()
@@ -455,7 +455,7 @@ class _MarkdownViewer(widgets.HTML):
 
 
 class VueCompTag:
-    Accordion = "Accordion ".lower()
+    Accordion = "Accordion".lower()
     AccordionItem = "AccordionItem".lower()
     AppLayout = "AppLayout".lower()
     Box = "Box".lower()
@@ -1043,18 +1043,20 @@ class VueTemplate(HTMLParser):
 
         # TODO can move to Tag class
         widget_cls = VueCompTag.impl(tag)
-        if tag == VueCompTag.AppLayout.lower():
+        if tag == VueCompTag.AppLayout:
             kwargs = comp_ast.kwargs
             for child in node['body']:
                 kwargs[child.v_slot] = child
             widget = widget_cls(**kwargs)
-
-        elif tag == VueCompTag.Box.lower() or tag == VueCompTag.HBox.lower():
+        elif tag == VueCompTag.Box or tag == VueCompTag.HBox:
             widget = widget_cls(node['body'])
-
-        elif tag == VueCompTag.Template.lower():
+        elif tag == VueCompTag.Template:
             widget = widget_cls(node['body'])
-
+        elif tag == VueCompTag.AccordionItem:
+            widget = widget_cls(node['body'])
+            widget.title = comp_ast.kwargs.get('title', '-')
+        elif tag == VueCompTag.Accordion:
+            widget = widget_cls(children=node['body'], titles=[c.title for c in node['body']])
         else:
             raise Exception(f'error: container_tag_exit, {tag} not support.')
 
