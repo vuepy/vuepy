@@ -1,6 +1,5 @@
 from glob import glob
-from pprint import pprint
-from pyvue import *
+from vuepy.vue import *
 
 
 def setup(props, ctx, vm):

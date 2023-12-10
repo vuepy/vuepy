@@ -1,13 +1,14 @@
 #!coding: utf-8
 import abc
 import ast
+import enum
 import os
 import re
 import types
 from _ast import Attribute
 from collections import defaultdict
 from html.parser import HTMLParser
-from typing import SupportsIndex, Any, Dict
+from typing import SupportsIndex, Any, Dict, List
 
 import ipywidgets as widgets
 import markdown
@@ -21,32 +22,146 @@ def get_template_from_vue(vue_file):
     return str_template
 
 
-class DepStoreField:
+class WatcherBase(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def update(self):
+        pass
+
+
+class PubEnum(enum.Enum):
+    PROPERTY = 'property'
+    SETUP = 'setup'
+
+
+# Map<target_id, Map<key, List<effect>>>
+SUBS_MAP = {
+    PubEnum.PROPERTY: {},
+    PubEnum.SETUP: {},
+}
+
+
+def get_subscribers_for_property_by_id(target_id, key, pub=PubEnum.PROPERTY):
+    subs_map = SUBS_MAP[pub]
+    if target_id not in subs_map:
+        subs_map[target_id] = {}
+
+    if key not in subs_map[target_id]:
+        subs_map[target_id][key] = []
+
+    return subs_map[target_id][key]
+
+
+def get_subscribers_for_property(target, key, pub=PubEnum.PROPERTY):
+    return get_subscribers_for_property_by_id(id(target), key, pub)
+
+
+def add_subscribers_for_property(target, key, sub: WatcherBase, pub=PubEnum.PROPERTY):
+    effects = get_subscribers_for_property(target, key, pub)
+    effects.append(sub)
+
+
+def clear_subscribers_for_property(target, key, pub=PubEnum.PROPERTY):
+    effects = get_subscribers_for_property(target, key, pub)
+    effects.clear()
+
+
+def trigger_subscribers_for_property(target, key):
+    for pub in PubEnum:
+        effects = get_subscribers_for_property(target, key, pub)
+        for effect in effects:
+            effect.update()
+            if isinstance(effect, WatcherForRerender):
+                return
+
+
+g_active_effect = None
+g_pub = None
+
+
+def track(target, key):
+    if not g_active_effect:
+        return
+
+    if g_pub:
+        add_subscribers_for_property(target, key, g_active_effect, g_pub)
+    else:
+        add_subscribers_for_property(target, key, g_active_effect, PubEnum.PROPERTY)
+
+
+def trigger(target, key):
+    trigger_subscribers_for_property(target, key)
+
+
+class ActivateEffect:
+    def __init__(self, effect, pub=PubEnum.PROPERTY):
+        self.effect = effect
+        self.pub = pub
+
+    def __enter__(self):
+        global g_active_effect
+        global g_pub
+        g_active_effect = self.effect
+        g_pub = self.pub
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        global g_active_effect
+        global g_pub
+        g_active_effect = None
+        g_pub = None
+
+
+class Dep:
     def __init__(self):
-        self._deps = {}
+        self.subs: List[WatcherBase] = []
+
+    def add_sub(self, sub):
+        if sub in self.subs:
+            return
+
+        self.subs.append(sub)
+
+    def reset_subs(self):
+        self.subs.clear()
+
+    def notify(self):
+        for sub in self.subs:
+            sub.update()
+
+
+class DepStoreField:
+    _deps: Dict[int, Dict[str, Dep]] = {}
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def reset(cls):
+        cls._deps = {}
 
     def __get__(self, instance, owner):
-        _id = id(instance)
-        if _id not in self._deps:
-            self._deps[_id] = defaultdict(Dep)
+        instance_id = id(instance)
+        if instance_id not in self._deps:
+            self._deps[instance_id] = defaultdict(Dep)
 
-        return self._deps[_id]
+        return self._deps[instance_id]
 
     def __set__(self, instance, new_value):
         pass
 
     def __delete__(self, instance):
-        _id = id(instance)
-        if _id in self._deps:
-            del self._deps[_id]
+        instance_id = id(instance)
+        if instance_id in self._deps:
+            del self._deps[instance_id]
 
 
-class Reactive:
+class Reactive(metaclass=abc.ABCMeta):
     _deps = DepStoreField()
 
+    @abc.abstractmethod
     def add_dep(self, attr, sub):
         pass
 
+    @abc.abstractmethod
     def reset_deps(self):
         pass
 
@@ -56,12 +171,12 @@ class ReactiveDict(dict, Reactive):
         super().__init__(*args, **kwargs)
 
     def __getitem__(self, attr):
+        track(self, attr)
         return super().__getitem__(attr)
 
     def __setitem__(self, attr, value):
         super().__setitem__(attr, value)
-
-        self._deps[attr].notify()
+        trigger(self, attr)
 
     def __getattr__(self, attr):
         return self.__getitem__(attr)
@@ -76,52 +191,59 @@ class ReactiveDict(dict, Reactive):
         self._deps[attr].add_sub(sub)
 
     def reset_deps(self):
-        for attr, dep in self._deps.items():
-            dep.reset_subs()
+        for k, v in self.items():
+            clear_subscribers_for_property(self, k, PubEnum.PROPERTY)
+            if isinstance(v, Reactive):
+                v.reset_deps()
 
 
 class ReactiveList(list, Reactive):
+    _SUB_KEY = '__reactive_list_sub_key'
+
     def append(self, __object) -> None:
         super().append(__object)
-        self._deps[0].notify()
+        trigger(self, self._SUB_KEY)
 
     def extend(self, __iterable) -> None:
         super().extend(__iterable)
-        self._deps[0].notify()
+        trigger(self, self._SUB_KEY)
 
     def insert(self, __index: SupportsIndex, __object) -> None:
         super().insert(__index, __object)
-        self._deps[0].notify()
+        trigger(self, self._SUB_KEY)
 
     def __setitem__(self, key, value):
         super().__setitem__(key, value)
-        self._deps[0].notify()
+        trigger(self, self._SUB_KEY)
 
     def sort(self, *, key: None = ..., reverse: bool = ...) -> None:
         super().sort(key=key, reverse=reverse)
-        self._deps[0].notify()
+        trigger(self, self._SUB_KEY)
 
     def reverse(self) -> None:
         super().reverse()
-        self._deps[0].notify()
+        trigger(self, self._SUB_KEY)
 
     def pop(self, __index: SupportsIndex = ...):
         ret = super().pop(__index)
-        self._deps[0].notify()
+        trigger(self, self._SUB_KEY)
         return ret
 
     def remove(self, __value) -> None:
         super().remove(__value)
-        self._deps[0].notify()
+        trigger(self, self._SUB_KEY)
 
     def __delete__(self, instance):
         del self._deps
 
     def add_dep(self, sub):
-        self._deps[0].add_sub(sub)
+        add_subscribers_for_property(self, self._SUB_KEY, sub)
 
     def reset_deps(self):
-        self._deps[0].reset_subs()
+        clear_subscribers_for_property(self, self._SUB_KEY, PubEnum.PROPERTY)
+        for item in self:
+            if isinstance(item, Reactive):
+                item.reset_deps()
 
 
 def observe(data):
@@ -143,31 +265,68 @@ def observe(data):
     return data
 
 
-class Dep:
-    target = None
+class VueRef(Reactive):
+    _SUB_KEY = '__ref_sub_key'
 
-    def __init__(self):
-        self.subs = []
+    def __init__(self, value):
+        super().__init__()
+        self._value = value
 
-    def add_sub(self, sub):
-        if sub in self.subs:
-            return
+    @property
+    def value(self):
+        track(self, self._SUB_KEY)
+        return self._value
 
-        self.subs.append(sub)
+    @value.setter
+    def value(self, new_value):
+        self._value = new_value
+        trigger(self, self._SUB_KEY)
 
-    def reset_subs(self):
-        self.subs.clear()
+    def add_dep(self, sub):
+        add_subscribers_for_property(self, self._SUB_KEY, sub)
 
-    def notify(self):
-        sub_count = len(self.subs)
-        for i in range(sub_count):
-            self.subs[i].update()
+    def reset_deps(self):
+        clear_subscribers_for_property(self, self._SUB_KEY, PubEnum.PROPERTY)
+        if isinstance(self._value, Reactive):
+            self._value.reset_deps()
 
 
-class WatcherBase(metaclass=abc.ABCMeta):
-    @abc.abstractmethod
-    def update(self):
-        pass
+def ref(value):
+    return VueRef(value)
+
+
+def reactive(obj):
+    return observe(obj)
+
+
+def computed(func, setter=None):
+    val_ref = ref(None)
+    watcher = WatcherForComputed(val_ref, func)
+    with ActivateEffect(watcher, PubEnum.SETUP):
+        val_ref.value = func()
+    return val_ref
+
+
+def watch(source, callback, options=None):
+    def _watch_reactive_obj(data: Reactive, source, callback):
+        if isinstance(data, dict):
+            for attr, item in data.items():
+                _watch_reactive_obj(item, source, callback)
+
+        elif isinstance(data, list):
+            for i, item in enumerate(data):
+                _watch_reactive_obj(item, source, callback)
+
+    options = options or {}
+    watcher = WatcherForWatchFunc(source, callback, options)
+    with ActivateEffect(watcher, PubEnum.SETUP):
+        if isinstance(source, VueRef):
+            _ = source.value
+        elif isinstance(source, Reactive):
+            _watch_reactive_obj(source, source, callback)
+        elif callable(source):
+            deep = options.get('deep', True)
+            _ = source()
 
 
 class WatcherForRerender(WatcherBase):
@@ -179,14 +338,52 @@ class WatcherForRerender(WatcherBase):
         self.vm.render()
 
 
+class WatcherForComputed(WatcherBase):
+    def __init__(self, source, func, options=None):
+        self.source = source
+        self.func = func
+        self.value = self.get_val()
+
+    def get_val(self):
+        return self.func()
+
+    def update(self):
+        old_val = self.value
+        new_val = self.get_val()
+        if new_val == self.value:
+            return
+
+        self.value = new_val
+        self.source.value = new_val
+
+
+class WatcherForWatchFunc(WatcherBase):
+    def __init__(self, source, callback, options=None):
+        self.source = source
+        self.callback = callback
+        self.value = self.get_val()
+
+    def get_val(self):
+        if isinstance(self.source, VueRef):
+            return self.source.value
+        else:
+            return self.source
+
+    def update(self):
+        old_val = self.value
+        new_val = self.get_val()
+        if new_val == self.value:
+            return
+
+        self.value = new_val
+        self.callback(new_val, old_val)
+
+
 class WatcherForAttrUpdate(WatcherBase):
-    def __init__(self, ns: "VueCompNamespace", attr_chain, val_expr_or_fn, callback, options=None):
+    def __init__(self, ns: "VueCompNamespace", val_expr_or_fn, callback, options=None):
         self.callback = callback
         self.val_expr_or_fn = val_expr_or_fn
-        self.attr_chain = attr_chain
         self.ns = ns
-        obj, self.attr = ns.get_obj_and_attr(attr_chain)
-        obj.add_dep(self.attr, self)
         self.value = self.get_val()
 
     def get_val(self):
@@ -206,7 +403,7 @@ class WatcherForAttrUpdate(WatcherBase):
 
 
 class _MarkdownViewer(widgets.HTML):
-    codehilite = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'codehilite')
+    codehilite = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'md_codehilite.css')
     with open(codehilite) as f:
         css_style = ''.join(f.read())
 
@@ -217,8 +414,8 @@ class _MarkdownViewer(widgets.HTML):
         # 'markdown.extensions.nl2br',
     ]
 
-    def __init__(self, value=''):
-        super().__init__(self.render(value))
+    def __init__(self, value='', **kwargs):
+        super().__init__(self.render(value), **kwargs)
 
     def render(self, md):
         html = markdown.markdown(md, extensions=self.extra)
@@ -232,6 +429,8 @@ class _MarkdownViewer(widgets.HTML):
 
 
 class VueCompTag:
+    Accordion = "Accordion".lower()
+    AccordionItem = "AccordionItem".lower()
     AppLayout = "AppLayout".lower()
     Box = "Box".lower()
     Button = 'Button'.lower()
@@ -265,14 +464,16 @@ class VueCompTag:
     Valid = 'Valid'.lower()
     Template = 'template'
 
-    _container_tags = (
+    _container_tags = {
+        Accordion,
+        AccordionItem,
         AppLayout,
         Box,
         HBox,
         Stack,
         Template,
-    )
-    _leaf_tags = (
+    }
+    _leaf_tags = {
         FloatSlider,
         Checkbox,
         ColorsInput,
@@ -304,9 +505,11 @@ class VueCompTag:
         ToggleButton,
         ToggleButtons,
         Valid,
-    )
+    }
 
     _tag_to_widget = {
+        Accordion: widgets.Accordion,
+        AccordionItem: widgets.VBox,
         AppLayout: widgets.AppLayout,
         Box: widgets.VBox,
         Button: widgets.Button,
@@ -342,17 +545,18 @@ class VueCompTag:
     }
 
     _tag_to_v_model = {
+        Accordion: 'selected_index',
         Button: 'description',
         Stack: 'selected_index',
     }
 
     @classmethod
-    def is_container(cls, t):
-        return t in [i.lower() for i in cls._container_tags]
+    def is_container(cls, tag):
+        return tag in cls._container_tags
 
     @classmethod
-    def is_leaf(cls, t):
-        return t in [i.lower() for i in cls._leaf_tags]
+    def is_leaf(cls, tag):
+        return tag in cls._leaf_tags
 
     @classmethod
     def get_widget(cls, t):
@@ -552,6 +756,9 @@ class VueCompAst:
             else:
                 comp.kwargs[attr] = value
 
+        if comp.layout:
+            comp.kwargs['layout'] = comp.layout
+
         return comp
 
 
@@ -614,8 +821,7 @@ class VueCompNamespace:
         raise Exception(f"get attr {attr_chain} from ns failed")
 
     def getattr(self, attr_chain, default=Nil):
-        obj, attr = self.get_obj_and_attr(attr_chain)
-        return self._getattr(obj, attr)
+        return self.get_by_attr_chain(self.to_py_eval_ns(), attr_chain, default)
 
 
 class VueCompCodeGen:
@@ -631,12 +837,10 @@ class VueCompCodeGen:
     def gen(cls, comp_ast: VueCompAst, vm: 'Vue', ns: VueCompNamespace):
         # v-if
         if comp_ast.v_if:
-            for attr_chain in comp_ast.v_if.vars:
-                obj, attr = ns.get_obj_and_attr(attr_chain)
-                obj.add_dep(attr, WatcherForRerender(vm, f'v_if {comp_ast.v_if}'))
-
-            if not comp_ast.v_if.eval(ns):
-                return widgets.HTML("")
+            watcher = WatcherForRerender(vm, f'v_if {comp_ast.v_if}')
+            with ActivateEffect(watcher):
+                if not comp_ast.v_if.eval(ns):
+                    return widgets.HTML("")
 
         widgets_cls = VueCompTag.impl(comp_ast.tag)
         widget = widgets_cls(**comp_ast.kwargs)
@@ -647,25 +851,21 @@ class VueCompCodeGen:
         # v-bind:
         for widget_attr, exp_ast in comp_ast.v_binds.items():
             update_vm_to_view = cls.handle_value_change_vm_to_view(widget, widget_attr)
-            _value = exp_ast.eval(ns)
+            watcher = WatcherForAttrUpdate(ns, exp_ast, update_vm_to_view)
+            with ActivateEffect(watcher):
+                _value = exp_ast.eval(ns)
             update_vm_to_view(_value, None)
-            for attr_chain in exp_ast.vars:
-                attr_chain_prev = attr_chain
-                while attr_chain_prev != attr_chain:
-                    WatcherForAttrUpdate(ns, attr_chain, exp_ast, update_vm_to_view)
-                    attr_chain_prev = attr_chain
-                    attr_chain = attr_chain.rsplit('.', 1)[0]
 
         # v-model:widget=vm
         if comp_ast.v_model_vm:
-            vm_attr = comp_ast.v_model_vm
-            obj, attr = ns.get_obj_and_attr(vm_attr)
+            attr_chain = comp_ast.v_model_vm
             # vm to view
             widget_attr = VueCompTag.v_model(comp_ast.tag)
             update_vm_to_view = cls.handle_value_change_vm_to_view(widget, widget_attr)
-            _value = ns.getattr(vm_attr)
+            watcher = WatcherForAttrUpdate(ns, lambda: ns.getattr(attr_chain), update_vm_to_view)
+            with ActivateEffect(watcher):
+                _value = ns.getattr(attr_chain)
             update_vm_to_view(_value, None)
-            WatcherForAttrUpdate(ns, vm_attr, lambda: ns.getattr(vm_attr), update_vm_to_view)
 
             # view to vm
             def handle_value_change_view_to_vm(obj, attr):
@@ -674,6 +874,7 @@ class VueCompCodeGen:
 
                 return warp
 
+            obj, attr = ns.get_obj_and_attr(attr_chain)
             update_view_to_vm = handle_value_change_view_to_vm(obj, attr)
             widget.observe(update_view_to_vm, names=f'{widget_attr}')
 
@@ -691,14 +892,10 @@ class VueCompHtmlTemplateRender:
             exp = match.group(1)
             exp_ast = vue_comp_expr_parse(exp)
             # TODO html可以设置value，按需更新
-            for attr_chain in exp_ast.vars:
-                attr_chain_prev = ''
-                while attr_chain_prev != attr_chain:
-                    obj, attr = ns.get_obj_and_attr(attr_chain)
-                    obj.add_dep(attr, WatcherForRerender(vm, f'html {for_idx} attr {attr} {{{{ {exp} }}}}'))
-                    attr_chain_prev = attr_chain
-                    attr_chain = attr_chain.rsplit('.', 1)[0]
-            return str(exp_ast.eval(ns))
+            watcher = WatcherForRerender(vm, f'html {for_idx} {{{{ {exp} }}}}')
+            with ActivateEffect(watcher):
+                _value = exp_ast.eval(ns)
+            return str(_value)
         return warp
 
     @classmethod
@@ -768,18 +965,20 @@ class VueTemplate(HTMLParser):
 
         # TODO can move to Tag class
         widget_cls = VueCompTag.impl(tag)
-        if tag == VueCompTag.AppLayout.lower():
+        if tag == VueCompTag.AppLayout:
             kwargs = comp_ast.kwargs
             for child in node['body']:
                 kwargs[child.v_slot] = child
             widget = widget_cls(**kwargs)
-
-        elif tag == VueCompTag.Box.lower() or tag == VueCompTag.HBox.lower():
+        elif tag == VueCompTag.Box or tag == VueCompTag.HBox:
             widget = widget_cls(node['body'])
-
-        elif tag == VueCompTag.Template.lower():
+        elif tag == VueCompTag.Template:
             widget = widget_cls(node['body'])
-
+        elif tag == VueCompTag.AccordionItem:
+            widget = widget_cls(node['body'])
+            widget.title = comp_ast.kwargs.get('title', '-')
+        elif tag == VueCompTag.Accordion:
+            widget = widget_cls(children=node['body'], titles=[c.title for c in node['body']])
         else:
             raise Exception(f'error: container_tag_exit, {tag} not support.')
 
@@ -839,11 +1038,9 @@ class VueTemplate(HTMLParser):
 
     def _for_stmt_exit(self, v_for_ast_node, is_body=False):
         _widgets = []
-        # v_for_stmt = v_for_ast_node['v_for']
         v_for_stmt = self.v_for_stack[-1]
         _iter = VueCompNamespace.get_by_attr_chain(self.vm._data, v_for_stmt.iter)
         for i, target in enumerate(_iter):
-            # for_scope = (v_for_stmt.i, i, v_for_stmt.target, target, v_for_stmt.target)
             for_scope = ForScope(i, v_for_stmt, self.vm)
             node = v_for_ast_node['body'][i]
             widget = self._gen_widget(node, for_scope)
@@ -853,18 +1050,21 @@ class VueTemplate(HTMLParser):
         # todo 加到v-for的解析处
         if not is_body:
             ns = VueCompNamespace(self.vm._data, self.vm.to_ns())
-            list_base_root, attr = ns.get_obj_and_attr(v_for_stmt.iter)
             # 处理list被整个替换的情况
             attr_chain = v_for_stmt.iter
-            attr_chain_prev = ''
-            while attr_chain_prev != attr_chain:
-                obj, attr = ns.get_obj_and_attr(attr_chain)
-                obj.add_dep(attr, WatcherForRerender(self.vm, f"{attr}: {v_for_stmt.iter} replace"))
-                attr_chain_prev = attr_chain
-                attr_chain = attr_chain.rsplit('.', 1)[0]
+            _attrs = attr_chain.split('.', 1)
+            if len(_attrs) > 1:
+                base_attr, sub_attr_chain = _attrs
+                obj = ns.getattr(base_attr)
+                watcher = WatcherForRerender(self.vm, f"for_stme {v_for_stmt.iter} replace")
+                with ActivateEffect(watcher):
+                    VueCompNamespace.get_by_attr_chain(obj, sub_attr_chain)
             # 处理list本身的变化，append、pop等操作
+            # watcher = WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified")
+            # with ActivateEffect(watcher):
             obj_iter = ns.getattr(v_for_stmt.iter)
-            obj_iter.add_dep(WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified"))
+            if isinstance(obj_iter, Reactive):
+                obj_iter.add_dep(WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified"))
 
         return _widgets
 
@@ -938,6 +1138,7 @@ class VueOptions:
     def __init__(self, options):
         self.el = options.get('el')
         self.data = options.get('data')
+        self.setup = options.get('setup')
         self.methods = options.get('methods', {})
         self.template = options.get('template')
 
@@ -953,7 +1154,8 @@ class VueOptions:
 class Vue:
     def __init__(self, options, debug=False):
         options = VueOptions(options)
-        self._data = observe(options.data)
+        # self._data = observe(options.data)
+        self._data = options.setup(None, None, self)
         self.debug_log = widgets.Output()
         self.debug = debug
 
@@ -962,15 +1164,15 @@ class Vue:
         self._call_if_callable(self.options.before_create)
         self._call_if_callable(self.options.created)
 
-        self.methods = self.options.methods(self)
+        # self.methods = self.options.methods(self)
         self._proxy_methods()
 
         self.mount(self.options.el)
 
     def to_ns(self):
         methods = {
-            m: getattr(self.methods, m)
-            for m in dir(self.methods) if not m.startswith('_')
+            # m: getattr(self.methods, m)
+            # for m in dir(self.methods) if not m.startswith('_')
         }
         return {
             **methods,
@@ -1008,10 +1210,6 @@ class Vue:
 
     def _proxy_methods(self):
         pass
-        # for func_name, func in self.options.methods.items():
-        #     # TODO 绑定self
-        #     # setattr(self, func_name, )
-        #     pass
 
     def mount(self, el):
         self._call_if_callable(self.options.before_mount)
@@ -1022,8 +1220,13 @@ class Vue:
         vue_template = VueTemplate(self)
         return vue_template.compile(template)
 
+    def clear_property_subs(self):
+        for item in self._data.values():
+            if isinstance(item, Reactive):
+                item.reset_deps()
+
     def render(self):
-        self._data = observe(self._data)
+        self.clear_property_subs()
         with self.options.el:
             if callable(self.options.template):
                 self.dom = self.options.template(self)
