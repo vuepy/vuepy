@@ -1,1 +1,2 @@
-include README.md LICENSE ipywidgets_vue/*.vue
+include README.md LICENSE src/vuepy/md_codehilite.css
+include src/vuepy/js_stubs/ipywidgets_vue/*.vue src/vuepy/js_stubs/vue.js

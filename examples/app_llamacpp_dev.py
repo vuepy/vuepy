@@ -1,5 +1,5 @@
 from glob import glob
-from vuepy.vue import *
+from vuepy import *
 
 
 def setup(props, ctx, vm):

@@ -35,6 +35,9 @@
 </template>
 
 <script setup>
+import { ref, reactive } from '../src/vuepy/js_stubs/vue'
+import _Stub from '../src/vuepy/js_stubs/ipywidgets_vue/_Stub'
+
 import AppLayout from './AppLayout'
 import FloatSlider from './FloatSlider'
 import Box from './Box'
@@ -43,7 +46,6 @@ import Textarea from './Textarea'
 import Button from './Button'
 import HBox from './HBox'
 import MarkdownViewer from "./MarkdownViewer";
-import { ref, reactive } from 'vue'
 
 const False = false;
 const True = true;

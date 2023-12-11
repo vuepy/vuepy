@@ -5,7 +5,7 @@ import os.path
 from setuptools import setup
 
 # The directory containing this file
-HERE = os.path.relpath(os.path.dirname(__file__))
+HERE = os.path.realpath(os.path.dirname(__file__))
 
 # The text of the README file
 with open(os.path.join(HERE, "README.md")) as fid:
@@ -28,6 +28,7 @@ setup(
         "Programming Language :: Python :: 3.7",
     ],
     packages=["vuepy"],
+    package_dir={'': 'src'},
     include_package_data=True,
     install_requires=[
         "ipywidgets",

@@ -2,7 +2,7 @@ import threading
 import time
 from pprint import pprint
 import enum
-from vuepy.vue import *
+from vuepy import *
 
 
 class Role(enum.Enum):
