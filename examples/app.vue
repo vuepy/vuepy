@@ -24,6 +24,8 @@
         ></MarkdownViewer>
       </Box>
       <hr/>
+      <p v-if="False">v-if=False for html </p>
+      <p v-if="True">v-if=True for html</p>
       <Button description="Add message" button_style="info" icon="plus-circle" @click="handle_add_msg()"></Button>
       <Button description='show/edit' icon="edit" @click="handle_edit_msg" button_style='info'></Button>
       <Button description="Submit" button_style="success" @click="handle_on_submit()"></Button>

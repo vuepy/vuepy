@@ -961,7 +961,16 @@ class VueTemplate(HTMLParser):
 
     def _container_tag_exit(self, node, for_scope=None):
         tag = node['tag']
+        # TODO 重构
         comp_ast = VueCompAst.parse(tag, node['attrs'])
+        local = for_scope.to_ns() if for_scope else None
+        ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local)
+        # v-if
+        if comp_ast.v_if:
+            watcher = WatcherForRerender(self.vm, f'v_if {comp_ast.v_if}')
+            with ActivateEffect(watcher):
+                if not comp_ast.v_if.eval(ns):
+                    return widgets.HTML("")
 
         # TODO can move to Tag class
         widget_cls = VueCompTag.impl(tag)
@@ -1003,6 +1012,17 @@ class VueTemplate(HTMLParser):
         return ast_node
 
     def _html_tag_exit(self, node, for_scope: ForScope = None):
+        # TODO 重构
+        comp_ast = VueCompAst.parse(node['tag'], node['attrs'])
+        local = for_scope.to_ns() if for_scope else None
+        ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local)
+        # v-if
+        if comp_ast.v_if:
+            watcher = WatcherForRerender(self.vm, f'v_if {comp_ast.v_if}')
+            with ActivateEffect(watcher):
+                if not comp_ast.v_if.eval(ns):
+                    return widgets.HTML("")
+
         body = []
         for child in node['body']:
             if isinstance(child, widgets.HTML):
