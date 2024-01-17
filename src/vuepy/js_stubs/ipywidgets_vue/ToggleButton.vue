@@ -20,7 +20,7 @@ export default {
       type: Boolean,
       default: false
     },
-    buttonStyle: {
+    button_style: {
       type: String,
       default: '',
       validator: function (value) {
