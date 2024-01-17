@@ -8,7 +8,12 @@ def main():
     parser = argparse.ArgumentParser(prog='PROG')
     add_arg_parser(parser)
     args = parser.parse_args()
-    args.func(args)
+    try:
+        args.func(args)
+    except Exception as e:
+        print(f"error {e}")
+        parser.print_help()
+        exit(1)
 
 
 if __name__ == '__main__':

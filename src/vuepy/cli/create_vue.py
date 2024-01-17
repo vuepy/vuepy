@@ -15,7 +15,9 @@ def is_valid_package_name(package_name):
     return True
 
 
-def create_project(project_name, template='vue'):
+def create_project(args):
+    project_name = args.project_name
+    template = args.template
     if not is_valid_package_name(project_name):
         print(f"Invalid package name: {project_name}")
         return
