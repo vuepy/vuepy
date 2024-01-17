@@ -610,9 +610,10 @@ class ForScope:
 
 
 class VueCompExprAst:
-    def __init__(self, exp_ast, vars=None):
+    def __init__(self, exp_ast, vars=None, exp_str=''):
         self.vars = vars if vars else []
         self.exp_ast = exp_ast
+        self.exp_str = exp_str
 
     def add_var(self, var):
         self.vars.append(var)
@@ -663,7 +664,9 @@ class VueCompExprTransformer(ast.NodeTransformer):
 def vue_comp_expr_parse(expr_str):
     _ast = VueCompExprParser.parse(expr_str)
     transformer = VueCompExprTransformer()
-    return transformer.transformer(_ast)
+    comp_expr_ast = transformer.transformer(_ast)
+    comp_expr_ast.exp_str = expr_str
+    return comp_expr_ast
 
 
 def vue_comp_expr_compile(expr_ast: VueCompExprAst):
