@@ -2,9 +2,10 @@ import os
 import shutil
 import argparse
 import re
+from pathlib import Path
+from string import Template
 
-
-HERE = os.path.realpath(os.path.dirname(__file__))
+HERE = Path(__file__).parent
 
 
 def is_valid_package_name(package_name):
@@ -22,17 +23,25 @@ def create_project(args):
         print(f"Invalid package name: {project_name}")
         return
 
-    pwd = os.getcwd()
-    os.makedirs(os.path.join(pwd, project_name), exist_ok=True)
+    proj_dir = Path(os.getcwd()) / project_name
+    os.makedirs(proj_dir)
 
     # 拷贝模板
-    template_dir = os.path.join(HERE, template)
-    if not os.path.exists(template_dir):
+    template_dir = HERE / f"template_{template}"
+    if not template_dir.exists():
         print(f"Template not found: {template}")
         return
 
     # TODO modified app.vue
-    shutil.copytree(template_dir, project_name, dirs_exist_ok=True)
+    shutil.copytree(template_dir, proj_dir, dirs_exist_ok=True)
+    with open(proj_dir / 'app.vue', 'r') as f:
+        app_vue = f.read()
+    app_vue = Template(app_vue).substitute({
+        'js_stubs_path': HERE.parent / 'js_stubs',
+    })
+    with open(proj_dir / 'app.vue', 'w') as f:
+        f.write(app_vue)
+    print('Done.')
 
 
 def add_arg_parser(parser: argparse.ArgumentParser):
