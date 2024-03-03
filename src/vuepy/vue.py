@@ -2,16 +2,18 @@
 import abc
 import ast
 import enum
-import os
+import pathlib
 import re
 import types
 from _ast import Attribute
 from collections import defaultdict
 from html.parser import HTMLParser
-from typing import SupportsIndex, Any, Dict, List
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import SupportsIndex
 
 import ipywidgets as widgets
-import markdown
 from IPython.display import clear_output
 from IPython.display import display
 
@@ -402,173 +404,173 @@ class WatcherForAttrUpdate(WatcherBase):
         self.callback(new_val, old_val)
 
 
-class _MarkdownViewer(widgets.HTML):
-    codehilite = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'md_codehilite.css')
-    with open(codehilite) as f:
-        css_style = ''.join(f.read())
+# class _MarkdownViewer(widgets.HTML):
+#     codehilite = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'md_codehilite.css')
+#     with open(codehilite) as f:
+#         css_style = ''.join(f.read())
+#
+#     extra = [
+#         'markdown.extensions.extra',
+#         'markdown.extensions.codehilite',
+#         'markdown.extensions.tables',
+#         # 'markdown.extensions.nl2br',
+#     ]
+#
+#     def __init__(self, value='', **kwargs):
+#         super().__init__(self.render(value), **kwargs)
+#
+#     def render(self, md):
+#         html = markdown.markdown(md, extensions=self.extra)
+#         return f"<style>{self.css_style}</style>" + html
+#
+#     def __setattr__(self, key, value):
+#         if key == 'value':
+#             value = self.render(value)
+#
+#         super().__setattr__(key, value)
 
-    extra = [
-        'markdown.extensions.extra',
-        'markdown.extensions.codehilite',
-        'markdown.extensions.tables',
-        # 'markdown.extensions.nl2br',
-    ]
 
-    def __init__(self, value='', **kwargs):
-        super().__init__(self.render(value), **kwargs)
-
-    def render(self, md):
-        html = markdown.markdown(md, extensions=self.extra)
-        return f"<style>{self.css_style}</style>" + html
-
-    def __setattr__(self, key, value):
-        if key == 'value':
-            value = self.render(value)
-
-        super().__setattr__(key, value)
-
-
-class VueCompTag:
-    Accordion = "Accordion".lower()
-    AccordionItem = "AccordionItem".lower()
-    AppLayout = "AppLayout".lower()
-    Box = "Box".lower()
-    Button = 'Button'.lower()
-    Checkbox = 'Checkbox'.lower()
-    ColorsInput = 'ColorsInput'.lower()
-    Combobox = 'Combobox'.lower()
-    Controller = 'Controller'.lower()
-    Dropdown = "Dropdown".lower()
-    FileUpload = 'FileUpload'.lower()
-    FloatsInput = 'FloatsInput'.lower()
-    FloatSlider = 'FloatSlider'.lower()
-    HBox = 'HBox'.lower()
-    HtmlMath = 'HtmlMath'.lower()
-    Image = 'Image'.lower()
-    InputNumber = 'InputNumber'.lower()
-    IntsInput = 'IntsInput'.lower()
-    Label = 'Label'.lower()
-    MarkdownViewer = 'MarkdownViewer'.lower()
-    Password = 'Password'.lower()
-    Play = 'Play'.lower()
-    Progress = 'Progress'.lower()
-    RadioButtons = 'RadioButtons'.lower()
-    Select = 'Select'.lower()
-    Slider = 'Slider'.lower()
-    Stack = 'Stack'.lower()
-    TagsInput = 'TagsInput'.lower()
-    Text = 'Text'.lower()
-    Textarea = 'Textarea'.lower()
-    ToggleButton = 'ToggleButton'.lower()
-    ToggleButtons = 'ToggleButtons'.lower()
-    Valid = 'Valid'.lower()
-    Template = 'template'
-
-    _container_tags = {
-        Accordion,
-        AccordionItem,
-        AppLayout,
-        Box,
-        HBox,
-        Stack,
-        Template,
-    }
-    _leaf_tags = {
-        FloatSlider,
-        Checkbox,
-        ColorsInput,
-        Combobox,
-        Controller,
-        Dropdown,
-        FileUpload,
-        FloatsInput,
-        FloatSlider,
-        Dropdown,
-        Textarea,
-        Button,
-        HtmlMath,
-        Image,
-        InputNumber,
-        IntsInput,
-        Label,
-        MarkdownViewer,
-        Password,
-        Play,
-        Progress,
-        RadioButtons,
-        Text,
-        Select,
-        Slider,
-        TagsInput,
-        Text,
-        Textarea,
-        ToggleButton,
-        ToggleButtons,
-        Valid,
-    }
-
-    _tag_to_widget = {
-        Accordion: widgets.Accordion,
-        AccordionItem: widgets.VBox,
-        AppLayout: widgets.AppLayout,
-        Box: widgets.VBox,
-        Button: widgets.Button,
-        Checkbox: widgets.Checkbox,
-        ColorsInput: widgets.ColorsInput,
-        Combobox: widgets.Combobox,
-        Controller: widgets.Controller,
-        Dropdown: widgets.Dropdown,
-        FileUpload: widgets.FileUpload,
-        FloatsInput: widgets.FloatsInput,
-        FloatSlider: widgets.FloatSlider,
-        HBox: widgets.HBox,
-        HtmlMath: widgets.HTMLMath,
-        Image: widgets.Image,
-        InputNumber: widgets.IntText,  # TODO IntText, FloatText
-        IntsInput: widgets.IntsInput,
-        Label: widgets.Label,
-        MarkdownViewer: _MarkdownViewer,
-        Password: widgets.Password,
-        Play: widgets.Play,
-        Progress: widgets.FloatProgress,
-        RadioButtons: widgets.RadioButtons,
-        Select: widgets.Select,
-        Slider: widgets.FloatSlider,  # TODO xxxSlider
-        Stack: widgets.Stack,
-        TagsInput: widgets.TagsInput,
-        Template: widgets.VBox,
-        Text: widgets.Text,
-        Textarea: widgets.Textarea,
-        ToggleButton: widgets.ToggleButton,
-        ToggleButtons: widgets.ToggleButtons,
-        Valid: widgets.Valid,
-    }
-
-    _tag_to_v_model = {
-        Accordion: 'selected_index',
-        Button: 'description',
-        Stack: 'selected_index',
-    }
-
-    @classmethod
-    def is_container(cls, tag):
-        return tag in cls._container_tags
-
-    @classmethod
-    def is_leaf(cls, tag):
-        return tag in cls._leaf_tags
-
-    @classmethod
-    def get_widget(cls, t):
-        return getattr(widgets, getattr(cls, t))
-
-    @classmethod
-    def impl(cls, tag):
-        return cls._tag_to_widget[tag]
-
-    @classmethod
-    def v_model(cls, tag):
-        return cls._tag_to_v_model.get(tag, 'value')
+# class VueCompTag:
+#     Accordion = "Accordion".lower()
+#     AccordionItem = "AccordionItem".lower()
+#     AppLayout = "AppLayout".lower()
+#     Box = "Box".lower()
+#     Button = 'Button'.lower()
+#     Checkbox = 'Checkbox'.lower()
+#     ColorsInput = 'ColorsInput'.lower()
+#     Combobox = 'Combobox'.lower()
+#     Controller = 'Controller'.lower()
+#     Dropdown = "Dropdown".lower()
+#     FileUpload = 'FileUpload'.lower()
+#     FloatsInput = 'FloatsInput'.lower()
+#     FloatSlider = 'FloatSlider'.lower()
+#     HBox = 'HBox'.lower()
+#     HtmlMath = 'HtmlMath'.lower()
+#     Image = 'Image'.lower()
+#     InputNumber = 'InputNumber'.lower()
+#     IntsInput = 'IntsInput'.lower()
+#     Label = 'Label'.lower()
+#     MarkdownViewer = 'MarkdownViewer'.lower()
+#     Password = 'Password'.lower()
+#     Play = 'Play'.lower()
+#     Progress = 'Progress'.lower()
+#     RadioButtons = 'RadioButtons'.lower()
+#     Select = 'Select'.lower()
+#     Slider = 'Slider'.lower()
+#     Stack = 'Stack'.lower()
+#     TagsInput = 'TagsInput'.lower()
+#     Text = 'Text'.lower()
+#     Textarea = 'Textarea'.lower()
+#     ToggleButton = 'ToggleButton'.lower()
+#     ToggleButtons = 'ToggleButtons'.lower()
+#     Valid = 'Valid'.lower()
+#     Template = 'template'
+#
+#     _container_tags = {
+#         Accordion,
+#         AccordionItem,
+#         AppLayout,
+#         Box,
+#         HBox,
+#         Stack,
+#         Template,
+#     }
+#     _leaf_tags = {
+#         FloatSlider,
+#         Checkbox,
+#         ColorsInput,
+#         Combobox,
+#         Controller,
+#         Dropdown,
+#         FileUpload,
+#         FloatsInput,
+#         FloatSlider,
+#         Dropdown,
+#         Textarea,
+#         Button,
+#         HtmlMath,
+#         Image,
+#         InputNumber,
+#         IntsInput,
+#         Label,
+#         MarkdownViewer,
+#         Password,
+#         Play,
+#         Progress,
+#         RadioButtons,
+#         Text,
+#         Select,
+#         Slider,
+#         TagsInput,
+#         Text,
+#         Textarea,
+#         ToggleButton,
+#         ToggleButtons,
+#         Valid,
+#     }
+#
+#     _tag_to_widget = {
+#         Accordion: widgets.Accordion,
+#         AccordionItem: widgets.VBox,
+#         AppLayout: widgets.AppLayout,
+#         Box: widgets.VBox,
+#         Button: widgets.Button,
+#         Checkbox: widgets.Checkbox,
+#         ColorsInput: widgets.ColorsInput,
+#         Combobox: widgets.Combobox,
+#         Controller: widgets.Controller,
+#         Dropdown: widgets.Dropdown,
+#         FileUpload: widgets.FileUpload,
+#         FloatsInput: widgets.FloatsInput,
+#         FloatSlider: widgets.FloatSlider,
+#         HBox: widgets.HBox,
+#         HtmlMath: widgets.HTMLMath,
+#         Image: widgets.Image,
+#         InputNumber: widgets.IntText,  # TODO IntText, FloatText
+#         IntsInput: widgets.IntsInput,
+#         Label: widgets.Label,
+#         # MarkdownViewer: _MarkdownViewer,
+#         Password: widgets.Password,
+#         Play: widgets.Play,
+#         Progress: widgets.FloatProgress,
+#         RadioButtons: widgets.RadioButtons,
+#         Select: widgets.Select,
+#         Slider: widgets.FloatSlider,  # TODO xxxSlider
+#         Stack: widgets.Stack,
+#         TagsInput: widgets.TagsInput,
+#         Template: widgets.VBox,
+#         Text: widgets.Text,
+#         Textarea: widgets.Textarea,
+#         ToggleButton: widgets.ToggleButton,
+#         ToggleButtons: widgets.ToggleButtons,
+#         Valid: widgets.Valid,
+#     }
+#
+#     _tag_to_v_model = {
+#         Accordion: 'selected_index',
+#         Button: 'description',
+#         Stack: 'selected_index',
+#     }
+#
+#     @classmethod
+#     def is_container(cls, tag):
+#         return tag in cls._container_tags
+#
+#     @classmethod
+#     def is_leaf(cls, tag):
+#         return tag in cls._leaf_tags
+#
+#     # @classmethod
+#     # def get_widget(cls, t):
+#     #     return getattr(widgets, getattr(cls, t))
+#
+#     @classmethod
+#     def impl(cls, tag):
+#         return cls._tag_to_widget[tag]
+#
+#     @classmethod
+#     def v_model(cls, tag):
+#         return cls._tag_to_v_model.get(tag, 'value')
 
 
 class VForStatement:
@@ -688,9 +690,11 @@ class VueCompAst:
     SINGLE_BOUND_PREFIX = ':'
     LAYOUT_ATTRS = {'width', 'height', 'padding', 'border'}
 
+    # todo 和h函数的参数保持一致
     def __init__(self, tag):
         self.tag = tag
         self.v_if: VueCompExprAst = None
+        # todo rename to attrs
         self.kwargs = {}
         self.v_binds: Dict[str, VueCompExprAst] = {}
         self.v_model_vm = None
@@ -828,6 +832,9 @@ class VueCompNamespace:
 
 
 class VueCompCodeGen:
+    """
+    h()
+    """
     @staticmethod
     def handle_value_change_vm_to_view(widget, attr):
         def warp(val, old_val):
@@ -837,7 +844,7 @@ class VueCompCodeGen:
         return warp
 
     @classmethod
-    def gen(cls, comp_ast: VueCompAst, vm: 'Vue', ns: VueCompNamespace):
+    def gen(cls, comp_ast: VueCompAst, children, vm: 'Vue', ns: VueCompNamespace):
         # v-if
         if comp_ast.v_if:
             watcher = WatcherForRerender(vm, f'v_if {comp_ast.v_if}')
@@ -845,8 +852,24 @@ class VueCompCodeGen:
                 if not comp_ast.v_if.eval(ns):
                     return widgets.HTML("")
 
-        widgets_cls = VueCompTag.impl(comp_ast.tag)
-        widget = widgets_cls(**comp_ast.kwargs)
+        # widgets_cls = VueCompTag.impl(comp_ast.tag)
+        # widget = widgets_cls(**comp_ast.kwargs)
+        slots = {'default': []}
+        for child in children or []:
+            slot_name = getattr(child, 'v_slot', 'default')
+            if slot_name == 'default':
+                slots[slot_name].append(child)
+            else:
+                slots[slot_name] = child
+
+        ctx = {
+            'attrs': comp_ast.kwargs,
+            'slots': slots,
+            'emit': '',
+        }
+        component_cls = vm.find_component(comp_ast.tag)
+        widget = component_cls().render(ctx, {}, {})
+
         # v-slot
         if comp_ast.v_slot:
             widget.v_slot = comp_ast.v_slot
@@ -863,13 +886,15 @@ class VueCompCodeGen:
         if comp_ast.v_model_vm:
             attr_chain = comp_ast.v_model_vm
             # vm to view
-            widget_attr = VueCompTag.v_model(comp_ast.tag)
+            widget_attr = component_cls.v_model_default  # VueCompTag.v_model(comp_ast.tag)
+            # = :bind
             update_vm_to_view = cls.handle_value_change_vm_to_view(widget, widget_attr)
             watcher = WatcherForAttrUpdate(ns, lambda: ns.getattr(attr_chain), update_vm_to_view)
             with ActivateEffect(watcher):
                 _value = ns.getattr(attr_chain)
             update_vm_to_view(_value, None)
 
+            # = v-on
             # view to vm
             def handle_value_change_view_to_vm(obj, attr):
                 def warp(change):
@@ -910,6 +935,8 @@ class VueCompHtmlTemplateRender:
 
 class VueTemplate(HTMLParser):
     """
+    @vue/compiler-dom
+
     数据绑定:
     https://docs.python.org/zh-cn/3.10/library/ast.html#function-and-class-definitions
     https://juejin.cn/post/7242700247440293925
@@ -939,76 +966,91 @@ class VueTemplate(HTMLParser):
         pass
 
     def _gen_ast_node(self, tag, attrs, for_scope=None):
-        if VueCompTag.is_container(tag):
-            node = self._container_tag_enter(tag, attrs, for_scope)
-        elif VueCompTag.is_leaf(tag):
-            node = self._leaf_tag_enter(tag, attrs, for_scope)
+        # ast_node = {"tag": tag, 'attrs': attrs}
+        # if VueCompTag.is_container(tag):
+        #     node = self._container_tag_enter(tag, attrs, for_scope)
+        # elif VueCompTag.is_leaf(tag):
+        #     node = self._leaf_tag_enter(tag, attrs, for_scope)
+        if self.vm.find_component(tag):
+            node = self._component_tag_enter(tag, attrs, for_scope)
         else:
             node = self._html_tag_enter(tag, attrs)
         return node
 
     def _gen_widget(self, node, for_scope=None):
         tag = node['tag']
-        if VueCompTag.is_container(tag):
-            widget = self._container_tag_exit(node, for_scope)
-        elif VueCompTag.is_leaf(tag):
-            widget = self._leaf_tag_exit(node, for_scope)
+        # if VueCompTag.is_container(tag):
+        #     widget = self._container_tag_exit(node, for_scope)
+        # elif VueCompTag.is_leaf(tag):
+        #     widget = self._leaf_tag_exit(node, for_scope)
+        if self.vm.find_component(tag):
+            widget = self._component_tag_exit(node, for_scope)
         else:
             widget = self._html_tag_exit(node, for_scope)
 
         return widget
 
-    def _container_tag_enter(self, tag, attrs, for_scope=None):
-        ast_node = {"tag": tag, 'attrs': attrs, 'body': []}
-        return ast_node
+    def _component_tag_enter(self, tag, attrs, for_scope=None):
+        return {"tag": tag, 'attrs': attrs, 'body': []}
 
-    def _container_tag_exit(self, node, for_scope=None):
-        tag = node['tag']
-        # TODO 重构
-        comp_ast = VueCompAst.parse(tag, node['attrs'])
-        local = for_scope.to_ns() if for_scope else None
-        ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local)
-        # v-if
-        if comp_ast.v_if:
-            watcher = WatcherForRerender(self.vm, f'v_if {comp_ast.v_if}')
-            with ActivateEffect(watcher):
-                if not comp_ast.v_if.eval(ns):
-                    return widgets.HTML("")
-
-        # TODO can move to Tag class
-        widget_cls = VueCompTag.impl(tag)
-        if tag == VueCompTag.AppLayout:
-            kwargs = comp_ast.kwargs
-            for child in node['body']:
-                kwargs[child.v_slot] = child
-            widget = widget_cls(**kwargs)
-        elif tag == VueCompTag.Box or tag == VueCompTag.HBox:
-            widget = widget_cls(node['body'])
-        elif tag == VueCompTag.Template:
-            widget = widget_cls(node['body'])
-        elif tag == VueCompTag.AccordionItem:
-            widget = widget_cls(node['body'])
-            widget.title = comp_ast.kwargs.get('title', '-')
-        elif tag == VueCompTag.Accordion:
-            widget = widget_cls(children=node['body'], titles=[c.title for c in node['body']])
-        else:
-            raise Exception(f'error: container_tag_exit, {tag} not support.')
-
-        if comp_ast.v_slot:
-            widget.v_slot = comp_ast.v_slot
-
-        return widget
-
-    def _leaf_tag_enter(self, tag, attrs, for_scope=None):
-        ast_node = {"tag": tag, 'attrs': attrs}
-        return ast_node
-
-    def _leaf_tag_exit(self, node, for_scope: ForScope = None):
+    def _component_tag_exit(self, node, for_scope=None):
         comp_ast = VueCompAst.parse(node['tag'], node['attrs'])
         local = for_scope.to_ns() if for_scope else None
         ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local)
-        widget = VueCompCodeGen.gen(comp_ast, self.vm, ns)
+        widget = VueCompCodeGen.gen(comp_ast, node['body'], self.vm, ns)
         return widget
+
+    # def _container_tag_enter(self, tag, attrs, for_scope=None):
+    #     ast_node = {"tag": tag, 'attrs': attrs, 'body': []}
+    #     return ast_node
+    #
+    # def _container_tag_exit(self, node, for_scope=None):
+    #     tag = node['tag']
+    #     # TODO 重构
+    #     comp_ast = VueCompAst.parse(tag, node['attrs'])
+    #     local = for_scope.to_ns() if for_scope else None
+    #     ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local)
+    #     # v-if
+    #     if comp_ast.v_if:
+    #         watcher = WatcherForRerender(self.vm, f'v_if {comp_ast.v_if}')
+    #         with ActivateEffect(watcher):
+    #             if not comp_ast.v_if.eval(ns):
+    #                 return widgets.HTML("")
+    #
+    #     # TODO can move to Tag class
+    #     widget_cls = VueCompTag.impl(tag)
+    #     if tag == VueCompTag.AppLayout:
+    #         kwargs = comp_ast.kwargs
+    #         for child in node['body']:
+    #             kwargs[child.v_slot] = child
+    #         widget = widget_cls(**kwargs)
+    #     elif tag == VueCompTag.Box or tag == VueCompTag.HBox:
+    #         widget = widget_cls(node['body'])
+    #     elif tag == VueCompTag.Template:
+    #         widget = widget_cls(node['body'])
+    #     elif tag == VueCompTag.AccordionItem:
+    #         widget = widget_cls(node['body'])
+    #         widget.title = comp_ast.kwargs.get('title', '-')
+    #     elif tag == VueCompTag.Accordion:
+    #         widget = widget_cls(children=node['body'], titles=[c.title for c in node['body']])
+    #     else:
+    #         raise Exception(f'error: container_tag_exit, {tag} not support.')
+    #
+    #     if comp_ast.v_slot:
+    #         widget.v_slot = comp_ast.v_slot
+    #
+    #     return widget
+    #
+    # def _leaf_tag_enter(self, tag, attrs, for_scope=None):
+    #     ast_node = {"tag": tag, 'attrs': attrs}
+    #     return ast_node
+    #
+    # def _leaf_tag_exit(self, node, for_scope: ForScope = None):
+    #     comp_ast = VueCompAst.parse(node['tag'], node['attrs'])
+    #     local = for_scope.to_ns() if for_scope else None
+    #     ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local)
+    #     widget = VueCompCodeGen.gen(comp_ast, self.vm, ns)
+    #     return widget
 
     def _html_tag_enter(self, tag, attrs):
         ast_node = {'type': 'html', 'tag': tag, 'attrs': attrs, 'body': []}
@@ -1163,7 +1205,13 @@ class VueOptions:
         self.data = options.get('data')
         self.setup = options.get('setup')
         self.methods = options.get('methods', {})
-        self.template = options.get('template')
+        self.template = options.get('template', '')
+        try:
+            template_path = pathlib.Path(self.template)
+            if template_path.exists():
+                self.template = get_template_from_vue(template_path)
+        except Exception:
+            pass
 
         self.before_create = options.get('before_create')
         self.created = options.get('created')
@@ -1175,12 +1223,16 @@ class VueOptions:
 
 
 class Vue:
+    components = {}
+
     def __init__(self, options, debug=False):
         options = VueOptions(options)
         # self._data = observe(options.data)
         self._data = options.setup(None, None, self)
         self.debug_log = widgets.Output()
         self.debug = debug
+
+        self._components = {}
 
         self.dom = None
         self.options = options
@@ -1190,7 +1242,7 @@ class Vue:
         # self.methods = self.options.methods(self)
         self._proxy_methods()
 
-        self.mount(self.options.el)
+        # self.mount(self.options.el)
 
     def to_ns(self):
         methods = {
@@ -1235,9 +1287,11 @@ class Vue:
         pass
 
     def mount(self, el):
+        self.options.el = el
         self._call_if_callable(self.options.before_mount)
         self.render()
         self._call_if_callable(self.options.mounted)
+        display(self.options.el)
 
     def _compile_template(self, template):
         vue_template = VueTemplate(self)
@@ -1257,3 +1311,94 @@ class Vue:
                 self.dom = self._compile_template(self.options.template)
             clear_output(True)
             display(self.dom)
+
+    def find_component(self, name) -> 'VueComponent':
+        return self._components.get(name, self.components.get(name, None))
+
+    def component(self, name: str, comp: 'VueComponent'):
+        self._components[name] = comp
+
+    def use(self, plugin: "VuePlugin", options: dict = None):
+        plugin.install(self, options)
+
+
+class VNode:
+    def __init__(self, type_, props, children=None, key=''):
+        self.type = type_
+        self.props = props
+        self.children = children
+        self.key = key
+
+
+class VueComponent(metaclass=abc.ABCMeta):
+    props = {}
+    template = ''
+    _name = ''
+
+    v_model_default = 'value'
+
+    @classmethod
+    @property
+    def name(cls):
+        return (cls._name or cls.__name__).lower()
+
+    def setup(self, props: dict = None, ctx=None, vm: Vue = None):
+        """
+
+        :param props:
+        :param ctx: attrs, slots, emit
+        :param vm:
+        :return:
+        """
+        pass
+
+    def render(self, ctx, props, setup_returned) -> VNode:
+        """
+        h(tag, props|attrs, children)
+
+        :param ctx: attrs, slots, emit
+        :param setup_returned:
+        :param props:
+        :return:
+        """
+        if not self.template:
+            return None
+        # return vue_compiler_dom(self.template)
+
+#
+# def create_vnode(component: VueComponent, props):
+#     """
+#     https://cn.vuejs.org/guide/extras/render-function.html#render-function-recipes
+#     h函数实际就是接受了一个component的ast表示
+#     h(tag, props | attrs, children) => vnode
+#
+#     :param component:
+#     :param props:
+#     :return:
+#     """
+#     pass
+#
+#
+# def create_element_vnode(tag, props):
+#     pass
+#
+#
+# def create_element_block():
+#     pass
+#
+#
+# def render_slot():
+#     pass
+
+
+class VuePlugin:
+    @classmethod
+    @abc.abstractmethod
+    def install(cls, vm: Vue, options: dict):
+        pass
+
+
+def create_app(root_component: dict, **root_props) -> Vue:
+    debug = root_props.get('debug', False)
+    return Vue(root_component, debug)
+

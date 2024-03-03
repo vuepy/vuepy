@@ -36,7 +36,7 @@
   </AppLayout>
 </template>
 
-<script setup>
+<script setup lang="js">
 import { ref, reactive } from '../src/vuepy/js_stubs/vue'
 import _Stub from '../src/vuepy/js_stubs/ipywidgets_vue/_Stub'
 
