@@ -686,6 +686,7 @@ class VueCompAst:
     V_SLOT = 'v-slot:'
     V_JS_LINK = 'v-js-link'
     V_MODEL = 'v-model'
+    V_HTML = 'v-html'
     EVENT_PREFIX = '@'
     SINGLE_BOUND_PREFIX = ':'
     LAYOUT_ATTRS = {'width', 'height', 'padding', 'border'}
@@ -698,6 +699,7 @@ class VueCompAst:
         self.kwargs = {}
         self.v_binds: Dict[str, VueCompExprAst] = {}
         self.v_model_vm = None
+        self.v_html = None
         self.v_on: Dict[str, VueCompExprAst] = {}
         self.layout = {}
         self.v_slot = None
@@ -713,6 +715,10 @@ class VueCompAst:
     @classmethod
     def is_v_model(cls, attr):
         return attr == cls.V_MODEL
+
+    @classmethod
+    def is_v_html(cls, attr):
+        return attr == cls.V_HTML
 
     @classmethod
     def is_event(cls, attr):
@@ -739,6 +745,9 @@ class VueCompAst:
 
             elif cls.is_v_model(attr):
                 comp.v_model_vm = value
+
+            elif cls.is_v_html(attr):
+                comp.v_html = value
 
             elif cls.is_event(attr):
                 event = attr.lstrip(cls.EVENT_PREFIX)
@@ -1062,22 +1071,42 @@ class VueTemplate(HTMLParser):
         local = for_scope.to_ns() if for_scope else None
         ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local)
         # v-if
+        widget = widgets.HTML("")
         if comp_ast.v_if:
             watcher = WatcherForRerender(self.vm, f'v_if {comp_ast.v_if}')
             with ActivateEffect(watcher):
                 if not comp_ast.v_if.eval(ns):
-                    return widgets.HTML("")
+                    return widget
 
-        body = []
-        for child in node['body']:
-            if isinstance(child, widgets.HTML):
-                body.append(child.value)
-            else:
-                body.append(child)
         tag = node['tag']
         attr = ' '.join([f"{k}='{v}'" for k, v in node['attrs'].items()])
-        html = f"<{tag} {attr}>{' '.join(body)}</{tag}>"
-        widget = widgets.HTML(html)
+        html_temp = f"<{tag} {attr}>{{inner_html}}</{tag}>"
+
+        def gen_html(inner_html):
+            return html_temp.format(inner_html=inner_html)
+
+        def handle_value_change_vm_to_view(widget, attr):
+            def warp(val, old_val):
+                if val == old_val:
+                    return
+                setattr(widget, attr, gen_html(val))
+            return warp
+
+        # v-html
+        if comp_ast.v_html:
+            attr_chain = comp_ast.v_html
+            update_vm_to_view = handle_value_change_vm_to_view(widget, 'value')
+            watcher = WatcherForAttrUpdate(ns, lambda: ns.getattr(attr_chain), update_vm_to_view)
+            with ActivateEffect(watcher):
+                _value = ns.getattr(attr_chain)
+            update_vm_to_view(_value, None)
+        else:
+            body = [
+                child.value if isinstance(child, widgets.HTML) else child
+                for child in node['body']
+            ]
+            widget.value = gen_html(' '.join(body))
+
         return widget
 
     def _for_stmt_enter(self, for_stmt: VForStatement, tag, attrs, is_body):
@@ -1338,7 +1367,6 @@ class VueComponent(metaclass=abc.ABCMeta):
     v_model_default = 'value'
 
     @classmethod
-    @property
     def name(cls):
         return (cls._name or cls.__name__).lower()
 
