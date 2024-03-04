@@ -38,6 +38,7 @@ def create_project(args):
         app_vue = f.read()
     app_vue = Template(app_vue).substitute({
         'js_stubs_path': HERE.parent / 'js_stubs',
+        'ipywui_path': HERE.parent.parent / 'ipywui' / 'components',
     })
     with open(proj_dir / 'app.vue', 'w') as f:
         f.write(app_vue)

@@ -20,7 +20,6 @@ class IPywidgets(VuePlugin, metaclass=FactoryMeta):
 
 class IPywidgetsComponent(VueComponent):
     @classmethod
-    @property
     def name(cls):
         # todo
         # return f'Ipw{cls.__name__}'
@@ -319,6 +318,29 @@ class Stack(IPywidgetsComponent):
     def render(self, ctx, props, setup_returned):
         attrs = ctx.get('attrs', {})
         return widgets.Stack(**props, **attrs)
+
+
+@IPywidgets.register()
+class TabPane(IPywidgetsComponent):
+    def render(self, ctx, props, setup_returned):
+        slots = ctx.get('slots', {})
+        attrs = ctx.get('attrs', {})
+        title = attrs.pop('title', '-')
+        widget = widgets.VBox(children=slots.get('default', []), **props, **attrs)
+        widget.title = title
+        return widget
+
+
+@IPywidgets.register()
+class Tabs(IPywidgetsComponent):
+    v_model_default = 'selected_index'
+
+    def render(self, ctx, props, setup_returned):
+        slots = ctx.get('slots', {})
+        attrs = ctx.get('attrs', {})
+        children = slots.get('default', [])
+        titles = [child.title for child in children]
+        return widgets.Tab(children=children, titles=titles, **props, **attrs)
 
 
 @IPywidgets.register()

@@ -1,7 +1,7 @@
 # coding: utf-8
 import argparse
 
-from cli.create_vue import add_arg_parser
+from vuepy.cli.create_vue import add_arg_parser
 
 
 def main():
