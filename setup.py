@@ -2,6 +2,8 @@
 """Setup script for vue.py"""
 
 import os.path
+
+from setuptools import find_packages
 from setuptools import setup
 
 # The directory containing this file
@@ -27,7 +29,7 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3.7",
     ],
-    packages=["vuepy"],
+    packages=find_packages('src', exclude='*widgets*'),
     package_dir={'': 'src'},
     include_package_data=True,
     install_requires=[
