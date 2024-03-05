@@ -2,7 +2,7 @@
   <AppLayout :pane_widths="[0, 3, 1.5]" border="1px solid #cccccc" padding="10px">
     <template v-slot:right_sidebar>
       <Dropdown :options="models" v-model="model.value" description="model" width="200px"></Dropdown>
-      <FloatSlider v-model="top_p.value" description="top_p" min=0 max=1 step=0.01 :continuous_update=False></FloatSlider>
+      <Slider v-model="top_p.value" description="top_p" :min=0 :max=1 :step=0.01 :continuous_update=False></Slider>
     </template>
     <template v-slot:center>
       <HBox>
@@ -40,7 +40,7 @@
 import { ref, reactive } from '../src/vuepy/js_stubs/vue'
 
 import AppLayout from 'ipywui/components/AppLayout.vue'
-import FloatSlider from 'ipywui/components/FloatSlider.vue'
+import Slider from 'ipywui/components/Slider.vue'
 import Box from 'ipywui/components/Box.vue'
 import Dropdown from 'ipywui/components/Dropdown.vue'
 import Textarea from 'ipywui/components/Textarea.vue'

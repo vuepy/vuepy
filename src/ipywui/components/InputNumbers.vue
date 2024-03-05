@@ -3,19 +3,24 @@
 </template>
 
 <script>
-// el-input-number
 export default {
-  name: "FloatsInput",
+  name: "InputNumbers",
   props: {
     value: {
       type: Array,
       default: () => []
     },
-    tagStyle: {
+    tag_style: {
       type: String,
       default: '',
       validator: function (value) {
         return ['success', 'info', 'warning', 'danger', ''].includes(value)
+      },
+    },
+    data_type: {
+      default: 'float',
+      validator: function (value) {
+        return ['float', 'int'].includes(value)
       },
     },
     format: {

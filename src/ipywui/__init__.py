@@ -26,6 +26,22 @@ class IPywidgetsComponent(VueComponent):
         return cls.__name__.lower()
 
 
+def is_float(n):
+    return isinstance(n, float)
+
+
+def is_int(n):
+    return isinstance(n, int)
+
+
+def is_str(s):
+    return isinstance(s, str)
+
+
+def is_tuple(t):
+    return isinstance(t, (tuple, list))
+
+
 @IPywidgets.register()
 class AppLayout(IPywidgetsComponent):
     def render(self, ctx, props, setup_returned):
@@ -159,15 +175,6 @@ class FloatsInput(IPywidgetsComponent):
 
 
 @IPywidgets.register()
-class FloatSlider(IPywidgetsComponent):
-    v_model_default = 'value'
-
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return widgets.FloatSlider(**props, **attrs)
-
-
-@IPywidgets.register()
 class HTMLMath(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -200,16 +207,39 @@ class InputNumber(IPywidgetsComponent):
 
     def render(self, ctx, props, setup_returned):
         attrs = ctx.get('attrs', {})
-        return widgets.IntText(**props, **attrs)
+        value = props.get(self.v_model_default)
+        step = props.get('step')
+        min_ = props.get('min')
+        max_ = props.get('max')
+
+        if is_float(value) or is_float(step):
+            if is_float(min_) or is_float(max_):
+                cls = widgets.BoundedFloatText
+            else:
+                cls = widgets.FloatText
+        else:
+            if min_ is None and max_ is None:
+                cls = widgets.IntText
+            else:
+                cls = widgets.BoundedIntText
+
+        return cls(**props, **attrs)
 
 
 @IPywidgets.register()
-class IntsInput(IPywidgetsComponent):
+class InputNumbers(IPywidgetsComponent):
     v_model_default = 'value'
 
     def render(self, ctx, props, setup_returned):
         attrs = ctx.get('attrs', {})
-        return widgets.IntsInput(**props, **attrs)
+        data_type = props.pop('data_type', 'float')
+        value = props.get(self.v_model_default, [])
+        if data_type == 'float' or any(is_float(n) for n in value):
+            cls = widgets.FloatsInput
+        else:
+            cls = widgets.IntsInput
+
+        return cls(**props, **attrs)
 
 
 @IPywidgets.register()
@@ -306,9 +336,26 @@ class Slider(IPywidgetsComponent):
     v_model_default = 'value'
 
     def render(self, ctx, props, setup_returned):
-        # todo
         attrs = ctx.get('attrs', {})
-        return widgets.FloatSlider(**props, **attrs)
+        value = props.get(self.v_model_default)
+        step = props.get('step')
+        options = props.get('options')
+
+        if is_float(value) or is_float(step):
+            cls = widgets.FloatSlider
+        elif is_tuple(options) and (not is_tuple(value)):
+            cls = widgets.SelectionSlider
+        elif is_int(value) and is_int(step):
+            cls = widgets.IntSlider
+        elif is_tuple(value):
+            if is_float(step):
+                cls = widgets.FloatRangeSlider
+            elif is_int(step):
+                cls = widgets.IntRangeSlider
+            else:
+                cls = widgets.SelectionRangeSlider
+
+        return cls(**props, **attrs)
 
 
 @IPywidgets.register()

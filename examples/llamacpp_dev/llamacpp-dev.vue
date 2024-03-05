@@ -54,27 +54,27 @@
               v-model="chat.ctx_size" min=1 max=4096 step=1 :continuous_update=False
               width="200px"
           ></InputNumber>
-          <FloatSlider
+          <Slider
               description="Temperature"
               v-model="chat.temp" min=0 max=1 step=0.01 :continuous_update=False
               width="300px"
-          ></FloatSlider>
+          ></Slider>
           <InputNumber
               description="Top K"
               v-model="chat.top_k" min=1 max=10000 step=1 :continuous_update=False
               width="200px"
           ></InputNumber>
-          <FloatSlider
+          <Slider
               description="Top P"
               v-model="chat.top_p" min=0 max=1 step=0.01 :continuous_update=False
               width="300px"
               tooltip=""
-          ></FloatSlider>
-          <FloatSlider
+          ></Slider>
+          <Slider
               description="Repeat penalty"
               v-model="chat.repeat_penalty" min=1 max=2 step=0.1
               :continuous_update=False width="300px"
-          ></FloatSlider>
+          ></Slider>
           <Button description="Run" @click="exec_chat()" button_style="info" width='60px'></Button>
         </AccordionItem>
       </Accordion>
@@ -90,7 +90,7 @@ import Dropdown from "../ipywidgets_vue/Dropdown";
 import Text from "../ipywidgets_vue/Text";
 import Textarea from "../ipywidgets_vue/Textarea";
 import HBox from "../ipywidgets_vue/HBox";
-import FloatSlider from "../ipywidgets_vue/FloatSlider";
+import Slider from "../ipywidgets_vue/Slider";
 import InputNumber from "../ipywidgets_vue/InputNumber";
 import Accordion from "../ipywidgets_vue/Accordion";
 import AccordionItem from "../ipywidgets_vue/AccordionItem";

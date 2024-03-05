@@ -876,8 +876,15 @@ class VueCompCodeGen:
             'slots': slots,
             'emit': '',
         }
+        props = {
+            widget_attr: exp_ast.eval(ns)
+            for widget_attr, exp_ast in comp_ast.v_binds.items()
+        }
         component_cls = vm.find_component(comp_ast.tag)
-        widget = component_cls().render(ctx, {}, {})
+        if comp_ast.v_model_vm:
+            props[component_cls.v_model_default] = ns.getattr(comp_ast.v_model_vm)
+
+        widget = component_cls().render(ctx, props, {})
 
         # v-slot
         if comp_ast.v_slot:
