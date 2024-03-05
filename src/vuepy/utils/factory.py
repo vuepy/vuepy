@@ -7,7 +7,7 @@ class FactoryMeta(type):
 
     def register(cls, name=None):
         def _(sub_cls):
-            _name = name or (sub_cls.name if callable(sub_cls.name) else sub_cls.name)
+            _name = name or (sub_cls.name() if callable(sub_cls.name) else sub_cls.name)
             cls._registry[_name] = sub_cls
             return sub_cls
         return _
