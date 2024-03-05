@@ -38,16 +38,15 @@
 
 <script setup lang="js">
 import { ref, reactive } from '../src/vuepy/js_stubs/vue'
-import _Stub from '../src/vuepy/js_stubs/ipywidgets_vue/_Stub'
 
-import AppLayout from './AppLayout'
-import FloatSlider from './FloatSlider'
-import Box from './Box'
-import Dropdown from './Dropdown'
-import Textarea from './Textarea'
-import Button from './Button'
-import HBox from './HBox'
-import MarkdownViewer from "./MarkdownViewer";
+import AppLayout from 'ipywui/components/AppLayout.vue'
+import FloatSlider from 'ipywui/components/FloatSlider.vue'
+import Box from 'ipywui/components/Box.vue'
+import Dropdown from 'ipywui/components/Dropdown.vue'
+import Textarea from 'ipywui/components/Textarea.vue'
+import Button from 'ipywui/components/Button.vue'
+import HBox from 'ipywui/components/HBox.vue'
+import MarkdownViewer from "ipywui/components/MarkdownViewer.vue";
 
 const False = false;
 const True = true;
