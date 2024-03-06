@@ -5,17 +5,17 @@
 <script>
 // el-select
 export default {
-  name: "TagsInput",
+  name: "SelectTags",
   props: {
     value: {
       type: Array,
       default: () => []
     },
-    allowedTags: {
+    allowed_tags: {
       type: Array,
       default: () => []
     },
-    allowDuplicates: {
+    allow_duplicates: {
       type: Boolean,
       default: false
     },

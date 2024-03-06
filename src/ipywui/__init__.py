@@ -26,6 +26,14 @@ class IPywidgetsComponent(VueComponent):
         return cls.__name__.lower()
 
 
+def has_and_pop(attrs, key):
+    if key in attrs:
+        attrs.pop(key)
+        return True
+    return False
+
+
+
 def is_float(n):
     return isinstance(n, float)
 
@@ -148,6 +156,44 @@ class Controller(IPywidgetsComponent):
 
 
 @IPywidgets.register()
+class ColorPicker(IPywidgetsComponent):
+    v_model_default = 'value'
+
+    def render(self, ctx, props, setup_returned):
+        attrs = ctx.get('attrs', {})
+        params = {
+            'disable': has_and_pop(attrs, 'disable'),
+            'concise': has_and_pop(attrs, 'concise'),
+        }
+        return widgets.ColorPicker(**props, **attrs, **params)
+
+
+@IPywidgets.register()
+class DatePicker(IPywidgetsComponent):
+    v_model_default = 'value'
+
+    def render(self, ctx, props, setup_returned):
+        attrs = ctx.get('attrs', {})
+        params = {
+            "disable": has_and_pop(attrs, 'disable'),
+        }
+        return widgets.DatePicker(**props, **attrs, **params)
+
+
+@IPywidgets.register()
+class DatetimePicker(IPywidgetsComponent):
+    v_model_default = 'value'
+
+    def render(self, ctx, props, setup_returned):
+        attrs = ctx.get('attrs', {})
+        params = {
+            "disable": has_and_pop(attrs, 'disable'),
+        }
+        # todo widgets.NaiveDatetimePicker
+        return widgets.DatetimePicker(**props, **attrs, **params)
+
+
+@IPywidgets.register()
 class Dropdown(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -222,22 +268,6 @@ class InputNumber(IPywidgetsComponent):
                 cls = widgets.IntText
             else:
                 cls = widgets.BoundedIntText
-
-        return cls(**props, **attrs)
-
-
-@IPywidgets.register()
-class InputNumbers(IPywidgetsComponent):
-    v_model_default = 'value'
-
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        data_type = props.pop('data_type', 'float')
-        value = props.get(self.v_model_default, [])
-        if data_type == 'float' or any(is_float(n) for n in value):
-            cls = widgets.FloatsInput
-        else:
-            cls = widgets.IntsInput
 
         return cls(**props, **attrs)
 
@@ -328,7 +358,55 @@ class Select(IPywidgetsComponent):
 
     def render(self, ctx, props, setup_returned):
         attrs = ctx.get('attrs', {})
-        return widgets.Select(**props, **attrs)
+        if has_and_pop(attrs, 'multiple'):
+            cls = widgets.SelectMultiple
+        else:
+            cls = widgets.Select
+
+        params = {
+            "disable": has_and_pop(attrs, 'disable'),
+        }
+        return cls(**props, **attrs, **params)
+
+
+@IPywidgets.register()
+class SelectNumbers(IPywidgetsComponent):
+    v_model_default = 'value'
+
+    def render(self, ctx, props, setup_returned):
+        attrs = ctx.get('attrs', {})
+        data_type = props.pop('data_type', 'float')
+        value = props.get(self.v_model_default, [])
+        if data_type == 'float' or any(is_float(n) for n in value):
+            cls = widgets.FloatsInput
+        else:
+            cls = widgets.IntsInput
+
+        return cls(**props, **attrs)
+
+
+@IPywidgets.register()
+class SelectTags(IPywidgetsComponent):
+    v_model_default = 'value'
+
+    def render(self, ctx, props, setup_returned):
+        attrs = ctx.get('attrs', {})
+        params = {
+            'allow_duplicates': has_and_pop(attrs, 'allow_duplicates'),
+        }
+        return widgets.TagsInput(**props, **attrs, **params)
+
+
+@IPywidgets.register()
+class SelectColors(IPywidgetsComponent):
+    v_model_default = 'value'
+
+    def render(self, ctx, props, setup_returned):
+        attrs = ctx.get('attrs', {})
+        params = {
+            'allow_duplicates': has_and_pop(attrs, 'allow_duplicates'),
+        }
+        return widgets.ColorsInput(**props, **attrs, **params)
 
 
 @IPywidgets.register()
@@ -339,23 +417,26 @@ class Slider(IPywidgetsComponent):
         attrs = ctx.get('attrs', {})
         value = props.get(self.v_model_default)
         step = props.get('step')
-        options = props.get('options')
-
-        if is_float(value) or is_float(step):
-            cls = widgets.FloatSlider
-        elif is_tuple(options) and (not is_tuple(value)):
-            cls = widgets.SelectionSlider
-        elif is_int(value) and is_int(step):
-            cls = widgets.IntSlider
-        elif is_tuple(value):
+        if has_and_pop(attrs, 'range'):
             if is_float(step):
                 cls = widgets.FloatRangeSlider
             elif is_int(step):
                 cls = widgets.IntRangeSlider
             else:
                 cls = widgets.SelectionRangeSlider
+        elif is_float(value) or is_float(step):
+            cls = widgets.FloatSlider
+        elif is_int(value) and is_int(step):
+            cls = widgets.IntSlider
+        else:
+            cls = widgets.SelectionSlider
 
-        return cls(**props, **attrs)
+        param = {
+            "continuous_update": has_and_pop(attrs, "continuous_update"),
+            "orientation": 'vertical' if has_and_pop(attrs, 'vertical') else 'horizontal',
+            "disable": has_and_pop(attrs, 'disable'),
+        }
+        return cls(**props, **attrs, **param)
 
 
 @IPywidgets.register()
@@ -391,21 +472,15 @@ class Tabs(IPywidgetsComponent):
 
 
 @IPywidgets.register()
-class TagsInput(IPywidgetsComponent):
-    v_model_default = 'value'
-
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return widgets.TagsInput(**props, **attrs)
-
-
-@IPywidgets.register()
 class Text(IPywidgetsComponent):
     v_model_default = 'value'
 
     def render(self, ctx, props, setup_returned):
         attrs = ctx.get('attrs', {})
-        return widgets.Text(**props, **attrs)
+        params = {
+            "continuous_update": has_and_pop(attrs, "continuous_update"),
+        }
+        return widgets.Text(**props, **attrs, **params)
 
 
 @IPywidgets.register()
@@ -414,7 +489,22 @@ class Textarea(IPywidgetsComponent):
 
     def render(self, ctx, props, setup_returned):
         attrs = ctx.get('attrs', {})
-        return widgets.Textarea(**props, **attrs)
+        params = {
+            "continuous_update": has_and_pop(attrs, "continuous_update"),
+        }
+        return widgets.Textarea(**props, **attrs, **params)
+
+
+@IPywidgets.register()
+class TimePicker(IPywidgetsComponent):
+    v_model_default = 'value'
+
+    def render(self, ctx, props, setup_returned):
+        attrs = ctx.get('attrs', {})
+        params = {
+            "disable": has_and_pop(attrs, 'disable'),
+        }
+        return widgets.TimePicker(**props, **attrs, **params)
 
 
 @IPywidgets.register()

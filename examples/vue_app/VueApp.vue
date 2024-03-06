@@ -2,7 +2,7 @@
   <AppLayout :pane_widths="[0, 3, 1.5]" border="1px solid #cccccc" padding="10px">
     <template v-slot:right_sidebar>
       <Dropdown :options="models" v-model="model.value" description="model" width="200px"></Dropdown>
-      <Slider v-model="top_p.value" description="top_p" :min=0 :max=1 :step=0.01 :continuous_update=False></Slider>
+      <Slider v-model="top_p.value" description="top_p" :min=0 :max=1 :step=0.01 vertical></Slider>
     </template>
     <template v-slot:center>
       <HBox>

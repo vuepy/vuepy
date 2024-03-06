@@ -8,7 +8,7 @@
 
         <AccordionItem title="转换">
           <Text description="hf model"
-                v-model=hf_models_path.value :continuous_update="False" width="400px"></Text>
+                v-model=hf_models_path.value width="400px"></Text>
           <Button description="Convert" @click="convert_model()" button_style="info" width='100px'></Button>
         </AccordionItem>
 
@@ -27,7 +27,7 @@
           </HBox>
           <Text
               description="Model out"
-              v-model=quantize_model.value :continuous_update="False"
+              v-model=quantize_model.value
               width="500px"
           ></Text>
           <Button description="Quantize" @click="quantify_model()" button_style="info" width='100px'></Button>
@@ -51,29 +51,29 @@
           ></Textarea>
           <InputNumber
               description="Max ctx size"
-              v-model="chat.ctx_size" min=1 max=4096 step=1 :continuous_update=False
+              v-model="chat.ctx_size" min=1 max=4096 step=1
               width="200px"
           ></InputNumber>
           <Slider
               description="Temperature"
-              v-model="chat.temp" min=0 max=1 step=0.01 :continuous_update=False
+              v-model="chat.temp" min=0 max=1 step=0.01
               width="300px"
           ></Slider>
           <InputNumber
               description="Top K"
-              v-model="chat.top_k" min=1 max=10000 step=1 :continuous_update=False
+              v-model="chat.top_k" min=1 max=10000 step=1
               width="200px"
           ></InputNumber>
           <Slider
               description="Top P"
-              v-model="chat.top_p" min=0 max=1 step=0.01 :continuous_update=False
+              v-model="chat.top_p" min=0 max=1 step=0.01
               width="300px"
               tooltip=""
           ></Slider>
           <Slider
               description="Repeat penalty"
               v-model="chat.repeat_penalty" min=1 max=2 step=0.1
-              :continuous_update=False width="300px"
+              width="300px"
           ></Slider>
           <Button description="Run" @click="exec_chat()" button_style="info" width='60px'></Button>
         </AccordionItem>

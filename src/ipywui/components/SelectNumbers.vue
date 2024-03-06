@@ -4,7 +4,7 @@
 
 <script>
 export default {
-  name: "InputNumbers",
+  name: "SelectNumbers",
   props: {
     value: {
       type: Array,
