@@ -2,6 +2,7 @@
 import abc
 import ast
 import enum
+import importlib.util
 import pathlib
 import re
 import types
@@ -18,10 +19,25 @@ from IPython.display import clear_output
 from IPython.display import display
 
 
-def get_template_from_vue(vue_file):
-    with open(vue_file) as f:
-        str_template = re.search('<template>(.*)</template>', f.read(), flags=re.S)[1]
-    return str_template
+def get_block_content_from_sfc(sfc_file, block):
+    with open(sfc_file) as f:
+        blocks = re.findall(f'<{block}>(.*)</{block}>', f.read(), flags=re.S)
+    return blocks
+
+
+def get_template_from_vue(sfc_file):
+    return get_block_content_from_sfc(sfc_file, 'template')[0]
+    # with open(vue_file) as f:
+    #     str_template = re.search('<template>(.*)</template>', f.read(), flags=re.S)[1]
+    # return str_template
+
+
+def get_script_src_from_sfc(sfc_file):
+    with open(sfc_file) as f:
+        match = re.search(r"<script (.*?)src=(['\"])(?P<src>.*?)\2></script>", f.read())
+        if not match:
+            return None
+        return match.group('src')
 
 
 class WatcherBase(metaclass=abc.ABCMeta):
@@ -1353,9 +1369,11 @@ class Vue:
 
     def component(self, name: str, comp: 'VueComponent'):
         self._components[name] = comp
+        return self
 
     def use(self, plugin: "VuePlugin", options: dict = None):
         plugin.install(self, options)
+        return self
 
 
 class VNode:
@@ -1431,6 +1449,20 @@ class VuePlugin:
     @abc.abstractmethod
     def install(cls, vm: Vue, options: dict):
         pass
+
+
+def import_sfc(sfc_file):
+    sfc_file = pathlib.Path(sfc_file)
+    script_src = get_script_src_from_sfc(sfc_file)
+    script_path = sfc_file.parent.joinpath(script_src)
+
+    spec = importlib.util.spec_from_file_location('sfc', str(script_path))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return {
+        'setup': getattr(module, 'setup'),
+        'template': sfc_file,
+    }
 
 
 def create_app(root_component: dict, **root_props) -> Vue:

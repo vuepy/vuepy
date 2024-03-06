@@ -36,17 +36,18 @@
   </AppLayout>
 </template>
 
+<script src="./app.py"></script>
 <script setup lang="js">
 import { ref, reactive } from '../src/vuepy/js_stubs/vue'
 
-import AppLayout from 'ipywui/components/AppLayout.vue'
-import Slider from 'ipywui/components/Slider.vue'
-import Box from 'ipywui/components/Box.vue'
-import Dropdown from 'ipywui/components/Dropdown.vue'
-import Textarea from 'ipywui/components/Textarea.vue'
-import Button from 'ipywui/components/Button.vue'
-import HBox from 'ipywui/components/HBox.vue'
-import MarkdownViewer from "ipywui/components/MarkdownViewer.vue";
+import AppLayout from "../../src/ipywui/components/AppLayout.vue";
+import Slider from "../../src/ipywui/components/Slider.vue";
+import Box from "../../src/ipywui/components/Box.vue";
+import Dropdown from "../../src/ipywui/components/Dropdown.vue";
+import Textarea from "../../src/ipywui/components/Textarea.vue";
+import Button from "../../src/ipywui/components/Button.vue";
+import HBox from "../../src/ipywui/components/HBox.vue";
+import MarkdownViewer from "../../src/ipywui/components/MarkdownViewer.vue";
 
 const False = false;
 const True = true;

@@ -82,18 +82,19 @@
   </AppLayout>
 </template>
 
+<script src="./app.py"></script>
 <script setup>
 import {ref, reactive} from 'vue';
-import AppLayout from "../ipywidgets_vue/AppLayout";
-import Button from "../ipywidgets_vue/Button";
-import Dropdown from "../ipywidgets_vue/Dropdown";
-import Text from "../ipywidgets_vue/Text";
-import Textarea from "../ipywidgets_vue/Textarea";
-import HBox from "../ipywidgets_vue/HBox";
-import Slider from "../ipywidgets_vue/Slider";
-import InputNumber from "../ipywidgets_vue/InputNumber";
-import Accordion from "../ipywidgets_vue/Accordion";
-import AccordionItem from "../ipywidgets_vue/AccordionItem";
+import AppLayout from "../../src/ipywui/components/AppLayout";
+import Button from "../../src/ipywui/components/Button";
+import Dropdown from "../../src/ipywui/components/Dropdown";
+import Text from "../../src/ipywui/components/Text";
+import Textarea from "../../src/ipywui/components/Textarea";
+import HBox from "../../src/ipywui/components/HBox";
+import Slider from "../../src/ipywui/components/Slider";
+import InputNumber from "../../src/ipywui/components/InputNumber";
+import Accordion from "../../src/ipywui/components/Accordion";
+import AccordionItem from "../../src/ipywui/components/AccordionItem";
 
 QUANTIZE_OPTS = ['q4_0', 'q4_1', 'q4_k', 'q5_0', 'q5_1', 'q5_k', 'q6_k', 'q8_0']
 hf_models_path = ref('')
