@@ -156,6 +156,19 @@ class Controller(IPywidgetsComponent):
 
 
 @IPywidgets.register()
+class Col(IPywidgetsComponent):
+    def render(self, ctx, props, setup_returned):
+        slots = ctx.get('slots', {})
+        attrs = ctx.get('attrs', {})
+        span = attrs.pop('span', 24)
+        offset = attrs.pop('offset', 0)
+        widget = widgets.VBox(children=slots.get('default', []), **props, **attrs)
+        widget.span = span
+        widget.offset = offset
+        return widget
+
+
+@IPywidgets.register()
 class ColorPicker(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -350,6 +363,38 @@ class RadioButtons(IPywidgetsComponent):
     def render(self, ctx, props, setup_returned):
         attrs = ctx.get('attrs', {})
         return widgets.RadioButtons(**props, **attrs)
+
+
+@IPywidgets.register()
+class Row(IPywidgetsComponent):
+    N_ROWS = 1
+    N_COLS = 24
+
+    def render(self, ctx, props, setup_returned):
+        slots = ctx.get('slots', {})
+        attrs = ctx.get('attrs', {})
+        cols = slots.get('default', [])
+
+        justify_content = has_and_pop(attrs, 'justify')
+        params = {}
+        if justify_content:
+            params['justify_content'] = justify_content
+
+        align_items = has_and_pop(attrs, 'align')
+        if align_items:
+            params['align_items'] = align_items
+
+        grid_gap = has_and_pop(attrs, 'gutter')
+        if grid_gap:
+            params['grid_gap'] = grid_gap
+
+        widget = widgets.GridspecLayout(self.N_ROWS, self.N_COLS, **props, **attrs, **params)
+        idx = 0
+        for col in cols:
+            idx += col.offset
+            widget[0, (slice(idx, col.span))] = col
+            idx += col.span
+        return widget
 
 
 @IPywidgets.register()

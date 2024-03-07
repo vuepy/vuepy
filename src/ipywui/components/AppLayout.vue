@@ -11,7 +11,19 @@
 
 <script>
 export default {
-  name: 'AppLayout'
+  name: 'AppLayout',
+  props: {
+    // [3, 3, 1]
+    // [1, 5, '60px']
+    pane_widths: {
+      type: Array,
+      default: () => []
+    },
+    pane_heights: {
+      type: Array,
+      default: () => []
+    },
+  }
 }
 </script>
 
