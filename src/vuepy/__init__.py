@@ -15,4 +15,5 @@ __all__ = [
     'watch',
     'computed',
     'create_app',
+    'import_sfc',
 ]
