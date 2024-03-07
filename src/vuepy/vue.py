@@ -13,6 +13,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import SupportsIndex
+from typing import Type
 
 import ipywidgets as widgets
 from IPython.display import clear_output
@@ -1371,7 +1372,7 @@ class Vue:
         self._components[name] = comp
         return self
 
-    def use(self, plugin: "VuePlugin", options: dict = None):
+    def use(self, plugin: Type["VuePlugin"], options: dict = None):
         plugin.install(self, options)
         return self
 

@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from string import Template
 
-HERE = Path(__file__).parent
+HERE = Path(__file__).absolute().parent
 
 
 def is_valid_package_name(package_name):
@@ -32,16 +32,23 @@ def create_project(args):
         print(f"Template not found: {template}")
         return
 
-    # TODO modified app.vue
+    ipywui_components_path = HERE.parent.parent.parent / 'ipywui' / 'components'
+    if not ipywui_components_path.exists():
+        print(f"ipywui not found: {template}")
+        return
+
+    shutil.copytree(ipywui_components_path, proj_dir / 'ipywui')
     shutil.copytree(template_dir, proj_dir, dirs_exist_ok=True)
-    with open(proj_dir / 'app.vue', 'r') as f:
+
+    with open(proj_dir / 'App.vue', 'r') as f:
         app_vue = f.read()
     app_vue = Template(app_vue).substitute({
         'js_stubs_path': HERE.parent / 'js_stubs',
-        'ipywui_path': HERE.parent.parent / 'ipywui' / 'components',
+        'ipywui_path': './ipywui',
     })
-    with open(proj_dir / 'app.vue', 'w') as f:
+    with open(proj_dir / 'App.vue', 'w') as f:
         f.write(app_vue)
+
     print('Done.')
 
 

@@ -1,7 +1,7 @@
 include README.md LICENSE
-include src/vuepy/js_stubs/ipywidgets_vue/*.vue
 include src/vuepy/js_stubs/vue.js
 include src/vuepy/cli/*.py
 include src/vuepy/cli/template_vue/*
 
 include src/ipywui/md_codehilite.css
+include src/ipywui/components/*.vue
