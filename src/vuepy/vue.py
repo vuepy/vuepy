@@ -369,8 +369,11 @@ class WatcherForComputed(WatcherBase):
     def update(self):
         old_val = self.value
         new_val = self.get_val()
-        if new_val == self.value:
-            return
+        try:
+            if new_val == self.value:
+                return
+        except Exception as e:
+            pass
 
         self.value = new_val
         self.source.value = new_val
@@ -391,8 +394,11 @@ class WatcherForWatchFunc(WatcherBase):
     def update(self):
         old_val = self.value
         new_val = self.get_val()
-        if new_val == self.value:
-            return
+        try:
+            if new_val == self.value:
+                return
+        except Exception as e:
+            pass
 
         self.value = new_val
         self.callback(new_val, old_val)
@@ -414,8 +420,11 @@ class WatcherForAttrUpdate(WatcherBase):
     def update(self):
         new_val = self.get_val()
         old_val = self.value
-        if new_val == old_val:
-            return
+        try:
+            if new_val == old_val:
+                return
+        except Exception as e:
+            pass
 
         self.value = new_val
         self.callback(new_val, old_val)
@@ -864,8 +873,11 @@ class VueCompCodeGen:
     @staticmethod
     def handle_value_change_vm_to_view(widget, attr):
         def warp(val, old_val):
-            if val == old_val:
-                return
+            try:
+                if val == old_val:
+                    return
+            except Exception as e:
+                pass
             setattr(widget, attr, val)
         return warp
 

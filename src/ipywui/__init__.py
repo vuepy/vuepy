@@ -3,6 +3,8 @@ import pathlib
 
 import ipywidgets as widgets
 import markdown
+from IPython.core.display_functions import clear_output
+from IPython.core.display_functions import display
 
 from vuepy import Vue
 from vuepy import VueComponent
@@ -206,6 +208,32 @@ class DatetimePicker(IPywidgetsComponent):
         return widgets.DatetimePicker(**props, **attrs, **params)
 
 
+class DisplayViewer(widgets.Output):
+    def __init__(self, obj='', **kwargs):
+        super().__init__(**kwargs)
+        self.render(obj)
+
+    def render(self, obj):
+        with self:
+            clear_output()
+            display(obj)
+
+    def __setattr__(self, key, value):
+        if key == 'obj':
+            self.render(value)
+
+        super().__setattr__(key, value)
+
+
+@IPywidgets.register()
+class Display(IPywidgetsComponent):
+    def render(self, ctx, props, setup_returned):
+        attrs = ctx.get('attrs', {})
+        obj = props.pop('obj', '-')
+        widget = DisplayViewer(obj, **props, **attrs)
+        return widget
+
+
 @IPywidgets.register()
 class Dropdown(IPywidgetsComponent):
     v_model_default = 'value'
@@ -295,8 +323,8 @@ class Label(IPywidgetsComponent):
 
 
 class _MarkdownViewer(widgets.HTML):
-    codehilite = pathlib.Path(__file__).parent / 'md_codehilite.css'
-    with open(codehilite) as f:
+    code_highlight = pathlib.Path(__file__).parent / 'assets' / 'css' / 'md_code_highlight.css'
+    with open(code_highlight) as f:
         css_style = ''.join(f.read())
 
     extra = [

@@ -2,7 +2,12 @@ import threading
 import time
 from pprint import pprint
 import enum
-from vuepy import *
+import pandas as pd
+from IPython.core.display_functions import clear_output
+from IPython.core.display_functions import display
+
+from vuepy import reactive
+from vuepy import ref
 
 
 class Role(enum.Enum):
@@ -51,6 +56,7 @@ def setup(props, ctx, vm):
         {'role': Role.user.value, 'content': 'world bot'},
     ]))
     on_edit = ref(True)
+    df = ref(pd.DataFrame(data={'col1': [1, 2], 'col2': [3, 4]}))
 
     def is_bot(val):
         return val == Role.bot.value
@@ -87,6 +93,7 @@ def setup(props, ctx, vm):
             print(f'del {i} {msg}')
 
     def handle_on_submit():
+        df.value = pd.concat([df.value, df.value])
         with vm.options.el:
             clear_output()
             display(vm.dom)

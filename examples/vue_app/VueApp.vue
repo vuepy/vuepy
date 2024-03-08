@@ -32,6 +32,7 @@
       <p style="background: #ffaa00" v-for="msg in messages.value">
         <span>model: {{ model.value }}, top_p: {{ top_p.value }} {{ msg.role }}</span>
       </p>
+      <Display :obj="df.value"></Display>
     </template>
   </AppLayout>
 </template>
@@ -48,6 +49,7 @@ import Textarea from "../../src/ipywui/components/Textarea.vue";
 import Button from "../../src/ipywui/components/Button.vue";
 import HBox from "../../src/ipywui/components/HBox.vue";
 import MarkdownViewer from "../../src/ipywui/components/MarkdownViewer.vue";
+import Display from "../../src/ipywui/components/Display";
 
 const False = false;
 const True = true;
@@ -69,6 +71,7 @@ attr_options = ATTR_CHAIN_LIST
 top_p = ref(1)
 model = ref('llama')
 option = ref(attr_options[0][1])
+df = ref()
 messages = ref(reactive(
     [
       {role: 'user', content: 'hello'},
