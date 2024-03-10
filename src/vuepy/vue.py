@@ -19,6 +19,10 @@ import ipywidgets as widgets
 from IPython.display import clear_output
 from IPython.display import display
 
+from vuepy import log as logging
+
+LOG = logging.getLogger()
+
 
 def get_block_content_from_sfc(sfc_file, block):
     with open(sfc_file) as f:
@@ -1294,7 +1298,6 @@ class Vue:
         options = VueOptions(options)
         # self._data = observe(options.data)
         self._data = options.setup(None, None, self)
-        self.debug_log = widgets.Output()
         self.debug = debug
 
         self._components = {}
@@ -1318,13 +1321,6 @@ class Vue:
             **methods,
             **self._data,
         }
-
-    def log(self, msg):
-        if not self.debug:
-            return
-
-        with self.debug_log:
-            print(msg)
 
     def _call_if_callable(self, func):
         if callable(func):
