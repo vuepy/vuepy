@@ -5,6 +5,8 @@ import markdown
 from IPython.core.display_functions import clear_output
 from IPython.core.display_functions import display
 
+from ipywui.widgets.custom.clipboard import ClipboardWidget
+
 
 class MarkdownViewerWidget(widgets.HTML):
     code_highlight = pathlib.Path(__file__).parent / 'assets' / 'css' / 'md_code_highlight.css'
@@ -47,3 +49,10 @@ class DisplayViewer(widgets.Output):
             self.render(value)
 
         super().__setattr__(key, value)
+
+
+__all__ = [
+    "MarkdownViewerWidget",
+    "DisplayViewer",
+    "ClipboardWidget",
+]
