@@ -19,11 +19,6 @@ async function copyToClipboardAsync(textToCopy) {
     left: '-999999px',
   }
   Object.assign(textArea.style, styles);
-  // textArea.style.display = 'none';
-  // textArea.style.position = "absolute";
-  // textArea.style.opacity = 0;
-  // textArea.style.left = "-999999px";
-  // textArea.style.top = "-999999px";
 
   document.body.appendChild(textArea);
   textArea.focus();

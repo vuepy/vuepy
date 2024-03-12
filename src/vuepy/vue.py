@@ -32,9 +32,6 @@ def get_block_content_from_sfc(sfc_file, block):
 
 def get_template_from_vue(sfc_file):
     return get_block_content_from_sfc(sfc_file, 'template')[0]
-    # with open(vue_file) as f:
-    #     str_template = re.search('<template>(.*)</template>', f.read(), flags=re.S)[1]
-    # return str_template
 
 
 def get_script_src_from_sfc(sfc_file):
@@ -434,175 +431,6 @@ class WatcherForAttrUpdate(WatcherBase):
         self.callback(new_val, old_val)
 
 
-# class _MarkdownViewer(widgets.HTML):
-#     codehilite = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'md_codehilite.css')
-#     with open(codehilite) as f:
-#         css_style = ''.join(f.read())
-#
-#     extra = [
-#         'markdown.extensions.extra',
-#         'markdown.extensions.codehilite',
-#         'markdown.extensions.tables',
-#         # 'markdown.extensions.nl2br',
-#     ]
-#
-#     def __init__(self, value='', **kwargs):
-#         super().__init__(self.render(value), **kwargs)
-#
-#     def render(self, md):
-#         html = markdown.markdown(md, extensions=self.extra)
-#         return f"<style>{self.css_style}</style>" + html
-#
-#     def __setattr__(self, key, value):
-#         if key == 'value':
-#             value = self.render(value)
-#
-#         super().__setattr__(key, value)
-
-
-# class VueCompTag:
-#     Accordion = "Accordion".lower()
-#     AccordionItem = "AccordionItem".lower()
-#     AppLayout = "AppLayout".lower()
-#     Box = "Box".lower()
-#     Button = 'Button'.lower()
-#     Checkbox = 'Checkbox'.lower()
-#     ColorsInput = 'ColorsInput'.lower()
-#     Combobox = 'Combobox'.lower()
-#     Controller = 'Controller'.lower()
-#     Dropdown = "Dropdown".lower()
-#     FileUpload = 'FileUpload'.lower()
-#     FloatsInput = 'FloatsInput'.lower()
-#     FloatSlider = 'FloatSlider'.lower()
-#     HBox = 'HBox'.lower()
-#     HtmlMath = 'HtmlMath'.lower()
-#     Image = 'Image'.lower()
-#     InputNumber = 'InputNumber'.lower()
-#     IntsInput = 'IntsInput'.lower()
-#     Label = 'Label'.lower()
-#     MarkdownViewer = 'MarkdownViewer'.lower()
-#     Password = 'Password'.lower()
-#     Play = 'Play'.lower()
-#     Progress = 'Progress'.lower()
-#     RadioButtons = 'RadioButtons'.lower()
-#     Select = 'Select'.lower()
-#     Slider = 'Slider'.lower()
-#     Stack = 'Stack'.lower()
-#     TagsInput = 'TagsInput'.lower()
-#     Text = 'Text'.lower()
-#     Textarea = 'Textarea'.lower()
-#     ToggleButton = 'ToggleButton'.lower()
-#     ToggleButtons = 'ToggleButtons'.lower()
-#     Valid = 'Valid'.lower()
-#     Template = 'template'
-#
-#     _container_tags = {
-#         Accordion,
-#         AccordionItem,
-#         AppLayout,
-#         Box,
-#         HBox,
-#         Stack,
-#         Template,
-#     }
-#     _leaf_tags = {
-#         FloatSlider,
-#         Checkbox,
-#         ColorsInput,
-#         Combobox,
-#         Controller,
-#         Dropdown,
-#         FileUpload,
-#         FloatsInput,
-#         FloatSlider,
-#         Dropdown,
-#         Textarea,
-#         Button,
-#         HtmlMath,
-#         Image,
-#         InputNumber,
-#         IntsInput,
-#         Label,
-#         MarkdownViewer,
-#         Password,
-#         Play,
-#         Progress,
-#         RadioButtons,
-#         Text,
-#         Select,
-#         Slider,
-#         TagsInput,
-#         Text,
-#         Textarea,
-#         ToggleButton,
-#         ToggleButtons,
-#         Valid,
-#     }
-#
-#     _tag_to_widget = {
-#         Accordion: widgets.Accordion,
-#         AccordionItem: widgets.VBox,
-#         AppLayout: widgets.AppLayout,
-#         Box: widgets.VBox,
-#         Button: widgets.Button,
-#         Checkbox: widgets.Checkbox,
-#         ColorsInput: widgets.ColorsInput,
-#         Combobox: widgets.Combobox,
-#         Controller: widgets.Controller,
-#         Dropdown: widgets.Dropdown,
-#         FileUpload: widgets.FileUpload,
-#         FloatsInput: widgets.FloatsInput,
-#         FloatSlider: widgets.FloatSlider,
-#         HBox: widgets.HBox,
-#         HtmlMath: widgets.HTMLMath,
-#         Image: widgets.Image,
-#         InputNumber: widgets.IntText,  # TODO IntText, FloatText
-#         IntsInput: widgets.IntsInput,
-#         Label: widgets.Label,
-#         # MarkdownViewer: _MarkdownViewer,
-#         Password: widgets.Password,
-#         Play: widgets.Play,
-#         Progress: widgets.FloatProgress,
-#         RadioButtons: widgets.RadioButtons,
-#         Select: widgets.Select,
-#         Slider: widgets.FloatSlider,  # TODO xxxSlider
-#         Stack: widgets.Stack,
-#         TagsInput: widgets.TagsInput,
-#         Template: widgets.VBox,
-#         Text: widgets.Text,
-#         Textarea: widgets.Textarea,
-#         ToggleButton: widgets.ToggleButton,
-#         ToggleButtons: widgets.ToggleButtons,
-#         Valid: widgets.Valid,
-#     }
-#
-#     _tag_to_v_model = {
-#         Accordion: 'selected_index',
-#         Button: 'description',
-#         Stack: 'selected_index',
-#     }
-#
-#     @classmethod
-#     def is_container(cls, tag):
-#         return tag in cls._container_tags
-#
-#     @classmethod
-#     def is_leaf(cls, tag):
-#         return tag in cls._leaf_tags
-#
-#     # @classmethod
-#     # def get_widget(cls, t):
-#     #     return getattr(widgets, getattr(cls, t))
-#
-#     @classmethod
-#     def impl(cls, tag):
-#         return cls._tag_to_widget[tag]
-#
-#     @classmethod
-#     def v_model(cls, tag):
-#         return cls._tag_to_v_model.get(tag, 'value')
-
-
 class VForStatement:
     def __init__(self, target, iters, index=None):
         self.i = index
@@ -894,8 +722,6 @@ class VueCompCodeGen:
                 if not comp_ast.v_if.eval(ns):
                     return widgets.HTML("")
 
-        # widgets_cls = VueCompTag.impl(comp_ast.tag)
-        # widget = widgets_cls(**comp_ast.kwargs)
         slots = {'default': []}
         for child in children or []:
             slot_name = getattr(child, 'v_slot', 'default')
@@ -991,8 +817,6 @@ class VueTemplate(HTMLParser):
     https://juejin.cn/post/7242700247440293925
     https://www.chuchur.com/article/vue-mvvm-complie
     https://github.com/leilux/SICP-exercises/blob/master/book/p216-constraint-propagate(python%20version).py
-    布局：
-    https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20Layout.html#sizes
     """
 
     def __init__(self, vm: 'Vue'):
@@ -1015,11 +839,6 @@ class VueTemplate(HTMLParser):
         pass
 
     def _gen_ast_node(self, tag, attrs, for_scope=None):
-        # ast_node = {"tag": tag, 'attrs': attrs}
-        # if VueCompTag.is_container(tag):
-        #     node = self._container_tag_enter(tag, attrs, for_scope)
-        # elif VueCompTag.is_leaf(tag):
-        #     node = self._leaf_tag_enter(tag, attrs, for_scope)
         if self.vm.find_component(tag):
             node = self._component_tag_enter(tag, attrs, for_scope)
         else:
@@ -1028,10 +847,6 @@ class VueTemplate(HTMLParser):
 
     def _gen_widget(self, node, for_scope=None):
         tag = node['tag']
-        # if VueCompTag.is_container(tag):
-        #     widget = self._container_tag_exit(node, for_scope)
-        # elif VueCompTag.is_leaf(tag):
-        #     widget = self._leaf_tag_exit(node, for_scope)
         if self.vm.find_component(tag):
             widget = self._component_tag_exit(node, for_scope)
         else:
@@ -1048,58 +863,6 @@ class VueTemplate(HTMLParser):
         ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local)
         widget = VueCompCodeGen.gen(comp_ast, node['body'], self.vm, ns)
         return widget
-
-    # def _container_tag_enter(self, tag, attrs, for_scope=None):
-    #     ast_node = {"tag": tag, 'attrs': attrs, 'body': []}
-    #     return ast_node
-    #
-    # def _container_tag_exit(self, node, for_scope=None):
-    #     tag = node['tag']
-    #     # TODO 重构
-    #     comp_ast = VueCompAst.parse(tag, node['attrs'])
-    #     local = for_scope.to_ns() if for_scope else None
-    #     ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local)
-    #     # v-if
-    #     if comp_ast.v_if:
-    #         watcher = WatcherForRerender(self.vm, f'v_if {comp_ast.v_if}')
-    #         with ActivateEffect(watcher):
-    #             if not comp_ast.v_if.eval(ns):
-    #                 return widgets.HTML("")
-    #
-    #     # TODO can move to Tag class
-    #     widget_cls = VueCompTag.impl(tag)
-    #     if tag == VueCompTag.AppLayout:
-    #         kwargs = comp_ast.kwargs
-    #         for child in node['body']:
-    #             kwargs[child.v_slot] = child
-    #         widget = widget_cls(**kwargs)
-    #     elif tag == VueCompTag.Box or tag == VueCompTag.HBox:
-    #         widget = widget_cls(node['body'])
-    #     elif tag == VueCompTag.Template:
-    #         widget = widget_cls(node['body'])
-    #     elif tag == VueCompTag.AccordionItem:
-    #         widget = widget_cls(node['body'])
-    #         widget.title = comp_ast.kwargs.get('title', '-')
-    #     elif tag == VueCompTag.Accordion:
-    #         widget = widget_cls(children=node['body'], titles=[c.title for c in node['body']])
-    #     else:
-    #         raise Exception(f'error: container_tag_exit, {tag} not support.')
-    #
-    #     if comp_ast.v_slot:
-    #         widget.v_slot = comp_ast.v_slot
-    #
-    #     return widget
-    #
-    # def _leaf_tag_enter(self, tag, attrs, for_scope=None):
-    #     ast_node = {"tag": tag, 'attrs': attrs}
-    #     return ast_node
-    #
-    # def _leaf_tag_exit(self, node, for_scope: ForScope = None):
-    #     comp_ast = VueCompAst.parse(node['tag'], node['attrs'])
-    #     local = for_scope.to_ns() if for_scope else None
-    #     ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local)
-    #     widget = VueCompCodeGen.gen(comp_ast, self.vm, ns)
-    #     return widget
 
     def _html_tag_enter(self, tag, attrs):
         ast_node = {'type': 'html', 'tag': tag, 'attrs': attrs, 'body': []}
@@ -1309,8 +1072,6 @@ class Vue:
 
         # self.methods = self.options.methods(self)
         self._proxy_methods()
-
-        # self.mount(self.options.el)
 
     def to_ns(self):
         methods = {
