@@ -3,5 +3,7 @@ include src/vuepy/js_stubs/vue.js
 include src/vuepy/cli/*.py
 include src/vuepy/cli/template_vue/*
 
-include src/ipywui/md_codehilite.css
 include src/ipywui/components/*.vue
+include src/ipywui/widgets/assets/css/*.css
+include src/ipywui/widgets/custom/clipboard/*.css
+include src/ipywui/widgets/custom/clipboard/*.js
