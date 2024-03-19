@@ -1,0 +1,16 @@
+
+.ipywui-dialog {
+    /*width: 200px;*/
+    /*height: 200px;*/
+    position: absolute;
+    /*top: 50%;*/
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transform: translate(-50%, 0);
+    background-color: rgba(36, 35, 35, 0.24);
+    border: 1px solid #000;
+    padding: 10px;
+    box-sizing: border-box;
+    display: none; /* 默认隐藏对话框 */
+}
