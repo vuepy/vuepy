@@ -5,6 +5,7 @@ from ipywui.core import IPywidgetsComponent
 from ipywui.core import has_and_pop
 from ipywui.core import is_float
 from ipywui.core import is_int
+from ipywui.widgets import ClipboardWidget
 from ipywui.widgets import DisplayViewer
 from ipywui.widgets import MarkdownViewerWidget
 
@@ -112,6 +113,14 @@ class Controller(IPywidgetsComponent):
     def render(self, ctx, props, setup_returned):
         attrs = ctx.get('attrs', {})
         return widgets.Controller(**props, **attrs)
+
+
+@IPywidgets.register()
+class Clipboard(IPywidgetsComponent):
+    def render(self, ctx, props, setup_returned):
+        attrs = ctx.get('attrs', {})
+        slots = ctx.get('slots', {})
+        return ClipboardWidget(children=slots.get('default', []), **props, **attrs)
 
 
 @IPywidgets.register()
