@@ -13,7 +13,13 @@ export default {
     copy: {
       type: Object,
     },
-  }
+    modelValue: {
+      type: Number,
+    },
+  },
+  emits: [
+      'update:modelValue',
+  ]
 }
 </script>
 

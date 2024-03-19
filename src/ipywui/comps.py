@@ -117,6 +117,8 @@ class Controller(IPywidgetsComponent):
 
 @IPywidgets.register()
 class Clipboard(IPywidgetsComponent):
+    v_model_default = 'value'
+
     def render(self, ctx, props, setup_returned):
         attrs = ctx.get('attrs', {})
         slots = ctx.get('slots', {})
