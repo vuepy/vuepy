@@ -117,8 +117,6 @@ class Controller(IPywidgetsComponent):
 
 @IPywidgets.register()
 class Clipboard(IPywidgetsComponent):
-    v_model_default = 'value'
-
     def render(self, ctx, props, setup_returned):
         attrs = ctx.get('attrs', {})
         slots = ctx.get('slots', {})
@@ -174,6 +172,22 @@ class DatetimePicker(IPywidgetsComponent):
         }
         # todo widgets.NaiveDatetimePicker
         return widgets.DatetimePicker(**props, **attrs, **params)
+
+
+@IPywidgets.register()
+class Dialog(IPywidgetsComponent):
+    """
+    仅支持放在最外层的VBOX中
+    """
+    v_model_default = 'value'
+
+    def render(self, ctx, props, setup_returned):
+        slots = ctx.get('slots', {})
+        slot_body = slots.get('default', slots.get('body', []))
+        slot_footer = slots.get('footer', [])
+        attrs = ctx.get('attrs', {})
+        widget = Dialog(body=slot_body, slot_footer=slot_footer, **props, **attrs)
+        return widget
 
 
 @IPywidgets.register()

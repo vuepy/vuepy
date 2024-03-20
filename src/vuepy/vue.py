@@ -556,6 +556,7 @@ class VueCompAst:
         # todo rename to attrs
         self.kwargs = {}
         self.v_binds: Dict[str, VueCompExprAst] = {}
+        # todo support only one v-model
         self.v_model_vm = None
         self.v_html = None
         self.v_on: Dict[str, VueCompExprAst] = {}
@@ -783,7 +784,7 @@ class VueCompCodeGen:
 
         # v-on
         for ev, func_ast in comp_ast.v_on.items():
-            getattr(widget, f"on_{ev}")(lambda owner: func_ast.eval(ns, {'__owner': owner}))
+            getattr(widget, f"on_{ev}")(lambda payload: func_ast.eval(ns, {'__owner': payload}))
 
         return widget
 

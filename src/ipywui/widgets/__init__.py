@@ -6,6 +6,7 @@ from IPython.core.display_functions import clear_output
 from IPython.core.display_functions import display
 
 from ipywui.widgets.custom.clipboard import ClipboardWidget
+from ipywui.widgets.custom.dialog import DialogWidget
 
 
 class MarkdownViewerWidget(widgets.HTML):
@@ -55,4 +56,5 @@ __all__ = [
     "MarkdownViewerWidget",
     "DisplayViewer",
     "ClipboardWidget",
+    "DialogWidget",
 ]
