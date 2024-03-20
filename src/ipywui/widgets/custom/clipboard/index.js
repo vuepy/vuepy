@@ -43,13 +43,19 @@ export async function render(view) {
     copyWrap.appendChild(child_view.el);
   }
 
+  const emit = (evt, payload) => {
+    model.set("event", {"event": evt, "payload": payload});
+    model.save_changes();
+  }
+
+  let keepChange = 0;
   copyWrap.addEventListener("click", async () => {
     try {
       await copyToClipboardAsync(model.get("copy"));
-      model.set("value", model.get("value")+1);
-      model.save_changes();
+      keepChange = (keepChange + 1) % 5;
+      emit('copy', keepChange);
     } catch (e) {
-      console.error(e)
+      console.error('copy failed, ', e);
     }
   });
 
