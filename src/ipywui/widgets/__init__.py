@@ -7,6 +7,7 @@ from IPython.core.display_functions import display
 
 from ipywui.widgets.custom.clipboard import ClipboardWidget
 from ipywui.widgets.custom.dialog import DialogWidget
+from ipywui.widgets.custom.message import Message
 
 
 class MarkdownViewerWidget(widgets.HTML):
@@ -57,4 +58,5 @@ __all__ = [
     "DisplayViewer",
     "ClipboardWidget",
     "DialogWidget",
+    "Message",
 ]

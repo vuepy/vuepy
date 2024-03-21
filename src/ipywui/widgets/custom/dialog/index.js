@@ -72,7 +72,4 @@ export async function render(view) {
   model.on("change:value", () => {
     shouldShowDialog() ? openDialog() : closeDialog();
   })
-  // model.on("change:event", () => {
-  //   emit("event", null);
-  // })
 }
