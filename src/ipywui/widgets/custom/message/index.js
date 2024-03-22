@@ -1,13 +1,17 @@
 function closeMsg(msgDom) {
+  if (!msgDom) {
+    return;
+  }
   msgDom.setAttribute('data-state', 'exiting');
   msgDom.remove();
 }
 
 function createMsg(options) {
-  const {message, type = 'info', show_close = false} = options;
+  const {message, msg_id, type = 'info', show_close = false} = options;
   const msgDom = document.createElement('div');
   msgDom.className += ` wui-message--${type} wui-message`;
   msgDom.setAttribute('data-state', 'entered');
+  msgDom.setAttribute('id', msg_id);
   const msgContent = document.createElement('p');
   msgContent.className += ` wui-message--${type} wui-message__content`;
   msgContent.innerText = message;
@@ -43,5 +47,11 @@ export async function render(view) {
         closeMsg(msg)
       }, duration);
     }
+  })
+
+  model.on("change:close_msg_id", () => {
+    const msg_id = model.get("close_msg_id");
+    const msgDom = document.getElementById(msg_id);
+    closeMsg(msgDom);
   })
 }

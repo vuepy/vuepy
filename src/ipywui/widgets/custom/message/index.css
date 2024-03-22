@@ -1,11 +1,9 @@
 .wui-message-root {
+    display: flex;
     position: absolute;
     left: 0;
-    overflow: auto;
     right: 0;
     top: 0;
-    z-index: 2004;
-    display: flex;
 }
 
 .wui-message-container {
@@ -83,7 +81,8 @@
     width: -webkit-fit-content;
     width: -moz-fit-content;
     width: fit-content;
-    /*max-width: calc(100% - 32px);*/
+    z-index: 2004;
+    max-width: calc(100% - 32px);
     margin-top: 8px;
     box-sizing: border-box;
     /*border-radius: var(--wui-border-radius-base);*/
@@ -98,7 +97,6 @@
     /*padding: var(--wui-message-padding);*/
     display: flex;
     align-items: center;
-    gap: 8px;
 }
 
 /*.wui-message--success */
@@ -106,7 +104,7 @@
     color: var(--wui-message-text-color);
     font-size: 14px;
     line-height: 18px;
-    margin: 10px 14px 6px 14px;
+    margin: 10px 14px 10px 14px;
     overflow-wrap: break-word;
 }
 
@@ -114,8 +112,9 @@
     /*cursor: pointer;*/
     font-style: normal;
     /*color: gray;*/
-    padding-right: 8px;
+    padding-right: 14px;
     /*font-size: 13px;*/
+    user-select: none;
 
     background: transparent;
     border: none;
@@ -128,5 +127,5 @@
     /*padding: 4px;*/
     text-align: center;
     transition: opacity .3s;
-    width: 100%;
+    /*width: 100%;*/
 }

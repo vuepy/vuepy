@@ -1,3 +1,4 @@
+from ipywui.widgets.custom.message import MessageService
 from vuepy import Vue
 from vuepy import VueComponent
 from vuepy import VuePlugin
@@ -10,6 +11,8 @@ class IPywidgets(VuePlugin, metaclass=FactoryMeta):
         components = cls.get_all_registry()
         for name, component in components.items():
             vm.component(name, component)
+        vm.message = MessageService(app_instance=vm)
+        # todo append msg to vm.dom
 
 
 class IPywidgetsComponent(VueComponent):
