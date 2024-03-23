@@ -12,7 +12,7 @@ class IPywidgets(VuePlugin, metaclass=FactoryMeta):
         for name, component in components.items():
             vm.component(name, component)
         vm.message = MessageService(app_instance=vm)
-        # todo append msg to vm.dom
+        vm.document.body.appendLeftChild(vm.message.widget)
 
 
 class IPywidgetsComponent(VueComponent):

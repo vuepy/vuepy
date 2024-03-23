@@ -1055,6 +1055,32 @@ class VueOptions:
         self.render = options.get('render')
 
 
+class Dom(widgets.VBox):
+    """
+    https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model/Introduction
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def appendChild(self, el):
+        self.children = self.children + (el,)
+        return el
+
+    def appendLeftChild(self, el):
+        self.children = (el,) + self.children
+        return el
+
+
+class Document(widgets.VBox):
+    """
+    https://developer.mozilla.org/en-US/docs/Web/API/Document
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.body = Dom()
+        self.children = (self.body,)
+
+
 class Vue:
     components = {}
 
@@ -1066,6 +1092,7 @@ class Vue:
 
         self._components = {}
 
+        self.document: Document = Document()
         self.dom = None
         self.options = options
         self._call_if_callable(self.options.before_create)
@@ -1114,7 +1141,8 @@ class Vue:
         self._call_if_callable(self.options.before_mount)
         self.render()
         self._call_if_callable(self.options.mounted)
-        display(self.options.el)
+        self.document.body.appendChild(self.options.el)
+        return self.document
 
     def _compile_template(self, template):
         vue_template = VueTemplate(self)

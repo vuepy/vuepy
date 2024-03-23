@@ -62,16 +62,14 @@ class MessageService:
             cls._instance[app] = super().__new__(cls)
         return cls._instance[app]
 
-    def __init__(self, *args, **kwargs):
-        app = kwargs.get("app_instance")
-        if app not in MessageService._is_inited:
-            super().__init__(*args, **kwargs)
-            self.app = app
+    def __init__(self, app_instance=None):
+        if app_instance not in MessageService._is_inited:
+            self.app = app_instance
             self.widget = MessageWidget()
-            MessageService._is_inited[app] = True
+            MessageService._is_inited[app_instance] = True
 
     def __call__(self, options=None, app_instance=None):
-        message_service = MessageService(app_instance)
+        message_service = MessageService(app_instance=app_instance)
         if options:
             return message_service.widget._send_message(options)
         return message_service
