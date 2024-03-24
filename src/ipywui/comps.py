@@ -1,6 +1,6 @@
 #!coding: utf-8
 import ipywidgets as widgets
-from ipywui.core import IPywidgets
+from ipywui.core import wui
 from ipywui.core import IPywidgetsComponent
 from ipywui.core import has_and_pop
 from ipywui.core import is_float
@@ -10,7 +10,7 @@ from ipywui.widgets import DisplayViewer
 from ipywui.widgets import MarkdownViewerWidget
 
 
-@IPywidgets.register()
+@wui.register()
 class AppLayout(IPywidgetsComponent):
     def render(self, ctx, props, setup_returned):
         slots = ctx.get('slots', {})
@@ -18,7 +18,7 @@ class AppLayout(IPywidgetsComponent):
         return widgets.AppLayout(**slots, **props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class VBox(IPywidgetsComponent):
     def render(self, ctx, props, setup_returned):
         slots = ctx.get('slots', {})
@@ -26,12 +26,12 @@ class VBox(IPywidgetsComponent):
         return widgets.VBox(children=slots.get('default', []), **props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class Template(VBox):
     pass
 
 
-@IPywidgets.register()
+@wui.register()
 class Box(IPywidgetsComponent):
     def render(self, ctx, props, setup_returned):
         slots = ctx.get('slots', {})
@@ -39,7 +39,7 @@ class Box(IPywidgetsComponent):
         return widgets.VBox(children=slots.get('default', []), **props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class HBox(IPywidgetsComponent):
     def render(self, ctx, props, setup_returned):
         slots = ctx.get('slots', {})
@@ -47,7 +47,7 @@ class HBox(IPywidgetsComponent):
         return widgets.HBox(children=slots.get('default', []), **props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class AccordionItem(IPywidgetsComponent):
     def render(self, ctx, props, setup_returned):
         slots = ctx.get('slots', {})
@@ -58,7 +58,7 @@ class AccordionItem(IPywidgetsComponent):
         return widget
 
 
-@IPywidgets.register()
+@wui.register()
 class Accordion(IPywidgetsComponent):
     v_model_default = 'selected_index'
 
@@ -70,7 +70,7 @@ class Accordion(IPywidgetsComponent):
         return widgets.Accordion(children=children, titles=titles, **props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class Button(IPywidgetsComponent):
     v_model_default = 'description'
 
@@ -79,7 +79,7 @@ class Button(IPywidgetsComponent):
         return widgets.Button(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class Checkbox(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -88,7 +88,7 @@ class Checkbox(IPywidgetsComponent):
         return widgets.Checkbox(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class ColorsInput(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -97,7 +97,7 @@ class ColorsInput(IPywidgetsComponent):
         return widgets.ColorsInput(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class Combobox(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -106,7 +106,7 @@ class Combobox(IPywidgetsComponent):
         return widgets.Combobox(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class Controller(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -115,7 +115,7 @@ class Controller(IPywidgetsComponent):
         return widgets.Controller(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class Clipboard(IPywidgetsComponent):
     def render(self, ctx, props, setup_returned):
         attrs = ctx.get('attrs', {})
@@ -123,7 +123,7 @@ class Clipboard(IPywidgetsComponent):
         return ClipboardWidget(children=slots.get('default', []), **props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class Col(IPywidgetsComponent):
     def render(self, ctx, props, setup_returned):
         slots = ctx.get('slots', {})
@@ -136,7 +136,7 @@ class Col(IPywidgetsComponent):
         return widget
 
 
-@IPywidgets.register()
+@wui.register()
 class ColorPicker(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -149,7 +149,7 @@ class ColorPicker(IPywidgetsComponent):
         return widgets.ColorPicker(**props, **attrs, **params)
 
 
-@IPywidgets.register()
+@wui.register()
 class DatePicker(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -161,7 +161,7 @@ class DatePicker(IPywidgetsComponent):
         return widgets.DatePicker(**props, **attrs, **params)
 
 
-@IPywidgets.register()
+@wui.register()
 class DatetimePicker(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -174,7 +174,7 @@ class DatetimePicker(IPywidgetsComponent):
         return widgets.DatetimePicker(**props, **attrs, **params)
 
 
-@IPywidgets.register()
+@wui.register()
 class Dialog(IPywidgetsComponent):
     """
     仅支持放在最外层的VBOX中
@@ -190,7 +190,7 @@ class Dialog(IPywidgetsComponent):
         return widget
 
 
-@IPywidgets.register()
+@wui.register()
 class Display(IPywidgetsComponent):
     def render(self, ctx, props, setup_returned):
         attrs = ctx.get('attrs', {})
@@ -199,7 +199,7 @@ class Display(IPywidgetsComponent):
         return widget
 
 
-@IPywidgets.register()
+@wui.register()
 class Dropdown(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -208,7 +208,7 @@ class Dropdown(IPywidgetsComponent):
         return widgets.Dropdown(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class FileUpload(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -217,7 +217,7 @@ class FileUpload(IPywidgetsComponent):
         return widgets.FileUpload(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class FloatsInput(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -226,7 +226,7 @@ class FloatsInput(IPywidgetsComponent):
         return widgets.FloatsInput(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class HTMLMath(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -235,7 +235,7 @@ class HTMLMath(IPywidgetsComponent):
         return widgets.HTMLMath(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class ColorsInput(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -244,7 +244,7 @@ class ColorsInput(IPywidgetsComponent):
         return widgets.ColorsInput(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class Image(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -253,7 +253,7 @@ class Image(IPywidgetsComponent):
         return widgets.Image(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class InputNumber(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -278,7 +278,7 @@ class InputNumber(IPywidgetsComponent):
         return cls(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class Label(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -287,7 +287,7 @@ class Label(IPywidgetsComponent):
         return widgets.Label(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class MarkdownViewer(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -296,7 +296,7 @@ class MarkdownViewer(IPywidgetsComponent):
         return MarkdownViewerWidget(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class Password(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -305,7 +305,7 @@ class Password(IPywidgetsComponent):
         return widgets.Password(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class Play(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -314,7 +314,7 @@ class Play(IPywidgetsComponent):
         return widgets.Play(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class Progress(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -323,7 +323,7 @@ class Progress(IPywidgetsComponent):
         return widgets.FloatProgress(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class RadioButtons(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -332,7 +332,7 @@ class RadioButtons(IPywidgetsComponent):
         return widgets.RadioButtons(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class Row(IPywidgetsComponent):
     N_ROWS = 1
     N_COLS = 24
@@ -364,7 +364,7 @@ class Row(IPywidgetsComponent):
         return widget
 
 
-@IPywidgets.register()
+@wui.register()
 class Select(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -381,7 +381,7 @@ class Select(IPywidgetsComponent):
         return cls(**props, **attrs, **params)
 
 
-@IPywidgets.register()
+@wui.register()
 class SelectNumbers(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -397,7 +397,7 @@ class SelectNumbers(IPywidgetsComponent):
         return cls(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class SelectTags(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -409,7 +409,7 @@ class SelectTags(IPywidgetsComponent):
         return widgets.TagsInput(**props, **attrs, **params)
 
 
-@IPywidgets.register()
+@wui.register()
 class SelectColors(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -421,7 +421,7 @@ class SelectColors(IPywidgetsComponent):
         return widgets.ColorsInput(**props, **attrs, **params)
 
 
-@IPywidgets.register()
+@wui.register()
 class Slider(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -451,7 +451,7 @@ class Slider(IPywidgetsComponent):
         return cls(**props, **attrs, **param)
 
 
-@IPywidgets.register()
+@wui.register()
 class Stack(IPywidgetsComponent):
     v_model_default = 'selected_index'
 
@@ -460,7 +460,7 @@ class Stack(IPywidgetsComponent):
         return widgets.Stack(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class TabPane(IPywidgetsComponent):
     def render(self, ctx, props, setup_returned):
         slots = ctx.get('slots', {})
@@ -471,7 +471,7 @@ class TabPane(IPywidgetsComponent):
         return widget
 
 
-@IPywidgets.register()
+@wui.register()
 class Tabs(IPywidgetsComponent):
     v_model_default = 'selected_index'
 
@@ -483,7 +483,7 @@ class Tabs(IPywidgetsComponent):
         return widgets.Tab(children=children, titles=titles, **props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class Text(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -495,7 +495,7 @@ class Text(IPywidgetsComponent):
         return widgets.Text(**props, **attrs, **params)
 
 
-@IPywidgets.register()
+@wui.register()
 class Textarea(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -507,7 +507,7 @@ class Textarea(IPywidgetsComponent):
         return widgets.Textarea(**props, **attrs, **params)
 
 
-@IPywidgets.register()
+@wui.register()
 class TimePicker(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -519,7 +519,7 @@ class TimePicker(IPywidgetsComponent):
         return widgets.TimePicker(**props, **attrs, **params)
 
 
-@IPywidgets.register()
+@wui.register()
 class ToggleButton(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -528,7 +528,7 @@ class ToggleButton(IPywidgetsComponent):
         return widgets.ToggleButton(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class ToggleButtons(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -537,7 +537,7 @@ class ToggleButtons(IPywidgetsComponent):
         return widgets.ToggleButtons(**props, **attrs)
 
 
-@IPywidgets.register()
+@wui.register()
 class Valid(IPywidgetsComponent):
     v_model_default = 'value'
 

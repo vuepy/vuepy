@@ -5,12 +5,13 @@ from vuepy import VuePlugin
 from vuepy.utils.factory import FactoryMeta
 
 
-class IPywidgets(VuePlugin, metaclass=FactoryMeta):
+class wui(VuePlugin, metaclass=FactoryMeta):
     @classmethod
     def install(cls, vm: Vue, options: dict):
         components = cls.get_all_registry()
         for name, component in components.items():
             vm.component(name, component)
+
         vm.message = MessageService(app_instance=vm)
         vm.document.body.appendLeftChild(vm.message.widget)
 
