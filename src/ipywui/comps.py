@@ -1,4 +1,6 @@
 #!coding: utf-8
+import logging
+
 import ipywidgets as widgets
 from ipywui.core import wui
 from ipywui.core import IPywidgetsComponent
@@ -6,8 +8,13 @@ from ipywui.core import has_and_pop
 from ipywui.core import is_float
 from ipywui.core import is_int
 from ipywui.widgets import ClipboardWidget
+from ipywui.widgets import DialogWidget
 from ipywui.widgets import DisplayViewer
 from ipywui.widgets import MarkdownViewerWidget
+
+from vuepy import log as logging
+
+LOG = logging.getLogger()
 
 
 @wui.register()
@@ -186,7 +193,7 @@ class Dialog(IPywidgetsComponent):
         slot_body = slots.get('default', slots.get('body', []))
         slot_footer = slots.get('footer', [])
         attrs = ctx.get('attrs', {})
-        widget = Dialog(body=slot_body, slot_footer=slot_footer, **props, **attrs)
+        widget = DialogWidget(body=slot_body, slot_footer=slot_footer, **props, **attrs)
         return widget
 
 

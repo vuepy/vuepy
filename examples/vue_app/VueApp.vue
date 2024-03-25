@@ -29,12 +29,15 @@
       <Button description="Add message" button_style="info" icon="plus-circle" @click="handle_add_msg()"></Button>
       <Button description='show/edit' icon="edit" @click="handle_edit_msg" button_style='info'></Button>
       <Button description="Submit" button_style="success" @click="handle_on_submit()"></Button>
+      <Button description="message" button_style="info" @click="send_msg()"></Button>
+      <Button description="dialog" button_style="info" @click="switch_dialog()"></Button>
       <p style="background: #ffaa00" v-for="msg in messages.value">
         <span>model: {{ model.value }}, top_p: {{ top_p.value }} {{ msg.role }}</span>
       </p>
       <Display :obj="df.value"></Display>
     </template>
   </AppLayout>
+  <Dialog title="test" v-model="show_dialog.value"></Dialog>
 </template>
 
 <script src="./app.py"></script>
@@ -50,6 +53,7 @@ import Button from "../../src/ipywui/components/Button.vue";
 import HBox from "../../src/ipywui/components/HBox.vue";
 import MarkdownViewer from "../../src/ipywui/components/MarkdownViewer.vue";
 import Display from "../../src/ipywui/components/Display";
+import Dialog from "../../src/ipywui/components/Dialog";
 
 const False = false;
 const True = true;
@@ -78,6 +82,7 @@ messages = ref(reactive(
       {role: 'bot', content: 'world'},
     ],
 ))
+show_dialog = ref(false)
 
 const handle_on_submit = () => { }
 const handle_change_role = () => { }

@@ -7,17 +7,13 @@ async function unpack_models(model_ids, manager) {
 
 export async function render(view) {
   let model = view.model;
-  let el = view.el;
 
   let shouldShowDialog = () => model.get('value');
-  if (!shouldShowDialog()) {
-    el.style.display = 'None';
-  }
-
-  const modalRoot = el;
+  const modalRoot = view.el;
   const modalDialogContainer = document.createElement('div');
   const modalDialog = document.createElement('div');
   modalRoot.className += ' wui-modal-root';
+  modalRoot.setAttribute('data-state', shouldShowDialog() ? 'open' : 'close');
   modalDialogContainer.className += ' wui-modal-dialog-container';
   modalDialog.className += ' wui-modal-dialog';
   const modalDialogWidth = model.get("width", '50%');
@@ -55,14 +51,15 @@ export async function render(view) {
     model.save_changes();
   }
   const openDialog = () => {
-    modalRoot.style.display = 'block';
+    modalRoot.setAttribute('data-state', 'open');
     emit("open");
   }
   const closeDialog = () => {
-    modalRoot.style.display = 'none';
+    modalRoot.setAttribute('data-state', 'close');
     emit("close");
   }
   modalDialogContainer.addEventListener('click', () => {
+    console.info('click')
     model.set("value", false);
     model.save_changes()
   })
@@ -70,6 +67,7 @@ export async function render(view) {
     ev.stopPropagation();
   })
   model.on("change:value", () => {
+    console.info('change value')
     shouldShowDialog() ? openDialog() : closeDialog();
   })
 }

@@ -50,6 +50,7 @@ def setup(props, ctx, vm):
     attr_options = attr_chain_list
     option = ref(attr_chain_list[0][1])
     top_p = ref(1)
+    show_dialog = ref(True)
     messages = ref(reactive([
         {'role': Role.user.value, 'content': 'hello bot'},
         {'role': Role.bot.value, 'content': '## h2 \nhello user'},
@@ -98,5 +99,12 @@ def setup(props, ctx, vm):
             clear_output()
             display(vm.dom)
             pprint(vm._data)
+
+    def send_msg():
+        vm.message.success({'message': 'hello world!', 'duration': 0, 'show_close': True})
+
+    def switch_dialog():
+        show_dialog.value = not show_dialog.value
+
 
     return locals()
