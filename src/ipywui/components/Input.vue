@@ -5,16 +5,23 @@
 <script>
 // el-input
 export default {
-  name: 'Textarea',
+  name: "Input",
   props: {
     value: {
       type: String
+    },
+    type: {
+      type: String,
+      default: '',
+      validator: function (value) {
+        return ['text', 'textarea', 'password'].includes(value)
+      },
     },
     placeholder: {
       type: String,
       default: ''
     },
-    description: {
+    label: {
       type: String,
       default: ''
     },
@@ -25,6 +32,10 @@ export default {
     disabled: {
       type: Boolean,
       default: false
+    },
+    style: {
+      // background, description_width, font_size, text_color
+      type: string,
     },
   },
 }
