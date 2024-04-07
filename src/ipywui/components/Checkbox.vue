@@ -12,7 +12,7 @@ export default {
       type: Boolean,
       default: false
     },
-    description: {
+    label: {
       type: String,
       default: ''
     },
@@ -24,7 +24,10 @@ export default {
       type: Boolean,
       default: true,
     },
-    tooltip: String,
+    style: {
+      // background, description-width
+      type: string,
+    },
   }
 
 }

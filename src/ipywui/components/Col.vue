@@ -4,7 +4,7 @@
 
 <script>
 export default {
-  name: "Row",
+  name: "Col",
   props: {
     span: {
       type: Number,

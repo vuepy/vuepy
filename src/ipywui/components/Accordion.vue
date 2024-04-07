@@ -4,7 +4,15 @@
 
 <script>
 export default {
-  name: "Accordion"
+  name: "Accordion",
+  props: {
+    selected_index: {
+      type: Number,
+    },
+    style: {
+      type: String,
+    },
+  },
 }
 </script>
 

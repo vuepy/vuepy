@@ -10,7 +10,13 @@ export default {
       type: Array,
       default: () => []
     },
-    tag_style: {
+    min: {
+      type: Number,
+    },
+    max: {
+      type: Number,
+    },
+    type: {
       type: String,
       default: '',
       validator: function (value) {
@@ -25,7 +31,7 @@ export default {
     },
     format: {
       type: String,
-      default: '', // '.2f'
+      default: '', // '.2f', '$,d'
     },
     tooltip: String,
   },

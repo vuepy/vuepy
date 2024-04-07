@@ -1,17 +1,14 @@
 #!coding: utf-8
-import logging
-
 import ipywidgets as widgets
-from ipywui.core import wui
+
+import ipywui
 from ipywui.core import IPywidgetsComponent
-from ipywui.core import has_and_pop
 from ipywui.core import is_float
-from ipywui.core import is_int
+from ipywui.core import wui
 from ipywui.widgets import ClipboardWidget
 from ipywui.widgets import DialogWidget
 from ipywui.widgets import DisplayViewer
 from ipywui.widgets import MarkdownViewerWidget
-
 from vuepy import log as logging
 
 LOG = logging.getLogger()
@@ -27,10 +24,9 @@ class AppLayout(IPywidgetsComponent):
 
 @wui.register()
 class VBox(IPywidgetsComponent):
-    def render(self, ctx, props, setup_returned):
+    def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
-        attrs = ctx.get('attrs', {})
-        return widgets.VBox(children=slots.get('default', []), **props, **attrs)
+        return widgets.VBox(children=slots.get('default', []), **props, **attrs, **params)
 
 
 @wui.register()
@@ -40,27 +36,25 @@ class Template(VBox):
 
 @wui.register()
 class Box(IPywidgetsComponent):
-    def render(self, ctx, props, setup_returned):
+    def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
-        attrs = ctx.get('attrs', {})
-        return widgets.VBox(children=slots.get('default', []), **props, **attrs)
+        return widgets.VBox(children=slots.get('default', []), **props, **attrs, **params)
 
 
 @wui.register()
 class HBox(IPywidgetsComponent):
-    def render(self, ctx, props, setup_returned):
+    def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
-        attrs = ctx.get('attrs', {})
-        return widgets.HBox(children=slots.get('default', []), **props, **attrs)
+        return widgets.HBox(children=slots.get('default', []), **props, **attrs, **params)
 
 
 @wui.register()
 class AccordionItem(IPywidgetsComponent):
-    def render(self, ctx, props, setup_returned):
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
-        attrs = ctx.get('attrs', {})
         title = attrs.pop('title', '-')
-        widget = widgets.VBox(children=slots.get('default', []), **props, **attrs)
+        widget = widgets.VBox(children=slots.get('default', []), **props, **attrs, **params)
         widget.title = title
         return widget
 
@@ -69,48 +63,61 @@ class AccordionItem(IPywidgetsComponent):
 class Accordion(IPywidgetsComponent):
     v_model_default = 'selected_index'
 
-    def render(self, ctx, props, setup_returned):
+    def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
-        attrs = ctx.get('attrs', {})
         children = slots.get('default', [])
         titles = [child.title for child in children]
-        return widgets.Accordion(children=children, titles=titles, **props, **attrs)
+        return widgets.Accordion(children=children, titles=titles, **props, **attrs, **params)
 
 
 @wui.register()
 class Button(IPywidgetsComponent):
     v_model_default = 'description'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return widgets.Button(**props, **attrs)
+    PARAMS_STORE_TRUE = [
+        ('disabled', False),
+    ]
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        return ipywui.widgets.Button(**props, **attrs, **params)
 
 
 @wui.register()
 class Checkbox(IPywidgetsComponent):
     v_model_default = 'value'
 
+    CSS_TO_WIDGET_STYLE_MAP = {}
+
     def render(self, ctx, props, setup_returned):
         attrs = ctx.get('attrs', {})
-        return widgets.Checkbox(**props, **attrs)
+        self.update_style(attrs)
+        self.update_style(props)
+        return ipywui.widgets.Checkbox(**props, **attrs)
 
 
 @wui.register()
-class ColorsInput(IPywidgetsComponent):
+class ColorPicker(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return widgets.ColorsInput(**props, **attrs)
+    PARAMS_STORE_TRUE = [
+        ('disabled', False),
+        ('concise', False),
+    ]
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        return ipywui.widgets.ColorPicker(**props, **attrs, **params)
 
 
 @wui.register()
 class Combobox(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return widgets.Combobox(**props, **attrs)
+    PARAMS_STORE_TRUE = [
+        ('disabled', False),
+    ]
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        return ipywui.widgets.Combobox(**props, **attrs, **params)
 
 
 @wui.register()
@@ -132,53 +139,38 @@ class Clipboard(IPywidgetsComponent):
 
 @wui.register()
 class Col(IPywidgetsComponent):
-    def render(self, ctx, props, setup_returned):
+    def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
-        attrs = ctx.get('attrs', {})
-        span = attrs.pop('span', 24)
-        offset = attrs.pop('offset', 0)
         widget = widgets.VBox(children=slots.get('default', []), **props, **attrs)
-        widget.span = span
-        widget.offset = offset
+
+        widget.span = attrs.pop('span', 24)
+        widget.offset = attrs.pop('offset', 0)
         return widget
-
-
-@wui.register()
-class ColorPicker(IPywidgetsComponent):
-    v_model_default = 'value'
-
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        params = {
-            'disable': has_and_pop(attrs, 'disable'),
-            'concise': has_and_pop(attrs, 'concise'),
-        }
-        return widgets.ColorPicker(**props, **attrs, **params)
 
 
 @wui.register()
 class DatePicker(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        params = {
-            "disable": has_and_pop(attrs, 'disable'),
-        }
-        return widgets.DatePicker(**props, **attrs, **params)
+    PARAMS_STORE_TRUE = [
+        ("disabled", False),
+    ]
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        return ipywui.widgets.DatePicker(**props, **attrs, **params)
 
 
 @wui.register()
-class DatetimePicker(IPywidgetsComponent):
+class DateTimePicker(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        params = {
-            "disable": has_and_pop(attrs, 'disable'),
-        }
+    PARAMS_STORE_TRUE = [
+        ("disabled", False),
+    ]
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
         # todo widgets.NaiveDatetimePicker
-        return widgets.DatetimePicker(**props, **attrs, **params)
+        return ipywui.widgets.DateTimePicker(**props, **attrs, **params)
 
 
 @wui.register()
@@ -210,18 +202,24 @@ class Display(IPywidgetsComponent):
 class Dropdown(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return widgets.Dropdown(**props, **attrs)
+    PARAMS_STORE_TRUE = [
+        ("disabled", False),
+    ]
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        return widgets.Dropdown(**props, **attrs, **params)
 
 
 @wui.register()
 class FileUpload(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return widgets.FileUpload(**props, **attrs)
+    PARAMS_STORE_TRUE = [
+        ("multiple", False),
+    ]
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        return widgets.FileUpload(**props, **attrs, **params)
 
 
 @wui.register()
@@ -243,15 +241,6 @@ class HTMLMath(IPywidgetsComponent):
 
 
 @wui.register()
-class ColorsInput(IPywidgetsComponent):
-    v_model_default = 'value'
-
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return widgets.ColorsInput(**props, **attrs)
-
-
-@wui.register()
 class Image(IPywidgetsComponent):
     v_model_default = 'value'
 
@@ -261,10 +250,35 @@ class Image(IPywidgetsComponent):
 
 
 @wui.register()
+class Input(IPywidgetsComponent):
+    v_model_default = 'value'
+
+    PARAMS_STORE_TRUE = [
+        ("disabled", False),
+        ("continuous_update", False),
+    ]
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        _type = attrs.get('type', props.get('type', 'text'))
+        if _type == 'password':
+            cls = ipywui.widgets.Password
+        elif _type == 'textarea':
+            cls = ipywui.widgets.Textarea
+        else:
+            cls = ipywui.widgets.Text
+
+        return cls(**props, **attrs, **params)
+
+
+@wui.register()
 class InputNumber(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
+    PARAMS_STORE_TRUE = [
+        ("disabled", False),
+    ]
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
         attrs = ctx.get('attrs', {})
         value = props.get(self.v_model_default)
         step = props.get('step')
@@ -282,7 +296,7 @@ class InputNumber(IPywidgetsComponent):
             else:
                 cls = widgets.BoundedIntText
 
-        return cls(**props, **attrs)
+        return cls(**props, **attrs, **params)
 
 
 @wui.register()
@@ -304,39 +318,45 @@ class MarkdownViewer(IPywidgetsComponent):
 
 
 @wui.register()
-class Password(IPywidgetsComponent):
-    v_model_default = 'value'
-
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return widgets.Password(**props, **attrs)
-
-
-@wui.register()
 class Play(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return widgets.Play(**props, **attrs)
+    PARAMS_STORE_TRUE = [
+        ('disabled', False),
+    ]
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        return ipywui.widgets.Play(**props, **attrs, **params)
 
 
 @wui.register()
 class Progress(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return widgets.FloatProgress(**props, **attrs)
+    CSS_TO_WIDGET_STYLE_MAP = {
+        'color': 'bar_color',
+    }
+
+    PARAMS_STORE_TRUE = [
+        ('vertical', False),
+    ]
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        params["orientation"] = 'vertical' if params.get("vertical") else 'horizontal'
+
+        return ipywui.widgets.FloatProgress(**props, **attrs, **params)
 
 
 @wui.register()
 class RadioButtons(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return widgets.RadioButtons(**props, **attrs)
+    PARAMS_STORE_TRUE = [
+        ('disabled', False),
+    ]
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        return widgets.RadioButtons(**props, **attrs, **params)
 
 
 @wui.register()
@@ -344,21 +364,19 @@ class Row(IPywidgetsComponent):
     N_ROWS = 1
     N_COLS = 24
 
-    def render(self, ctx, props, setup_returned):
+    def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
-        attrs = ctx.get('attrs', {})
         cols = slots.get('default', [])
 
-        justify_content = has_and_pop(attrs, 'justify')
-        params = {}
+        justify_content = attrs.pop('justify', props.pop('justify', None))
         if justify_content:
             params['justify_content'] = justify_content
 
-        align_items = has_and_pop(attrs, 'align')
+        align_items = attrs.pop('align', props.pop('align', None))
         if align_items:
             params['align_items'] = align_items
 
-        grid_gap = has_and_pop(attrs, 'gutter')
+        grid_gap = attrs.pop('gutter', props.pop('gutter', None))
         if grid_gap:
             params['grid_gap'] = grid_gap
 
@@ -366,7 +384,7 @@ class Row(IPywidgetsComponent):
         idx = 0
         for col in cols:
             idx += col.offset
-            widget[0, (slice(idx, col.span))] = col
+            widget[0, slice(idx, idx + col.span)] = col
             idx += col.span
         return widget
 
@@ -375,31 +393,45 @@ class Row(IPywidgetsComponent):
 class Select(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        if has_and_pop(attrs, 'multiple'):
+    PARAMS_STORE_TRUE = [
+        ('disabled', False),
+        ('multiple', False),
+    ]
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        multiple = params.pop('multiple', False)
+        if multiple:
             cls = widgets.SelectMultiple
         else:
             cls = widgets.Select
 
-        params = {
-            "disable": has_and_pop(attrs, 'disable'),
-        }
         return cls(**props, **attrs, **params)
+
+
+@wui.register()
+class SelectColors(IPywidgetsComponent):
+    v_model_default = 'value'
+
+    PARAMS_STORE_TRUE = [
+        ('unique', False),
+    ]
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        return ipywui.widgets.ColorsInput(**props, **attrs, **params)
 
 
 @wui.register()
 class SelectNumbers(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
+    def _render(self, ctx, attrs, props, params, setup_returned):
         attrs = ctx.get('attrs', {})
-        data_type = props.pop('data_type', 'float')
+        data_type = attrs.pop('data_type', props.pop('data_type', 'float'))
         value = props.get(self.v_model_default, [])
         if data_type == 'float' or any(is_float(n) for n in value):
-            cls = widgets.FloatsInput
+            cls = ipywui.widgets.FloatsInput
         else:
-            cls = widgets.IntsInput
+            cls = ipywui.widgets.IntsInput
 
         return cls(**props, **attrs)
 
@@ -408,72 +440,65 @@ class SelectNumbers(IPywidgetsComponent):
 class SelectTags(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        params = {
-            'allow_duplicates': has_and_pop(attrs, 'allow_duplicates'),
-        }
-        return widgets.TagsInput(**props, **attrs, **params)
+    PARAMS_STORE_TRUE = [
+        ('unique', False),
+    ]
 
-
-@wui.register()
-class SelectColors(IPywidgetsComponent):
-    v_model_default = 'value'
-
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        params = {
-            'allow_duplicates': has_and_pop(attrs, 'allow_duplicates'),
-        }
-        return widgets.ColorsInput(**props, **attrs, **params)
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        return ipywui.widgets.TagsInput(**props, **attrs, **params)
 
 
 @wui.register()
 class Slider(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
+    PARAMS_STORE_TRUE = [
+        ("disabled", False),
+        ("continuous_update", False),
+        ('vertical', False),
+        ('range', False),
+    ]
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        params["orientation"] = 'vertical' if params.get("vertical") else 'horizontal'
         attrs = ctx.get('attrs', {})
         value = props.get(self.v_model_default)
         step = props.get('step')
-        if has_and_pop(attrs, 'range'):
-            if is_float(step):
-                cls = widgets.FloatRangeSlider
-            elif is_int(step):
-                cls = widgets.IntRangeSlider
-            else:
+        select_options = props.get('options', attrs.get('options', None))
+        if params.pop('range', False):
+            if select_options:
                 cls = widgets.SelectionRangeSlider
-        elif is_float(value) or is_float(step):
-            cls = widgets.FloatSlider
-        elif is_int(value) and is_int(step):
-            cls = widgets.IntSlider
+            elif (value and is_float(value[0])) or is_float(step):
+                cls = widgets.FloatRangeSlider
+            else:
+                cls = widgets.IntRangeSlider
         else:
-            cls = widgets.SelectionSlider
+            if select_options:
+                cls = widgets.SelectionSlider
+            elif is_float(value) or is_float(step):
+                cls = widgets.FloatSlider
+            else:
+                cls = widgets.IntSlider
 
-        param = {
-            "continuous_update": has_and_pop(attrs, "continuous_update"),
-            "orientation": 'vertical' if has_and_pop(attrs, 'vertical') else 'horizontal',
-            "disable": has_and_pop(attrs, 'disable'),
-        }
-        return cls(**props, **attrs, **param)
+        return cls(**props, **attrs, **params)
 
 
 @wui.register()
 class Stack(IPywidgetsComponent):
     v_model_default = 'selected_index'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return widgets.Stack(**props, **attrs)
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        slots = ctx.get('slots', {})
+        children = slots.get('default', [])
+        return widgets.Tab(children=children, **props, **attrs, **params)
 
 
 @wui.register()
 class TabPane(IPywidgetsComponent):
-    def render(self, ctx, props, setup_returned):
+    def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
-        attrs = ctx.get('attrs', {})
         title = attrs.pop('title', '-')
-        widget = widgets.VBox(children=slots.get('default', []), **props, **attrs)
+        widget = widgets.VBox(children=slots.get('default', []), **props, **attrs, **params)
         widget.title = title
         return widget
 
@@ -482,66 +507,47 @@ class TabPane(IPywidgetsComponent):
 class Tabs(IPywidgetsComponent):
     v_model_default = 'selected_index'
 
-    def render(self, ctx, props, setup_returned):
+    def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
-        attrs = ctx.get('attrs', {})
         children = slots.get('default', [])
         titles = [child.title for child in children]
-        return widgets.Tab(children=children, titles=titles, **props, **attrs)
-
-
-@wui.register()
-class Text(IPywidgetsComponent):
-    v_model_default = 'value'
-
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        params = {
-            "continuous_update": has_and_pop(attrs, "continuous_update"),
-        }
-        return widgets.Text(**props, **attrs, **params)
-
-
-@wui.register()
-class Textarea(IPywidgetsComponent):
-    v_model_default = 'value'
-
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        params = {
-            "continuous_update": has_and_pop(attrs, "continuous_update"),
-        }
-        return widgets.Textarea(**props, **attrs, **params)
+        return widgets.Tab(children=children, titles=titles, **props, **attrs, **params)
 
 
 @wui.register()
 class TimePicker(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        params = {
-            "disable": has_and_pop(attrs, 'disable'),
-        }
-        return widgets.TimePicker(**props, **attrs, **params)
+    PARAMS_STORE_TRUE = [
+        ("disabled", False),
+    ]
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        return ipywui.widgets.TimePicker(**props, **attrs, **params)
 
 
 @wui.register()
 class ToggleButton(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return widgets.ToggleButton(**props, **attrs)
+    PARAMS_STORE_TRUE = [
+        ('disabled', False),
+    ]
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        return ipywui.widgets.ToggleButton(**props, **attrs, **params)
 
 
 @wui.register()
 class ToggleButtons(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return widgets.ToggleButtons(**props, **attrs)
+    PARAMS_STORE_TRUE = [
+        ('disabled', False),
+    ]
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        return ipywui.widgets.ToggleButtons(**props, **attrs, **params)
 
 
 @wui.register()
@@ -551,54 +557,3 @@ class Valid(IPywidgetsComponent):
     def render(self, ctx, props, setup_returned):
         attrs = ctx.get('attrs', {})
         return widgets.Valid(**props, **attrs)
-
-
-__all__ = [
-    "Accordion",
-    "AccordionItem",
-    "AppLayout",
-    "Box",
-    "Button",
-    "Checkbox",
-    "Clipboard",
-    "Col",
-    "ColorPicker",
-    "ColorsInput",
-    "ColorsInput",
-    "Combobox",
-    "Controller",
-    "DatePicker",
-    "DatetimePicker",
-    "Dialog",
-    "Display",
-    "Dropdown",
-    "FileUpload",
-    "FloatsInput",
-    "HBox",
-    "HTMLMath",
-    "Image",
-    "InputNumber",
-    "Label",
-    "MarkdownViewer",
-    "Password",
-    "Play",
-    "Progress",
-    "RadioButtons",
-    "Row",
-    "Select",
-    "SelectColors",
-    "SelectNumbers",
-    "SelectTags",
-    "Slider",
-    "Stack",
-    "TabPane",
-    "Tabs",
-    "Template",
-    "Text",
-    "Textarea",
-    "TimePicker",
-    "ToggleButton",
-    "ToggleButtons",
-    "Valid",
-    "VBox",
-]

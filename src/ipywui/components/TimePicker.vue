@@ -6,14 +6,27 @@
 export default {
   name: 'TimePicker',
   props: {
+    description: {
+      type: String,
+      default: ''
+    },
+    min: {
+      type: Date,
+    },
+    max: {
+      type: Date,
+    },
+    step: {
+      type: Number,
+    },
     disabled: {
       type: Boolean,
       default: false
     },
-    description: {
-      type: String,
-      default: ''
-    }
+    style: {
+      // description_width
+      type: string,
+    },
   },
 }
 </script>

@@ -10,6 +10,10 @@ export default {
       type: Number,
       default: 50
     },
+    label: {
+      type: String,
+      default: ''
+    },
     min: {
       type: Number,
       default: 0
@@ -25,10 +29,6 @@ export default {
     interval: {
       type: Number,
       default: 500
-    },
-    description: {
-      type: String,
-      default: ''
     },
     disabled: {
       type: Boolean,

@@ -7,8 +7,7 @@ export default {
   name: "TabPane",
   props: {
     title: String,
-    name: String,
-  }
+  },
 }
 </script>
 

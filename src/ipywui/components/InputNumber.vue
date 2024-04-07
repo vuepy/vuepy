@@ -8,6 +8,10 @@
 export default {
   name: "InputNumber",
   props: {
+    description: {
+      type: String,
+      default: ''
+    },
     value: {
       type: Number,
       default: 1
@@ -24,15 +28,11 @@ export default {
       type: Number,
       default: 1
     },
-    description: {
-      type: String,
-      default: ''
-    },
     tooltip: String,
     disabled: {
       type: Boolean,
       default: false
-    }
+    },
   }
 }
 </script>

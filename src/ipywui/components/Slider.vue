@@ -44,6 +44,7 @@ export default {
       type: Boolean,
       default: false,
     },
+    readout: Boolean,
     readout_format: String,
     range: {
       type: Boolean,
@@ -54,6 +55,10 @@ export default {
       default: false,
     },
     tooltip: String,
+    style: {
+      // description_width
+      type: string,
+    },
   }
 }
 </script>

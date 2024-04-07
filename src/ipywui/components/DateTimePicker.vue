@@ -4,16 +4,20 @@
 
 <script>
 export default {
-  name: 'DatetimePicker',
+  name: 'DateTimePicker',
   props: {
+    description: {
+      type: String,
+      default: ''
+    },
     disabled: {
       type: Boolean,
       default: false
     },
-    description: {
-      type: String,
-      default: ''
-    }
+    style: {
+      // description_width
+      type: string,
+    },
   },
 }
 </script>

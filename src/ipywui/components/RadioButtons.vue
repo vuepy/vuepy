@@ -16,6 +16,10 @@ export default {
       type: [String, Number],
       default: null
     },
+    description: {
+      type: String,
+      default: ''
+    },
     options: {
       type: Array,
       default: () => []
@@ -24,10 +28,10 @@ export default {
       type: Boolean,
       default: false
     },
-    description: {
-      type: String,
-      default: ''
-    }
+    style: {
+      // description_width
+      type: string,
+    },
   },
 }
 </script>

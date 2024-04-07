@@ -13,6 +13,12 @@
 export default {
   name: 'AppLayout',
   props: {
+    width: {
+      type: String,
+    },
+    height: {
+      type: String,
+    },
     // [3, 3, 1]
     // [1, 5, '60px']
     pane_widths: {

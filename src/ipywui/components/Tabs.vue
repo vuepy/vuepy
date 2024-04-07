@@ -6,8 +6,13 @@
 export default {
   name: "Tabs",
   props: {
-    tooltip: String,
-  }
+    selected_index: {
+      type: Number,
+    },
+    style: {
+      type: String,
+    },
+  },
 }
 </script>
 

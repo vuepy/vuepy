@@ -12,15 +12,15 @@ export default {
       type: Boolean,
       default: false
     },
-    description: {
+    label: {
       type: String,
       default: ''
     },
-    disabled: {
-      type: Boolean,
-      default: false
+    icon: {
+      type: String,
+      default: ''
     },
-    button_style: {
+    type: {
       type: String,
       default: '',
       validator: function (value) {
@@ -31,10 +31,14 @@ export default {
       type: String,
       default: ''
     },
-    icon: {
-      type: String,
-      default: ''
-    }
+    disabled: {
+      type: Boolean,
+      default: false
+    },
+    style: {
+      // font-family, font-size, font-style, font-variant, font-weight, color, text-decoration
+      type: string,
+    },
   },
 }
 </script>

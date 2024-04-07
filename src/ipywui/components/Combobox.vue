@@ -11,6 +11,13 @@ export default {
       type: String,
       default: null
     },
+    label: {
+      type: String,
+      default: ''
+    },
+    placeholder: {
+      type: String,
+    },
     options: {
       type: Array,
       default: () => []
@@ -19,9 +26,9 @@ export default {
       type: Boolean,
       default: false
     },
-    description: {
-      type: String,
-      default: ''
+    style: {
+      // background, description_width, font_size, text_color
+      type: string,
     },
   },
 }

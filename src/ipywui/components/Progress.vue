@@ -12,6 +12,9 @@ export default {
       type: Number,
       default: 0,
     },
+    label: {
+      type: String,
+    },
     min: {
       type: Number,
       default: 0,
@@ -20,19 +23,12 @@ export default {
       type: Number,
       default: 100,
     },
-    description: {
-      type: String,
-    },
-    barStyle: {
+    type: {
       type: String,
       default: '',
       validator: function (value) {
         return ['success', 'info', 'warning', 'danger', ''].includes(value)
       },
-    },
-    style: {
-      type: Object,
-      default: () => ({'bar_color': 'maroon'}),
     },
     disabled: {
       type: Boolean,
@@ -41,6 +37,10 @@ export default {
     vertical: {
       type: Boolean,
       default: false,
+    },
+    style: {
+      // bar_color, description_width
+      type: string,
     },
   }
 }

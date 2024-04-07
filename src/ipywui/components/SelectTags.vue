@@ -15,7 +15,7 @@ export default {
       type: Array,
       default: () => []
     },
-    allow_duplicates: {
+    unique: {
       type: Boolean,
       default: false
     },

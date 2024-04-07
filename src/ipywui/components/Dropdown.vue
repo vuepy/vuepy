@@ -8,6 +8,10 @@ export default {
   // https://element-plus.org/zh-CN/component/select.html
   name: 'Dropdown',
   props: {
+    description: {
+      type: String,
+      default: ''
+    },
     // index: Number,
     value: {
       type: [String, Number],
@@ -23,10 +27,10 @@ export default {
       type: Boolean,
       default: false
     },
-    description: {
-      type: String,
-      default: ''
-    }
+    style: {
+      // description_width
+      type: string,
+    },
   },
 }
 </script>

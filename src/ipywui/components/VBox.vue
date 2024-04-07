@@ -4,12 +4,19 @@
 
 <script>
 export default {
-  name: 'Box',
+  name: 'VBox',
   props: {
     children: {
       type: Array,
       default: () => []
-    }
+    },
+    box_style: {
+      type: String,
+      default: '',
+      validator: function (value) {
+        return ['success', 'info', 'warning', 'danger', ''].includes(value)
+      },
+    },
   }
 }
 </script>
