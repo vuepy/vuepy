@@ -1,0 +1,12 @@
+<template>
+  <HBox>
+    <Button label="1" style="width: auto;background-color: #c8e3fe"></Button>
+    <Button label="2" style="width: auto;background-color: #ecf5fe"></Button>
+    <Button label="3" style="width: auto;background-color: #c8e3fe"></Button>
+  </HBox>
+</template>
+
+<script setup>
+import Button from "../../../src/ipywui/components/Button";
+import HBox from "../../../src/ipywui/components/HBox";
+</script>
