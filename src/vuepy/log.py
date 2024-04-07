@@ -3,6 +3,9 @@ import logging
 
 from IPython.core.display_functions import display
 
+LOGGER_NAME = 'vuepy'
+logout = widgets.Output()
+
 
 class OutputWidgetHandler(logging.Handler):
     """ Custom logging handler sending logs to an output widget """
@@ -30,15 +33,19 @@ class OutputWidgetHandler(logging.Handler):
         self.out.clear_output()
 
 
-out = widgets.Output()
+def getLogger(name=LOGGER_NAME):
+    return logging.getLogger(name)
 
 
-def getLogger(name='vuepy', level=logging.INFO):
-    handler = OutputWidgetHandler(out)
+def init():
+    handler = OutputWidgetHandler(logout)
     handler.setFormatter(logging.Formatter(
         '%(asctime)s  - [%(levelname)s] %(filename)s:%(lineno)s %(message)s'))
 
-    logger = logging.getLogger(name)
+    logger = getLogger(LOGGER_NAME)
     logger.addHandler(handler)
-    logger.setLevel(level)
-    return logger
+    logger.setLevel(logging.INFO)
+    print('init')
+
+
+init()

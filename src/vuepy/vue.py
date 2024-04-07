@@ -1136,8 +1136,8 @@ class Vue:
     def _proxy_methods(self):
         pass
 
-    def mount(self, el):
-        self.options.el = el
+    def mount(self, el=None):
+        self.options.el = el or widgets.Output()
         self._call_if_callable(self.options.before_mount)
         self.render()
         self._call_if_callable(self.options.mounted)
@@ -1251,15 +1251,20 @@ class VuePlugin:
 
 
 def import_sfc(sfc_file):
+    def setup(props, ctx, vm):
+        return locals()
+
     sfc_file = pathlib.Path(sfc_file)
     script_src = get_script_src_from_sfc(sfc_file)
-    script_path = sfc_file.parent.joinpath(script_src)
+    if script_src:
+        script_path = sfc_file.parent.joinpath(script_src)
+        spec = importlib.util.spec_from_file_location('sfc', str(script_path))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        setup = getattr(module, 'setup')
 
-    spec = importlib.util.spec_from_file_location('sfc', str(script_path))
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
     return {
-        'setup': getattr(module, 'setup'),
+        'setup': setup,
         'template': sfc_file,
     }
 

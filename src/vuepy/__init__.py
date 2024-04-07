@@ -10,6 +10,7 @@ __all__ = [
     'VuePlugin',
     'VueRef',
     'get_template_from_vue',
+    'get_script_src_from_sfc',
     'ref',
     'reactive',
     'watch',
