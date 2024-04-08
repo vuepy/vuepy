@@ -1,4 +1,5 @@
 import pathlib
+from typing import List
 
 import ipywidgets as widgets
 import markdown
@@ -238,6 +239,23 @@ class Play(widgets.Play):
     @label.setter
     def label(self, val):
         self.description = val
+
+
+class Stack(widgets.Stack):
+    def __init__(self, **kwargs):
+        self.labels: List[str] = kwargs.pop('labels', [])
+        super().__init__(**kwargs)
+
+    @property
+    def selected_label(self):
+        return self.labels[self.selected_index]
+
+    @selected_label.setter
+    def selected_label(self, val):
+        try:
+            self.selected_index = self.labels.index(val)
+        except Exception:
+            pass
 
 
 class TagsInput(widgets.TagsInput):

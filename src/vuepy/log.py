@@ -45,7 +45,6 @@ def init():
     logger = getLogger(LOGGER_NAME)
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
-    print('init')
 
 
 init()
