@@ -4,10 +4,9 @@
 
 <script>
 export default {
-  name: 'Stack',
+  name: 'StackItem',
   props: {
-    selected_label: Number,  // v-model
-    style: {
+    label: {
       type: String,
     },
   },
