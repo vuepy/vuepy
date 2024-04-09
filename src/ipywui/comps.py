@@ -184,8 +184,15 @@ class Dialog(IPywidgetsComponent):
         slots = ctx.get('slots', {})
         slot_body = slots.get('default', slots.get('body', []))
         slot_footer = slots.get('footer', [])
+        body = slot_body if isinstance(slot_body, list) else [slot_body]
+        footer = slot_footer if isinstance(slot_footer, list) else [slot_footer]
+
         attrs = ctx.get('attrs', {})
-        widget = DialogWidget(body=slot_body, slot_footer=slot_footer, **props, **attrs)
+        width = attrs.pop("layout", {}).pop("width", '50%')
+        params = {
+            'width': width,
+        }
+        widget = DialogWidget(body=body, footer=footer, **props, **attrs, **params)
         return widget
 
 

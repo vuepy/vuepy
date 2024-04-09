@@ -41,11 +41,11 @@ class DialogWidget(anywidget.AnyWidget):
 
     def _on_event(self, change):
         event = change.get("new", {})
-        ev = event.get("event")
         payload = event.get("payload")
         dispatch = {
             'close': self._close,
             'open': self._open,
         }
+        ev = event.get("event")
         if ev in dispatch:
             dispatch[ev](payload)

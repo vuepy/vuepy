@@ -12,6 +12,10 @@
 export default {
   name: "Dialog",
   props: {
+    value: {
+      type: Boolean,
+      default: false,
+    },
     title: {
       type: String,
       default: '',
@@ -19,10 +23,6 @@ export default {
     width: {
       type: String,
       default: '50%',
-    },
-    modelValue: {
-      type: Boolean,
-      default: false,
     },
   },
   emits: [
