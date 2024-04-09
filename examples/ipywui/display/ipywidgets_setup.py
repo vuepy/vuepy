@@ -14,9 +14,7 @@ def setup(props, ctx, vm):
         display(widgets.HTML(html))
 
     out = widgets.interactive_output(f, {'a': a, 'b': b, 'c': c})
-
-    hbox = widgets.HBox([widgets.VBox([a, b, c]), out])
-
-    widget = ref(hbox)
+    vbox = widgets.VBox([widgets.VBox([a, b, c]), out])
+    widget = ref(vbox)
 
     return locals()
