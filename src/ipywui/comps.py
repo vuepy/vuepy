@@ -303,9 +303,12 @@ class InputNumber(IPywidgetsComponent):
 class Label(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return ipywidgets.Label(**props, **attrs)
+    CSS_TO_WIDGET_STYLE_MAP = {
+        'color': 'text_color',
+    }
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        return ipywidgets.Label(**props, **attrs, **params)
 
 
 @wui.register()

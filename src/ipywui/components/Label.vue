@@ -10,6 +10,11 @@ export default {
       type: String,
       required: true,
     },
+    style: {
+      //  background, description_width, font_family, font_size, font_style,
+      //  font_variant, font_weight, text_color, text_decoration
+      type: String,
+    }
   }
 }
 </script>
