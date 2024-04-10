@@ -1,8 +1,8 @@
 <template>
   <HBox>
-    <Text v-model="copytext.value"></Text>
+    <Input v-model="copytext.value"></Input>
     <Clipboard :copy="copytext.value">
-      <Button desc="copy" type="info"></Button>
+      <Button label="copy" type="info"></Button>
     </Clipboard>
   </HBox>
 </template>
@@ -11,6 +11,6 @@
 <script setup>
 import Clipboard from "../../../src/ipywui/components/Clipboard";
 import Button from "../../../src/ipywui/components/Button";
-import Text from "../../../src/ipywui/components/Text";
 import HBox from "../../../src/ipywui/components/HBox";
+import Input from "../../../src/ipywui/components/Input";
 </script>

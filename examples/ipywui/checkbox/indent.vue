@@ -1,12 +1,12 @@
 <template>
   <HBox>
     <Checkbox label="indent1"></Checkbox>
-    <Button desc="btn" type="info"></Button>
+    <Button label="btn" type="info"></Button>
     <Checkbox label="indent3"></Checkbox>
   </HBox>
   <HBox>
     <Checkbox label="not indent1" :indent="False"></Checkbox>
-    <Button desc="btn" type="info"></Button>
+    <Button label="btn" type="info"></Button>
     <Checkbox label="not indent3" :indent="False"></Checkbox>
   </HBox>
 </template>

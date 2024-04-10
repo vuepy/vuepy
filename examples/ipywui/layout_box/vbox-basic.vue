@@ -8,6 +8,5 @@
 
 <script setup>
 import Button from "../../../src/ipywui/components/Button";
-import AppLayout from "../../../src/ipywui/components/AppLayout";
 import VBox from "../../../src/ipywui/components/VBox";
 </script>
