@@ -761,32 +761,39 @@ class VueCompCodeGen:
         # v-model:widget=vm
         if comp_ast.v_model_vm:
             attr_chain = comp_ast.v_model_vm
+            # :bind
             # vm to view
             widget_attr = component_cls.v_model_default  # VueCompTag.v_model(comp_ast.tag)
-            # = :bind
             update_vm_to_view = cls.handle_value_change_vm_to_view(widget, widget_attr)
             watcher = WatcherForAttrUpdate(ns, lambda: ns.getattr(attr_chain), update_vm_to_view)
             with ActivateEffect(watcher):
                 _value = ns.getattr(attr_chain)
             update_vm_to_view(_value, None)
 
-            # = v-on
+            # v-on
             # view to vm
-            def handle_value_change_view_to_vm(obj, attr):
-                def warp(change):
-                    return setattr(obj, attr, change['new'])
-
-                return warp
-
             obj, attr = ns.get_obj_and_attr(attr_chain)
-            update_view_to_vm = handle_value_change_view_to_vm(obj, attr)
-            widget.observe(update_view_to_vm, names=f'{widget_attr}')
+            add_event_listener(
+                widget, f'update:{attr}',
+                lambda change, _obj=obj, _attr=attr: setattr(_obj, _attr, change['new'])
+            )
 
         # v-on
         for ev, func_ast in comp_ast.v_on.items():
-            getattr(widget, f"on_{ev}")(lambda payload: func_ast.eval(ns, {'__owner': payload}))
+            add_event_listener(
+                widget, ev,
+                lambda payload, _func_ast=func_ast: _func_ast.eval(ns, {'__owner': payload})
+            )
 
         return widget
+
+
+def add_event_listener(widget, event, listener):
+    if event.startswith('update:'):
+        attr = event.split(':', 1)[1]
+        widget.observe(listener, names=attr)
+    else:
+        getattr(widget, f"on_{event}")(listener)
 
 
 class VueCompHtmlTemplateRender:

@@ -40,7 +40,7 @@ def getLogger(name=LOGGER_NAME):
 def init():
     handler = OutputWidgetHandler(logout)
     handler.setFormatter(logging.Formatter(
-        '%(asctime)s  - [%(levelname)s] %(filename)s:%(lineno)s %(message)s'))
+        '%(asctime)s  - [%(levelname)s] %(filename)s:%(funcName)s:%(lineno)s - %(message)s'))
 
     logger = getLogger(LOGGER_NAME)
     logger.addHandler(handler)
