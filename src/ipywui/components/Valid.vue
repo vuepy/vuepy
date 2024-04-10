@@ -12,7 +12,7 @@ export default {
       type: Boolean,
       default: false
     },
-    description: {
+    label: {
       type: String,
       default: ''
     },

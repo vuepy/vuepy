@@ -575,6 +575,5 @@ class ToggleButtons(IPywidgetsComponent):
 class Valid(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return ipywidgets.Valid(**props, **attrs)
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        return ipywui.ipywidgets.Valid(readout='', **props, **attrs, **params)

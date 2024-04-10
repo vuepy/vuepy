@@ -349,3 +349,17 @@ class ToggleButtons(widgets.ToggleButtons):
     @type.setter
     def type(self, val):
         self.button_style = val
+
+
+class Valid(widgets.Valid):
+    def __init__(self, **kwargs):
+        kwargs['description'] = kwargs.pop("label", kwargs.pop('description', ''))
+        super().__init__(**kwargs)
+
+    @property
+    def label(self):
+        return self.description
+
+    @label.setter
+    def label(self, val):
+        self.description = val
