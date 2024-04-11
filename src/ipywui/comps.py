@@ -251,9 +251,8 @@ class HTMLMath(IPywidgetsComponent):
 class Image(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return ipywidgets.Image(**props, **attrs)
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        return ipywidgets.Image(**props, **attrs, **params)
 
 
 @wui.register()

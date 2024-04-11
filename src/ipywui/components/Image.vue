@@ -20,6 +20,9 @@ export default {
     height: {
       type: Number,
     },
+    style: {
+      type: String,
+    },
   },
 }
 </script>
