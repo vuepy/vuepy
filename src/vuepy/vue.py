@@ -542,7 +542,9 @@ class VueCompAst:
     V_IF = 'v-if'
     V_FOR = 'v-for'
     V_SLOT = 'v-slot:'
+    V_SLOT_ABBR = '#'
     V_JS_LINK = 'v-js-link'
+    V_REF = 'ref'
     V_MODEL = 'v-model'
     V_HTML = 'v-html'
     EVENT_PREFIX = '@'
@@ -562,6 +564,7 @@ class VueCompAst:
         self.v_on: Dict[str, VueCompExprAst] = {}
         self.layout = {}
         self.v_slot = None
+        self.v_ref = None
 
     @classmethod
     def is_v_if(cls, attr):
@@ -570,6 +573,14 @@ class VueCompAst:
     @classmethod
     def is_v_slot(cls, attr):
         return attr.startswith(cls.V_SLOT)
+
+    @classmethod
+    def is_v_slot_addr(cls, attr):
+        return attr.startswith(cls.V_SLOT_ABBR)
+
+    @classmethod
+    def is_v_ref(cls, attr):
+        return attr == cls.V_REF
 
     @classmethod
     def is_v_model(cls, attr):
@@ -622,8 +633,14 @@ class VueCompAst:
 
                 comp.v_on[event] = func_ast
 
-            elif cls.is_v_slot(attr):
-                comp.v_slot = attr.split(':', 1)[1]
+            elif tag == 'template' and cls.is_v_slot(attr):
+                comp.v_slot = attr.split(cls.V_SLOT, 1)[1]
+
+            elif tag == 'template' and cls.is_v_slot_addr(attr):
+                comp.v_slot = attr.split(cls.V_SLOT_ABBR, 1)[1]
+
+            elif cls.is_v_ref(attr):
+                comp.v_ref = value
 
             elif cls.is_layout(attr):
                 comp.layout[attr] = value
@@ -784,6 +801,13 @@ class VueCompCodeGen:
                 widget, ev,
                 lambda payload, _func_ast=func_ast: _func_ast.eval(ns, {'__owner': payload})
             )
+
+        if comp_ast.v_ref:
+            _ref = ns.getattr(comp_ast.v_ref)
+            if not isinstance(_ref, VueRef):
+                LOG.error(f'ref={comp_ast.v_ref} is not instance of VueRef.')
+            else:
+                _ref.value = widget
 
         return widget
 
