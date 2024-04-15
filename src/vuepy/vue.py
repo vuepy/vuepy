@@ -547,8 +547,11 @@ class VueCompAst:
     V_REF = 'ref'
     V_MODEL = 'v-model'
     V_HTML = 'v-html'
-    EVENT_PREFIX = '@'
-    SINGLE_BOUND_PREFIX = ':'
+    V_ON = 'v-on:'
+    V_ON_ABBR = '@'
+    V_BIND = 'v-bind:'
+    V_BIND_ABBR = ':'
+
     LAYOUT_ATTRS = {'width', 'height', 'padding', 'border'}
 
     # todo 和h函数的参数保持一致
@@ -591,12 +594,20 @@ class VueCompAst:
         return attr == cls.V_HTML
 
     @classmethod
-    def is_event(cls, attr):
-        return attr.startswith(cls.EVENT_PREFIX)
+    def is_v_on(cls, attr):
+        return attr.startswith(cls.V_ON)
 
     @classmethod
-    def is_single_bound(cls, attr):
-        return attr.startswith(cls.SINGLE_BOUND_PREFIX)
+    def is_v_on_abbr(cls, attr):
+        return attr.startswith(cls.V_ON_ABBR)
+
+    @classmethod
+    def is_v_bind(cls, attr):
+        return attr.startswith(cls.V_BIND)
+
+    @classmethod
+    def is_v_bind_abbr(cls, attr):
+        return attr.startswith(cls.V_BIND_ABBR)
 
     @classmethod
     def is_layout(cls, attr):
@@ -609,8 +620,12 @@ class VueCompAst:
             if cls.is_v_if(attr):
                 comp.v_if = vue_comp_expr_parse(value)
 
-            elif cls.is_single_bound(attr):
-                attr = attr.lstrip(cls.SINGLE_BOUND_PREFIX)
+            elif cls.is_v_bind(attr):
+                attr = attr.split(cls.V_BIND, 1)[1]
+                comp.v_binds[attr] = vue_comp_expr_parse(value)
+
+            elif cls.is_v_bind_abbr(attr):
+                attr = attr.split(cls.V_BIND_ABBR, 1)[1]
                 comp.v_binds[attr] = vue_comp_expr_parse(value)
 
             elif cls.is_v_model(attr):
@@ -619,8 +634,9 @@ class VueCompAst:
             elif cls.is_v_html(attr):
                 comp.v_html = value
 
-            elif cls.is_event(attr):
-                event = attr.lstrip(cls.EVENT_PREFIX)
+            elif cls.is_v_on(attr) or cls.is_v_on_abbr(attr):
+                _prefix = cls.V_ON if cls.is_v_on(attr) else cls.V_ON_ABBR
+                event = attr.split(_prefix, 1)[1]
                 func_ast = vue_comp_expr_parse(value)
                 if isinstance(func_ast.exp_ast.body, (ast.Name, ast.Attribute)):
                     exp_ast = ast.Expression(
