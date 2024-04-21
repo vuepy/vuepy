@@ -1,6 +1,6 @@
 # coding: utf-8
-from vuepy import ref, reactive, Vue
+from vuepy import ref, reactive, App
 
 
-def setup(props, ctx, vm: Vue):
+def setup(props, ctx, app: App):
     return locals()

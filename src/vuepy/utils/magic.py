@@ -2,13 +2,13 @@
 import json
 from pathlib import Path
 
-import ipywidgets as widgets
 from IPython.core.magic import register_line_magic
 
 from ipywui import wui
 from vuepy import create_app
 from vuepy import get_script_src_from_sfc
-from vuepy import import_sfc as _import_sfc
+from vuepy import import_sfc
+from vuepy import log
 
 
 @register_line_magic
@@ -27,7 +27,7 @@ def vuepy_import(vue_sfc):
     :param vue_sfc:
     :return: App
     """
-    return _import_sfc(vue_sfc)
+    return import_sfc(vue_sfc)
 
 
 @register_line_magic
@@ -55,6 +55,17 @@ def vuepy_demo(vue_sfc):
         'setup': script_content,
     }))
 
-    App = _import_sfc(sfc_file)
+    App = import_sfc(sfc_file)
     app = create_app(App).use(wui)
-    return app.mount(widgets.Output())
+    return app.mount()
+
+
+@register_line_magic
+def vuepy_log(_):
+    """
+    show log.
+
+    :param _:
+    :return:
+    """
+    return log.logout

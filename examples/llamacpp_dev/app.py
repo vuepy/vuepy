@@ -1,8 +1,17 @@
+import pathlib
 from glob import glob
 from vuepy import *
 
 
 def setup(props, ctx, vm):
+    Compile = import_sfc(pathlib.Path(__file__).parent / 'Compile.vue')
+    m = ref('')
+
+    comp = ref(None)
+
+    def on_compile_submit():
+        print("on_compile_submit")
+
     def get_gguf_models(model_dir):
         return glob(f"{model_dir}/*.gguf")
 

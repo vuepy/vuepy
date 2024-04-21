@@ -29,7 +29,7 @@ class VBox(IPywidgetsComponent):
         return ipywidgets.VBox(children=slots.get('default', []), **props, **attrs, **params)
 
 
-@wui.register()
+@wui.register('template')
 class Template(VBox):
     pass
 

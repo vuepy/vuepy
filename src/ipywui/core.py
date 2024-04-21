@@ -2,7 +2,7 @@ from typing import List
 from typing import Tuple
 
 from ipywui.widgets.custom.message import MessageService
-from vuepy import Vue
+from vuepy import App
 from vuepy import VueComponent
 from vuepy import VuePlugin
 from vuepy.utils.factory import FactoryMeta
@@ -10,13 +10,13 @@ from vuepy.utils.factory import FactoryMeta
 
 class wui(VuePlugin, metaclass=FactoryMeta):
     @classmethod
-    def install(cls, vm: Vue, options: dict):
+    def install(cls, app: App, options: dict):
         components = cls.get_all_registry()
         for name, component in components.items():
-            vm.component(name, component)
+            app.component(name, component)
 
-        vm.message = MessageService(app_instance=vm)
-        vm.document.body.appendLeftChild(vm.message.widget)
+        app.message = MessageService(app_instance=app)
+        app.document.body.appendLeftChild(app.message.widget)
 
 
 class IPywidgetsComponent(VueComponent):
@@ -100,7 +100,7 @@ class IPywidgetsComponent(VueComponent):
     def name(cls):
         # todo
         # return f'Ipw{cls.__name__}'
-        return cls.__name__.lower()
+        return cls.__name__
 
     def render(self, ctx, props, setup_returned):
         attrs = ctx.get('attrs', {})

@@ -3,12 +3,20 @@
     <template v-slot:center>
       <Accordion>
         <AccordionItem title="编译llamacpp">
-          <Button description="Compile" @click="compile_llama_cpp()" button_style="info" width='100px'></Button>
+          <Button description="Compile" @click="compile_llama_cpp()" type="info" width='100px'></Button>
+          <Compile :dynamic="m.value"
+                   static="hello"
+                   v-model:modela="m.value"
+                   @submit='on_compile_submit()' ref="comp"
+                   style="border: 1px solid black"
+          ></Compile>
+          <Input v-model="m.value" placeholder="app input"></Input>
+
         </AccordionItem>
 
         <AccordionItem title="转换">
-          <Text description="hf model"
-                v-model=hf_models_path.value width="400px"></Text>
+          <Input description="hf model"
+                v-model=hf_models_path.value width="400px"></Input>
           <Button description="Convert" @click="convert_model()" button_style="info" width='100px'></Button>
         </AccordionItem>
 
@@ -25,11 +33,11 @@
                 width="200px"
             ></Dropdown>
           </HBox>
-          <Text
+          <Input
               description="Model out"
               v-model=quantize_model.value
               width="500px"
-          ></Text>
+          ></Input>
           <Button description="Quantize" @click="quantify_model()" button_style="info" width='100px'></Button>
         </AccordionItem>
 
@@ -41,14 +49,15 @@
             ></Dropdown>
             <Button icon="refresh" @click="refresh_models()" button_style="info" width='40px'></Button>
           </HBox>
-          <Textarea
+          <Input type="textarea"
               description="SYSTEM"
               v-model=chat.system width="500px"
-          ></Textarea>
-          <Textarea
+          ></Input>
+          <Input
               description="1st_instruction"
+              type="textarea"
               v-model=chat.first_instruction width="500px"
-          ></Textarea>
+          ></Input>
           <InputNumber
               description="Max ctx size"
               v-model="chat.ctx_size" min=1 max=4096 step=1
@@ -56,7 +65,7 @@
           ></InputNumber>
           <Slider
               description="Temperature"
-              v-model="chat.temp" min=0 max=1 step=0.01
+              v-model="chat.temp" min=0 max=1 :step=0.01
               width="300px"
           ></Slider>
           <InputNumber
@@ -66,13 +75,13 @@
           ></InputNumber>
           <Slider
               description="Top P"
-              v-model="chat.top_p" min=0 max=1 step=0.01
+              v-model="chat.top_p" min=0 max=1 :step=0.01
               width="300px"
               tooltip=""
           ></Slider>
           <Slider
               description="Repeat penalty"
-              v-model="chat.repeat_penalty" min=1 max=2 step=0.1
+              v-model="chat.repeat_penalty" min=1 max=2 :step=0.1
               width="300px"
           ></Slider>
           <Button description="Run" @click="exec_chat()" button_style="info" width='60px'></Button>
@@ -88,13 +97,12 @@ import {ref, reactive} from 'vue';
 import AppLayout from "../../src/ipywui/components/AppLayout";
 import Button from "../../src/ipywui/components/Button";
 import Dropdown from "../../src/ipywui/components/Dropdown";
-import Text from "../../src/ipywui/components/Text";
-import Textarea from "../../src/ipywui/components/Textarea";
 import HBox from "../../src/ipywui/components/HBox";
 import Slider from "../../src/ipywui/components/Slider";
 import InputNumber from "../../src/ipywui/components/InputNumber";
 import Accordion from "../../src/ipywui/components/Accordion";
 import AccordionItem from "../../src/ipywui/components/AccordionItem";
+import Input from "../../src/ipywui/components/Input";
 
 QUANTIZE_OPTS = ['q4_0', 'q4_1', 'q4_k', 'q5_0', 'q5_1', 'q5_k', 'q6_k', 'q8_0']
 hf_models_path = ref('')

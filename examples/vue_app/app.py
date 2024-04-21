@@ -89,7 +89,7 @@ def setup(props, ctx, vm):
         owner.icon = state
 
     def handle_del_msg(i):
-        with vm.options.el:
+        # with vm.options.el:
             msg = messages.value.pop(i)
             print(f'del {i} {msg}')
 

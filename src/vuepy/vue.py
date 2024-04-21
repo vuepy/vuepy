@@ -1,6 +1,9 @@
 #!coding: utf-8
+from __future__ import annotations
 import abc
 import ast
+import dataclasses
+from dataclasses import field
 import enum
 import importlib.util
 import pathlib
@@ -10,6 +13,7 @@ from _ast import Attribute
 from collections import defaultdict
 from html.parser import HTMLParser
 from typing import Any
+from typing import Callable
 from typing import Dict
 from typing import List
 from typing import SupportsIndex
@@ -18,10 +22,11 @@ from typing import Type
 import ipywidgets as widgets
 from IPython.display import clear_output
 from IPython.display import display
+from ipywidgets import CallbackDispatcher
 
 from vuepy import log as logging
 
-LOG = logging.getLogger()
+logger = logging.getLogger()
 
 
 def get_block_content_from_sfc(sfc_file, block):
@@ -30,7 +35,7 @@ def get_block_content_from_sfc(sfc_file, block):
     return blocks
 
 
-def get_template_from_vue(sfc_file):
+def get_template_from_sfc(sfc_file):
     return get_block_content_from_sfc(sfc_file, 'template')[0]
 
 
@@ -455,10 +460,10 @@ class VForStatement:
 
 
 class ForScope:
-    def __init__(self, i_val, for_stmt: VForStatement, vm: 'Vue'):
+    def __init__(self, i_val, for_stmt: VForStatement, vm: 'VueComponent'):
         self.for_stmt = for_stmt
         self.i = i_val
-        self.iter = VueCompNamespace.get_by_attr_chain(vm, for_stmt.iter)
+        self.iter = VueCompNamespace.get_by_attr_chain(vm._data, for_stmt.iter)
         self.target = self.iter[self.i]
 
     def to_ns(self):
@@ -545,7 +550,8 @@ class VueCompAst:
     V_SLOT_ABBR = '#'
     V_JS_LINK = 'v-js-link'
     V_REF = 'ref'
-    V_MODEL = 'v-model'
+    V_MODEL = 'v-model:'
+    V_MODEL_DEFAULT = 'v-model'
     V_HTML = 'v-html'
     V_ON = 'v-on:'
     V_ON_ABBR = '@'
@@ -562,7 +568,7 @@ class VueCompAst:
         self.kwargs = {}
         self.v_binds: Dict[str, VueCompExprAst] = {}
         # todo support only one v-model
-        self.v_model_vm = None
+        self.v_model: List[(str, str)] = []
         self.v_html = None
         self.v_on: Dict[str, VueCompExprAst] = {}
         self.layout = {}
@@ -586,8 +592,12 @@ class VueCompAst:
         return attr == cls.V_REF
 
     @classmethod
+    def is_v_model_default(cls, attr):
+        return attr == cls.V_MODEL_DEFAULT
+
+    @classmethod
     def is_v_model(cls, attr):
-        return attr == cls.V_MODEL
+        return attr.startswith(cls.V_MODEL)
 
     @classmethod
     def is_v_html(cls, attr):
@@ -628,8 +638,12 @@ class VueCompAst:
                 attr = attr.split(cls.V_BIND_ABBR, 1)[1]
                 comp.v_binds[attr] = vue_comp_expr_parse(value)
 
+            elif cls.is_v_model_default(attr):
+                comp.v_model.append((defineModel.DEFAULT_KEY, value))
+
             elif cls.is_v_model(attr):
-                comp.v_model_vm = value
+                _define_model_key = attr.split(cls.V_MODEL, 1)[1]
+                comp.v_model.append((_define_model_key, value))
 
             elif cls.is_v_html(attr):
                 comp.v_html = value
@@ -748,7 +762,8 @@ class VueCompCodeGen:
         return warp
 
     @classmethod
-    def gen(cls, comp_ast: VueCompAst, children, vm: 'Vue', ns: VueCompNamespace):
+    def gen(cls, comp_ast: VueCompAst, children, vm: 'VueComponent', ns: VueCompNamespace, app: App):
+        component_cls: Type[VueComponent] = vm.component(comp_ast.tag)
         # v-if
         if comp_ast.v_if:
             watcher = WatcherForRerender(vm, f'v_if {comp_ast.v_if}')
@@ -773,11 +788,16 @@ class VueCompCodeGen:
             widget_attr: exp_ast.eval(ns)
             for widget_attr, exp_ast in comp_ast.v_binds.items()
         }
-        component_cls = vm.find_component(comp_ast.tag)
-        if comp_ast.v_model_vm:
-            props[component_cls.v_model_default] = ns.getattr(comp_ast.v_model_vm)
+        if comp_ast.v_model:
+            props.update({
+                _model_key: ns.getattr(_bind) for _model_key, _bind in comp_ast.v_model
+            })
 
-        widget = component_cls().render(ctx, props, {})
+        if isinstance(component_cls, SFCFactory):
+            component = component_cls(props, ctx, app)
+        else:
+            component = component_cls()
+        widget = component.render(ctx, props, {})
 
         # v-slot
         if comp_ast.v_slot:
@@ -791,24 +811,31 @@ class VueCompCodeGen:
                 _value = exp_ast.eval(ns)
             update_vm_to_view(_value, None)
 
-        # v-model:widget=vm
-        if comp_ast.v_model_vm:
-            attr_chain = comp_ast.v_model_vm
-            # :bind
-            # vm to view
-            widget_attr = component_cls.v_model_default  # VueCompTag.v_model(comp_ast.tag)
+        # v-model:define-model=bind
+        for _model_key, attr_chain in comp_ast.v_model:
+            # :bind, parent to child
+            # widget_attr = component_cls.v_model_default  # VueCompTag.v_model(comp_ast.tag)
+            widget_attr = _model_key
             update_vm_to_view = cls.handle_value_change_vm_to_view(widget, widget_attr)
             watcher = WatcherForAttrUpdate(ns, lambda: ns.getattr(attr_chain), update_vm_to_view)
             with ActivateEffect(watcher):
                 _value = ns.getattr(attr_chain)
             update_vm_to_view(_value, None)
 
-            # v-on
-            # view to vm
+            # v-on, child to parent
+            def listener(obj, attr):
+                def _(change):
+                    val = change['new']
+                    setattr(obj, attr, val)
+                    if isinstance(obj, defineModel) and isinstance(widget, SFCWidgetContainer):
+                        getattr(widget, SFC.EMIT_FN)(obj.update_event, val)
+                return _
+
             obj, attr = ns.get_obj_and_attr(attr_chain)
             add_event_listener(
-                widget, f'update:{attr}',
-                lambda change, _obj=obj, _attr=attr: setattr(_obj, _attr, change['new'])
+                widget,
+                f'update:{_model_key}',
+                listener(obj, attr),
             )
 
         # v-on
@@ -821,7 +848,7 @@ class VueCompCodeGen:
         if comp_ast.v_ref:
             _ref = ns.getattr(comp_ast.v_ref)
             if not isinstance(_ref, VueRef):
-                LOG.error(f'ref={comp_ast.v_ref} is not instance of VueRef.')
+                logger.error(f'ref={comp_ast.v_ref} is not instance of VueRef.')
             else:
                 _ref.value = widget
 
@@ -829,16 +856,18 @@ class VueCompCodeGen:
 
 
 def add_event_listener(widget, event, listener):
-    if event.startswith('update:'):
+    if hasattr(widget, SFC.ADD_EVENT_LISTENER_FN):  # SFC
+        getattr(widget, SFC.ADD_EVENT_LISTENER_FN)(event, listener)
+    elif event.startswith('update:'):  # anywidget, ipyw
         attr = event.split(':', 1)[1]
         widget.observe(listener, names=attr)
-    else:
+    else:  # ipyw click
         getattr(widget, f"on_{event}")(listener)
 
 
 class VueCompHtmlTemplateRender:
     @staticmethod
-    def replace(vm: "Vue", ns: VueCompNamespace, for_idx):
+    def replace(vm: "VueComponent", ns: VueCompNamespace, for_idx):
         def warp(match):
             exp = match.group(1)
             exp_ast = vue_comp_expr_parse(exp)
@@ -850,13 +879,13 @@ class VueCompHtmlTemplateRender:
         return warp
 
     @classmethod
-    def render(cls, template, vm: 'Vue', ns: VueCompNamespace, for_idx=-1):
+    def render(cls, template, vm: 'VueComponent', ns: VueCompNamespace, for_idx=-1):
         exp_pattern = r"\{\{\s*(.*?)\s*\}\}"
         result = re.sub(exp_pattern, cls.replace(vm, ns, for_idx), template)
         return result
 
 
-class VueTemplate(HTMLParser):
+class DomCompiler(HTMLParser):
     """
     @vue/compiler-dom
 
@@ -867,9 +896,10 @@ class VueTemplate(HTMLParser):
     https://github.com/leilux/SICP-exercises/blob/master/book/p216-constraint-propagate(python%20version).py
     """
 
-    def __init__(self, vm: 'Vue'):
+    def __init__(self, vm: VueComponent, app: 'App'):
         super().__init__()
         self.vm = vm
+        self.app = app
         self.widgets = []
         self.widgets_by_id = {}
         self.parent_node_stack = []
@@ -887,7 +917,7 @@ class VueTemplate(HTMLParser):
         pass
 
     def _gen_ast_node(self, tag, attrs, for_scope=None):
-        if self.vm.find_component(tag):
+        if self.vm.component(tag):
             node = self._component_tag_enter(tag, attrs, for_scope)
         else:
             node = self._html_tag_enter(tag, attrs)
@@ -895,7 +925,7 @@ class VueTemplate(HTMLParser):
 
     def _gen_widget(self, node, for_scope=None):
         tag = node['tag']
-        if self.vm.find_component(tag):
+        if self.vm.component(tag):
             widget = self._component_tag_exit(node, for_scope)
         else:
             widget = self._html_tag_exit(node, for_scope)
@@ -909,7 +939,7 @@ class VueTemplate(HTMLParser):
         comp_ast = VueCompAst.parse(node['tag'], node['attrs'])
         local = for_scope.to_ns() if for_scope else None
         ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local)
-        widget = VueCompCodeGen.gen(comp_ast, node['body'], self.vm, ns)
+        widget = VueCompCodeGen.gen(comp_ast, node['body'], self.vm, ns, self.app)
         return widget
 
     def _html_tag_enter(self, tag, attrs):
@@ -1013,8 +1043,22 @@ class VueTemplate(HTMLParser):
 
         return _widgets
 
-    def handle_starttag(self, tag, attrs):
-        tag = ''.join(tag.split('-'))
+    def _get_raw_tag(self, tag):
+        row, col = self.getpos()
+        row_idx = row - 1
+        col_idx = col + 1
+        return self.html_lines[row_idx][col_idx: col_idx + len(tag)]
+
+    def _to_camel_case_tag(self, tag):
+        words = tag.split('-')
+        if len(words) == 1:
+            return tag
+        return ''.join(w.title() for w in words)
+
+    def handle_starttag(self, case_insensitive_tag, attrs):
+        raw_tag = self._get_raw_tag(case_insensitive_tag)
+        tag = self._to_camel_case_tag(raw_tag)
+
         attrs = dict(attrs)
         v_for_stmt = attrs.pop(VueCompAst.V_FOR, None)
         if v_for_stmt or self.v_for_stack:
@@ -1073,33 +1117,11 @@ class VueTemplate(HTMLParser):
                 self.widgets.append(widget)
 
     def compile(self, html):
+        self.html_lines = [line for line in html.splitlines()]
         self.feed(html)
         if len(self.widgets) == 1:
             return self.widgets[0]
         return widgets.VBox(self.widgets)
-
-
-class VueOptions:
-    def __init__(self, options):
-        self.el = options.get('el')
-        self.data = options.get('data')
-        self.setup = options.get('setup')
-        self.methods = options.get('methods', {})
-        self.template = options.get('template', '')
-        try:
-            template_path = pathlib.Path(self.template)
-            if template_path.exists():
-                self.template = get_template_from_vue(template_path)
-        except Exception:
-            pass
-
-        self.before_create = options.get('before_create')
-        self.created = options.get('created')
-        self.before_mount = options.get('before_mount')
-        self.mounted = options.get('mounted')
-        self.before_update = options.get('before_update ')
-        self.updated = options.get('updated ')
-        self.render = options.get('render')
 
 
 class Dom(widgets.VBox):
@@ -1128,98 +1150,200 @@ class Document(widgets.VBox):
         self.children = (self.body,)
 
 
-class Vue:
+@dataclasses.dataclass
+class CompilerOptions:
+    whitespace = 'condense'  # 'preserve'
+    delimiters: List[str] = field(default_factory=lambda: ['{{', '}}'])
+    comments: bool = False
+
+    def is_custom_element(self, tag: str) -> bool:
+        """
+        用于指定一个检查方法来识别原生自定义元素。
+
+        :param tag:
+        :return:
+        """
+        pass
+
+
+@dataclasses.dataclass
+class AppConfig:
+    """应用的配置设定"""
+    # error_handler: ErrorHandler
+    # warn_handler: WarningHandler
+    # option_merge_strategies: dict[str, OptionMergeFunction] = {}
+    global_properties: dict[str, Any] = field(default_factory=dict)
+    compiler_options: CompilerOptions = CompilerOptions()
+    performance: bool = False
+
+
+class Directive:
+    pass
+
+
+@dataclasses.dataclass
+class AppContext:
+    app: 'App'
+    config: AppConfig
+    directives: dict[str, Directive]
+    provides: dict[str, Any]
+    components: dict[str, VueComponent] = field(default_factory=dict)
+
+
+class SetupContext:
+    def __init__(self):
+        self.attrs = {}
+        self.slots = {}
+        # 触发事件
+        self.emit = {}
+        # 暴露公共属性
+        self.expose = {}
+
+
+@dataclasses.dataclass
+class VueOptions:
+    # (props: dict, context: SetupContext, app: App) -> dict | Callable[[], h]:
+    setup: Callable[[dict, SetupContext | dict, 'App'], dict | Callable]
+    template: str = ''
+    # (self, ctx, props, setup_returned) -> VNode:
+    render: Callable[[SetupContext | dict, dict, dict], VNode] = None
+
+    def gen_component(self, props: dict, context: SetupContext, app: App) -> SFC:
+        template_path = pathlib.Path(self.template)
+        if template_path.exists():
+            template = get_template_from_sfc(template_path)
+        else:
+            template = self.template
+
+        sfc_factory = SFCFactory(
+            setup=self.setup,
+            template=template,
+            _file='',
+        )
+        sfc = sfc_factory(props, context, app)
+        return sfc
+
+
+class App:
     components = {}
 
-    def __init__(self, options, debug=False):
-        options = VueOptions(options)
-        # self._data = observe(options.data)
-        self._data = options.setup(None, None, self)
+    def __init__(self, root_component: RootComponent, debug=False):
+        self.version = ''
+        self.config: AppConfig = AppConfig()
+
+        self._installed_plugins = []
+        self._props: dict = {}
+        self._container = None
+        self._context: AppContext = AppContext(self, self.config, {}, {})
+        self._instance: VueComponent = None
+
+        if isinstance(root_component, dict):
+            root_component = VueOptions(**root_component)
+
+        props = {}
+        context = {}
+        if isinstance(root_component, SFCFactory):
+            self.root_component: SFC = root_component(props, context, self)
+        elif isinstance(root_component, VueOptions):
+            self.root_component: SFC = root_component.gen_component(props, context, self)
+        else:
+            raise ValueError(
+                f"root_component only support {RootComponent}, {type(root_component)} found."
+            )
         self.debug = debug
 
         self._components = {}
 
         self.document: Document = Document()
         self.dom = None
-        self.options = options
-        self._call_if_callable(self.options.before_create)
-        self._call_if_callable(self.options.created)
 
-        # self.methods = self.options.methods(self)
         self._proxy_methods()
-
-    def to_ns(self):
-        methods = {
-            # m: getattr(self.methods, m)
-            # for m in dir(self.methods) if not m.startswith('_')
-        }
-        return {
-            **methods,
-            **self._data,
-        }
 
     def _call_if_callable(self, func):
         if callable(func):
             func(self)
 
-    def __getattr__(self, key):
-        if key == '_data':
-            return super().__getattribute__(key)
-
-        if key in self._data:
-            return self._data[key]
-
-        return super().__getattribute__(key)
-
-    def __setattr__(self, key, value):
-        if key == '_data':
-            return super().__setattr__(key, value)
-
-        if key in self._data:
-            self._data[key] = value
-            return
-        return super().__setattr__(key, value)
+    # def __getattr__(self, key):
+    #     if key == '_data':
+    #         return super().__getattribute__(key)
+    #
+    #     if key in self._data:
+    #         return self._data[key]
+    #
+    #     return super().__getattribute__(key)
+    #
+    # def __setattr__(self, key, value):
+    #     if key == '_data':
+    #         return super().__setattr__(key, value)
+    #
+    #     if key in self._data:
+    #         self._data[key] = value
+    #         return
+    #     return super().__setattr__(key, value)
 
     def _proxy_methods(self):
         pass
 
-    def mount(self, el=None):
-        self.options.el = el or widgets.Output()
-        self._call_if_callable(self.options.before_mount)
-        self.render()
-        self._call_if_callable(self.options.mounted)
-        self.document.body.appendChild(self.options.el)
-        return self.document
-
-    def _compile_template(self, template):
-        vue_template = VueTemplate(self)
-        return vue_template.compile(template)
-
-    def clear_property_subs(self):
-        for item in self._data.values():
-            if isinstance(item, Reactive):
-                item.reset_deps()
-
     def render(self):
-        self.clear_property_subs()
-        with self.options.el:
-            if callable(self.options.template):
-                self.dom = self.options.template(self)
-            else:
-                self.dom = self._compile_template(self.options.template)
+        if not isinstance(self.root_component, SFC):
+            raise ValueError(f"render failed, root_component type {type(self.root_component)}.")
+
+        # self.dom = self.options.render({}, self._props, self._data)
+        self.dom = self.root_component.render()
+        # with self.options.el:
+        with self._container:
             clear_output(True)
             display(self.dom)
 
-    def find_component(self, name) -> 'VueComponent':
-        return self._components.get(name, self.components.get(name, None))
+    def component(self, name: str, comp: 'VueComponent' = None):
+        """
+        query component(name) -> Component | None
+        register component(name, comp) -> self
 
-    def component(self, name: str, comp: 'VueComponent'):
+        :param name:
+        :param comp:
+        :return:
+        """
+        # query
+        if comp is None:
+            return self._components.get(name, self.components.get(name, None))
+
+        # register
         self._components[name] = comp
         return self
 
+    def directive(self, name: str, directive: Directive = None) -> Directive | "App":
+        """
+        query directive(name) -> Directive | None
+        register directive(name) -> self
+
+        :param name:
+        :param directive:
+        :return:
+        """
+        pass
+
     def use(self, plugin: Type["VuePlugin"], options: dict = None):
+        """
+        install plugin.
+
+        :param plugin: 插件本身
+        :param options: 要传递给插件的选项
+        :return:
+        """
+        if plugin in self._installed_plugins:
+            return self
+
         plugin.install(self, options)
         return self
+
+    def mount(self, el=None):
+        self._container = el or widgets.Output()
+        # self._call_if_callable(self.options.before_mount)
+        self.render()
+        # self._call_if_callable(self.options.mounted)
+        self.document.body.appendChild(self._container)
+        return self.document
 
 
 class VNode:
@@ -1231,17 +1355,23 @@ class VNode:
 
 
 class VueComponent(metaclass=abc.ABCMeta):
+    _name = ''
     props = {}
     template = ''
-    _name = ''
 
     v_model_default = 'value'
 
+    def __init__(self, setup_ret: dict = None, template: str = '', app: "App" = None):
+        self.template = template
+        self._data: dict = setup_ret
+        self.app = app
+
     @classmethod
     def name(cls):
-        return (cls._name or cls.__name__).lower()
+        # return (cls._name or cls.__name__).lower()
+        return cls._name or cls.__name__
 
-    def setup(self, props: dict = None, ctx=None, vm: Vue = None):
+    def setup(self, props: dict = None, ctx=None, vm: App = None):
         """
 
         :param props:
@@ -1250,6 +1380,27 @@ class VueComponent(metaclass=abc.ABCMeta):
         :return:
         """
         pass
+
+    def component(self, name: str):
+        comp = self._data.get(name)
+        try:
+            if comp and (
+                    isinstance(comp, SFCFactory)
+                    or issubclass(comp, VueComponent)
+            ):
+                return comp
+        except Exception as e:
+            logger.warn(f"find component({name}) in Component `{self.name()}` failed, {e}.")
+            pass
+
+        comp = self.app.component(name)
+        if comp is None:
+            logger.warn(f"component({name}) not found in Component `{self.name()}`.")
+
+        return comp
+
+    def to_ns(self):
+        return self._data
 
     def render(self, ctx, props, setup_returned) -> VNode:
         """
@@ -1260,9 +1411,10 @@ class VueComponent(metaclass=abc.ABCMeta):
         :param props:
         :return:
         """
-        if not self.template:
-            return None
+        # if not self.template:
+        #     return None
         # return vue_compiler_dom(self.template)
+        pass
 
 #
 # def create_vnode(component: VueComponent, props):
@@ -1293,8 +1445,234 @@ class VueComponent(metaclass=abc.ABCMeta):
 class VuePlugin:
     @classmethod
     @abc.abstractmethod
-    def install(cls, vm: Vue, options: dict):
+    def install(cls, app: App, options: dict):
         pass
+
+
+class DefineProp:
+    def __init__(self, prop_name, default=None):
+        self.name = prop_name
+        self._value = ref(default)
+
+    @property
+    def value(self):
+        return self._value.value
+
+    @value.setter
+    def value(self, val):
+        self._value.value = val
+
+
+class defineProps:
+    """
+    props = defineProps('p1')
+    props.p1.value
+    """
+
+    def __init__(self, props: dict | list):
+        self.prop_names = props
+        self.props: List[DefineProp] = [DefineProp(name) for name in self.prop_names]
+        for prop in self.props:
+            setattr(self, prop.name, prop)
+
+
+class defineEmits:
+    def __init__(self, events: List[str]):
+        self.events = events
+        self.events_to_cb_dispatcher: dict[str, CallbackDispatcher] = {}
+        for event in self.events:
+            self.add_event(event)
+
+    def get_cb_dispatcher(self, event):
+        return self.events_to_cb_dispatcher.get(event)
+
+    def add_event(self, event):
+        if event in self.events_to_cb_dispatcher:
+            return
+        self.events_to_cb_dispatcher[event] = CallbackDispatcher()
+
+    def clear_events(self):
+        self.events_to_cb_dispatcher = {}
+
+    def __call__(self, event, payload=None):
+        """$emit event.
+
+        :param event:
+        :param payload:
+        :return:
+        """
+        handlers = self.events_to_cb_dispatcher.get(event)
+        if not handlers:
+            raise Exception(f"Event {event} not supported.")
+        handlers(payload)
+
+
+class defineModel:
+    """
+    count = defineModel("count")
+    count.value += 1
+    """
+    # DEFAULT_KEY = 'modelValue'
+    DEFAULT_KEY = 'value'
+
+    def __init__(self, model_key: str | dict = DEFAULT_KEY):
+        self.model_key = model_key
+        self.prop = DefineProp(model_key)
+        self.update_event = f'update:{self.model_key}'
+
+    @property
+    def value(self):
+        return self.prop.value
+
+    @value.setter
+    def value(self, val):
+        self.prop.value = val
+
+
+class SFCWidgetContainer(Dom):
+    pass
+
+
+class SFC(VueComponent):
+    ADD_EVENT_LISTENER_FN = '_s1_on'  # $on
+    EMIT_FN = '_s1_emit'  # $emit
+
+    def __init__(
+            self,
+            context: SetupContext | dict,
+            props: dict,
+            setup_ret: dict,
+            template: str,
+            app: "App",
+            render: Callable[[SetupContext | dict, dict, dict], VNode] = None,
+    ):
+        super().__init__()
+        self.app = app
+        self.template = template
+        self.setup_returned = setup_ret
+        self._context = context
+        self._props = props
+        self._data: dict = setup_ret
+        self._define_props = {}
+        self._define_emits = {}
+        self._render = render
+
+        # setup define_x
+        _emits, _on_fn = self._gen_widget_on_fn()
+        _props_property = self._gen_widget_props_property()
+        _model_update_events = self._gen_model_update_events()
+        for _event in _model_update_events:
+            _emits.add_event(_event)
+
+        _sfc_container = type('sfc_container', (SFCWidgetContainer,), {
+            **_props_property,
+            self.ADD_EVENT_LISTENER_FN: _on_fn,
+            self.EMIT_FN: _emits,
+        })
+        self.root = _sfc_container()
+        self._init_static_props(context.get('attrs', {}))
+
+    def _init_static_props(self, attrs):
+        if not self.define_props:
+            return
+
+        _, _props = self.define_props
+        for prop_name in _props.prop_names:
+            val = attrs.get(prop_name, Nil)
+            if val is Nil:
+                continue
+            setattr(self.root, prop_name, val)
+
+    def setup(self, props: dict = None, ctx=None, vm: App = None):
+        return self._data
+
+    def _gen_model_update_events(self):
+        return [_model.update_event for (_, _model) in self.define_models]
+
+    def _gen_widget_props_property(self):
+        def _get(prop: DefineProp):
+            def _(this):
+                return prop.value
+            return _
+
+        def _set(prop: DefineProp):
+            def _(this, val):
+                prop.value = val
+            return _
+
+        props = [model.prop for _, model in self.define_models]
+        if self.define_props:
+            props.extend(self.define_props[1].props)
+
+        return {
+            prop.name: property(_get(prop), _set(prop))
+            for prop in props
+        }
+
+    def _gen_widget_on_fn(self):
+        emits = self.define_emits[1] if self.define_emits else defineEmits([])
+
+        def _on_fn(this, event, callback, remove=False):
+            cb_dispatcher = emits.get_cb_dispatcher(event)
+            if not cb_dispatcher:
+                return
+            cb_dispatcher.register_callback(callback, remove)
+
+        return emits, _on_fn
+
+    @property
+    def define_props(self) -> (str, defineProps):
+        ret = self._get_define_x(defineProps, limit=1)
+        return ret[0] if ret else []
+
+    @property
+    def define_emits(self) -> (str, defineEmits):
+        ret = self._get_define_x(defineEmits, limit=1)
+        return ret[0] if ret else []
+
+    @property
+    def define_models(self) -> List[(str, defineModel)]:
+        return self._get_define_x(defineModel)
+
+    def _get_define_x(self, define_type, limit: int = float('inf')):
+        ret = []
+        count = 0
+        for var_name, var in self.setup_returned.items():
+            if count >= limit:
+                break
+            if isinstance(var, define_type):
+                ret.append([var_name, var])
+                count += 1
+        return ret
+
+    def clear_property_subs(self):
+        for item in self._data.values():
+            if isinstance(item, Reactive):
+                item.reset_deps()
+
+    def render(self, ctx: SetupContext = None, props: dict = None, setup_returned: dict = None) -> VNode:
+        self.clear_property_subs()
+        if self._render:
+            dom = self._render(self._context, self._props, self.setup_returned)
+        else:
+            dom = DomCompiler(self, self.app).compile(self.template)
+        self.root.children = [dom]
+
+        return self.root
+
+
+@dataclasses.dataclass
+class SFCFactory:
+    # (props: dict, context: SetupContext, vm: App) -> dict | Callable[[], h]:
+    setup: Callable[[dict, SetupContext | dict, 'App'], dict | Callable]
+    template: str = ''
+    # (self, ctx, props, setup_returned) -> VNode:
+    render: Callable[[SetupContext | dict, dict, dict], VNode] = None
+    _file: str = ''
+
+    def __call__(self, props: dict, context: SetupContext | dict, app: App) -> "SFC":
+        setup_ret = self.setup(props, context, app)
+        return SFC(context, props, setup_ret, self.template, app, self.render)
 
 
 def import_sfc(sfc_file):
@@ -1310,13 +1688,25 @@ def import_sfc(sfc_file):
         spec.loader.exec_module(module)
         setup = getattr(module, 'setup')
 
-    return {
+    return SFCFactory(**{
         'setup': setup,
-        'template': sfc_file,
-    }
+        'template': get_template_from_sfc(sfc_file),
+        '_file': sfc_file,
+    })
 
 
-def create_app(root_component: dict, **root_props) -> Vue:
+RootComponent = Type[Type[VueComponent] | SFCFactory | dict]
+
+
+def create_app(root_component: RootComponent, **root_props) -> App:
+    """创建一个应用实例
+    app = create_app(App)
+    app = create_app({})
+
+    :param root_component:
+    :param root_props:
+    :return:
+    """
     debug = root_props.get('debug', False)
-    return Vue(root_component, debug)
+    return App(root_component, debug)
 
