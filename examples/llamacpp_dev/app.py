@@ -5,7 +5,7 @@ from vuepy import *
 
 def setup(props, ctx, vm):
     Compile = import_sfc(pathlib.Path(__file__).parent / 'Compile.vue')
-    m = ref('')
+    m = ref('xxx')
 
     comp = ref(None)
 

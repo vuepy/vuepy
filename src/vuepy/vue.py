@@ -788,10 +788,10 @@ class VueCompCodeGen:
             widget_attr: exp_ast.eval(ns)
             for widget_attr, exp_ast in comp_ast.v_binds.items()
         }
-        if comp_ast.v_model:
-            props.update({
-                _model_key: ns.getattr(_bind) for _model_key, _bind in comp_ast.v_model
-            })
+        # if comp_ast.v_model:
+        #     props.update({
+        #         _model_key: ns.getattr(_bind) for _model_key, _bind in comp_ast.v_model
+        #     })
 
         if isinstance(component_cls, SFCFactory):
             component = component_cls(props, ctx, app)
@@ -816,6 +816,9 @@ class VueCompCodeGen:
             # :bind, parent to child
             # widget_attr = component_cls.v_model_default  # VueCompTag.v_model(comp_ast.tag)
             widget_attr = _model_key
+            if _model_key == defineModel.DEFAULT_KEY and hasattr(component_cls, 'v_model_default'):
+                widget_attr = getattr(component_cls, 'v_model_default')
+
             update_vm_to_view = cls.handle_value_change_vm_to_view(widget, widget_attr)
             watcher = WatcherForAttrUpdate(ns, lambda: ns.getattr(attr_chain), update_vm_to_view)
             with ActivateEffect(watcher):
@@ -1491,6 +1494,11 @@ class defineEmits:
             return
         self.events_to_cb_dispatcher[event] = CallbackDispatcher()
 
+    def add_event_listener(self, event, callback, remove=False):
+        cb_dispatcher = self.get_cb_dispatcher(event)
+        if cb_dispatcher:
+            cb_dispatcher.register_callback(callback, remove)
+
     def clear_events(self):
         self.events_to_cb_dispatcher = {}
 
@@ -1613,10 +1621,7 @@ class SFC(VueComponent):
         emits = self.define_emits[1] if self.define_emits else defineEmits([])
 
         def _on_fn(this, event, callback, remove=False):
-            cb_dispatcher = emits.get_cb_dispatcher(event)
-            if not cb_dispatcher:
-                return
-            cb_dispatcher.register_callback(callback, remove)
+            emits.add_event_listener(event, callback, remove)
 
         return emits, _on_fn
 
