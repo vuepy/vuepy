@@ -18,6 +18,7 @@ from typing import Dict
 from typing import List
 from typing import SupportsIndex
 from typing import Type
+from typing import Union
 
 import ipywidgets as widgets
 from IPython.display import clear_output
@@ -31,8 +32,22 @@ logger = logging.getLogger()
 
 def get_block_content_from_sfc(sfc_file, block):
     with open(sfc_file) as f:
-        blocks = re.findall(f'<{block}>(.*)</{block}>', f.read(), flags=re.S)
+        blocks = re.findall(f'<{block}>(.*)</{block}>', f.read(), flags=re.S | re.I)
     return blocks
+
+
+def get_script_py_block_content_from_sfc(sfc_file):
+    with open(sfc_file) as f:
+        match = re.search(
+            fr'<script\s+lang=(["\'])py\1\s*>(?P<content>.*)</script>',
+            f.read(),
+            flags=re.S | re.I
+        )
+
+    if not match:
+        return None
+
+    return match.group('content')
 
 
 def get_template_from_sfc(sfc_file):
@@ -1680,18 +1695,53 @@ class SFCFactory:
         return SFC(context, props, setup_ret, self.template, app, self.render)
 
 
-def import_sfc(sfc_file):
-    def setup(props, ctx, vm):
-        return locals()
+def compile_script_block_setup(s):
+    module = ast.parse(s)
+    func_name = 'setup'
+    func_ast = ast.FunctionDef(
+        name=func_name,
+        args=ast.arguments(
+            posonlyargs=[],
+            args=[
+                ast.arg(arg='props', annotation=None),
+                ast.arg(arg='ctx', annotation=None),
+                ast.arg(arg='vm', annotation=None)
+            ],
+            vararg=None,
+            kwonlyargs=[],
+            kw_defaults=[],
+            kwarg=None,
+            defaults=[],
+        ),
+        body=module.body + [ast.parse('return locals()').body[0]],
+        decorator_list=[],
+        returns=None
+    )
 
+    module.body = [func_ast]
+    ast.fix_missing_locations(module)
+    code = compile(module, filename='<ast>', mode='exec')
+
+    local_vars = {}
+    exec(code, {}, local_vars)
+    return local_vars[func_name]
+
+
+def import_sfc(sfc_file):
     sfc_file = pathlib.Path(sfc_file)
     script_src = get_script_src_from_sfc(sfc_file)
     if script_src:
-        script_path = sfc_file.parent.joinpath(script_src)
-        spec = importlib.util.spec_from_file_location('sfc', str(script_path))
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        setup = getattr(module, 'setup')
+        _script_path = sfc_file.parent.joinpath(script_src)
+        if not _script_path.exists():
+            raise ValueError(f"sfc script {_script_path} not exists.")
+
+        _spec = importlib.util.spec_from_file_location('sfc', str(_script_path))
+        _module = importlib.util.module_from_spec(_spec)
+        _spec.loader.exec_module(_module)
+        setup = getattr(_module, 'setup')
+    else:
+        script_block = get_script_py_block_content_from_sfc(sfc_file)
+        setup = compile_script_block_setup(script_block)
 
     return SFCFactory(**{
         'setup': setup,
@@ -1700,7 +1750,7 @@ def import_sfc(sfc_file):
     })
 
 
-RootComponent = Type[Type[VueComponent] | SFCFactory | dict]
+RootComponent = Type[Union[Type[VueComponent], SFCFactory, dict]]
 
 
 def create_app(root_component: RootComponent, **root_props) -> App:
@@ -1714,4 +1764,3 @@ def create_app(root_component: RootComponent, **root_props) -> App:
     """
     debug = root_props.get('debug', False)
     return App(root_component, debug)
-
