@@ -1142,6 +1142,61 @@ class DomCompiler(HTMLParser):
         return widgets.VBox(self.widgets)
 
 
+class ScriptCompiler:
+    @staticmethod
+    def compile_script_block(code_str):
+        module = ast.parse(code_str)
+        func_name = 'setup'
+        func_ast = ast.FunctionDef(
+            name=func_name,
+            args=ast.arguments(
+                posonlyargs=[],
+                args=[
+                    ast.arg(arg='props', annotation=None),
+                    ast.arg(arg='ctx', annotation=None),
+                    ast.arg(arg='vm', annotation=None)
+                ],
+                vararg=None,
+                kwonlyargs=[],
+                kw_defaults=[],
+                kwarg=None,
+                defaults=[],
+            ),
+            body=module.body + [ast.parse('return locals()').body[0]],
+            decorator_list=[],
+            returns=None
+        )
+
+        module.body = [func_ast]
+        ast.fix_missing_locations(module)
+        code = compile(module, filename='<ast>', mode='exec')
+
+        local_vars = {}
+        exec(code, {}, local_vars)
+        return local_vars[func_name]
+
+    @staticmethod
+    def compile_script_src(dir_path, src):
+        _script_path = dir_path.joinpath(src)
+        if not _script_path.exists():
+            raise ValueError(f"sfc script {_script_path} not exists.")
+
+        _spec = importlib.util.spec_from_file_location('sfc', str(_script_path))
+        _module = importlib.util.module_from_spec(_spec)
+        _spec.loader.exec_module(_module)
+        return getattr(_module, 'setup')
+
+    @classmethod
+    def compile(cls, sfc_file):
+        sfc_file = pathlib.Path(sfc_file)
+        script_src = get_script_src_from_sfc(sfc_file)
+        if script_src:
+            return cls.compile_script_src(sfc_file.parent, script_src)
+        else:
+            script_block = get_script_py_block_content_from_sfc(sfc_file)
+            return cls.compile_script_block(script_block)
+
+
 class Dom(widgets.VBox):
     """
     https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model/Introduction
@@ -1729,19 +1784,7 @@ def compile_script_block_setup(s):
 
 def import_sfc(sfc_file):
     sfc_file = pathlib.Path(sfc_file)
-    script_src = get_script_src_from_sfc(sfc_file)
-    if script_src:
-        _script_path = sfc_file.parent.joinpath(script_src)
-        if not _script_path.exists():
-            raise ValueError(f"sfc script {_script_path} not exists.")
-
-        _spec = importlib.util.spec_from_file_location('sfc', str(_script_path))
-        _module = importlib.util.module_from_spec(_spec)
-        _spec.loader.exec_module(_module)
-        setup = getattr(_module, 'setup')
-    else:
-        script_block = get_script_py_block_content_from_sfc(sfc_file)
-        setup = compile_script_block_setup(script_block)
+    setup = ScriptCompiler.compile(sfc_file)
 
     return SFCFactory(**{
         'setup': setup,
