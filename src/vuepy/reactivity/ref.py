@@ -3,6 +3,7 @@ from vuepy.reactivity import createDep
 from vuepy.reactivity import effect
 from vuepy.reactivity import effect
 from vuepy.reactivity import is_readonly
+from vuepy.reactivity.effect import DEP_STORE
 from vuepy.reactivity.reactive import toReactive
 from vuepy.reactivity import to_raw
 from vuepy.reactivity import to_raw
@@ -15,7 +16,7 @@ def ref(value) -> Ref:
     return createRef(value, False)
 
 
-def shallow_ref(value) -> ShallowRef:
+def shallow_ref(value) -> "ShallowRef":
     return createRef(value, True)
 
 
@@ -52,23 +53,25 @@ def trackRefValue(ref):
         # ??
         ref = to_raw(ref)
         # __DEV__
-        dep = getattr(ref, 'dep', None)
-        if dep is None:
-            dep = createDep()
-            # todo dep不能挂在原始对象上
-            ref.dep = dep
-
-        trackEffects(ref.dep)
+        # dep = getattr(ref, 'dep', None)
+        # if dep is None:
+        #     dep = createDep()
+        #     # todo dep不能挂在原始对象上
+        #     ref.dep = dep
+        dep = DEP_STORE.get(ref)
+        trackEffects(dep)
 
 
 def triggerRefValue(ref, new_val=None):
     ref = to_raw(ref)
     # todo dep不能挂在原始对象上
-    dep = getattr(ref, 'dep', None)
-    if dep is None:
+    # dep = getattr(ref, 'dep', None)
+    # if dep is None:
+    #     return
+    if ref not in DEP_STORE:
         return
-
     # __DEV__
+    dep = DEP_STORE.get(ref)
     triggerEffects(dep)
 
 

@@ -7,6 +7,7 @@ from vuepy.reactivity.effect import TriggerOpTypes
 from vuepy.reactivity.effect import track
 from vuepy.reactivity.effect import trigger
 from vuepy.reactivity.reactive import isShallow
+from vuepy.reactivity.reactive import toReactive
 from vuepy.reactivity.ref import is_ref
 from vuepy.utils.general import Nil
 from vuepy.utils.general import has_changed
@@ -21,6 +22,12 @@ class Proxy:
 ATTR_TARGET = '__vp_target'
 ATTR_SHALLOW = '__vp_shadow'
 PROXY_ATTRS = (ATTR_TARGET, ATTR_SHALLOW)
+
+
+class IterateKey:
+    DICT = 'dict'
+    LIST = 'list'
+    SET = 'set'
 
 
 class DictProxy(Proxy):
@@ -39,10 +46,7 @@ class DictProxy(Proxy):
         # todo track self ?
         track(target, TrackOpTypes.GET, name)
         res = target[name]
-        if _can_reactive(res):
-            return reactive(res)
-        else:
-            return res
+        return toReactive(res)
 
     def __setattr__(self, name, value):
         if name == ATTR_TARGET:
@@ -68,85 +72,96 @@ class DictProxy(Proxy):
             trigger(self.__vp_target, TriggerOpTypes.SET, name, value, old_value)
 
     def __delattr__(self, name):
-        if name in self.__vp_target:
-            trigger(self.__vp_target, TriggerOpTypes.SET, name, None)
-            del self.__vp_target[name]
-        else:
-            super().__delattr__(name)
+        target = self.__vp_target
+        old_value = target.get(name, Nil)
+        if old_value is Nil:
+            return
+        del target[name]
+        trigger(self.__vp_target, TriggerOpTypes.DELETE, name, Nil, old_value)
 
     def __getitem__(self, key):
         return self.__getattribute__(key)
 
     def __setitem__(self, key, value):
-        trigger(self.__vp_target, TriggerOpTypes.SET, key, value)
-        self.__vp_target[key] = value
+        self.__setattr__(key, value)
 
     def __delitem__(self, key):
-        trigger(self.__vp_target, TriggerOpTypes.SET, key, None)
-        del self.__vp_target[key]
+        self.__delattr__(key)
 
     def __iter__(self):
+        track(self.__vp_target, TrackOpTypes.ITER, IterateKey.DICT)
         return iter(self.__vp_target)
 
     def __contains__(self, key):
-        track(self.__vp_target, TrackOpTypes.GET, key)
+        track(self.__vp_target, TrackOpTypes.HAS, key)
         return key in self.__vp_target
 
     def __len__(self):
+        track(self.__vp_target, TrackOpTypes.ITER, IterateKey.DICT)
         return len(self.__vp_target)
 
     def __repr__(self):
+        track(self.__vp_target, TrackOpTypes.ITER, IterateKey.DICT)
         return repr(self.__vp_target)
 
     def __str__(self):
-        pass
+        track(self.__vp_target, TrackOpTypes.ITER, IterateKey.DICT)
+        return str(self.__vp_target)
 
     def __format__(self, format_spec):
-        pass
+        track(self.__vp_target, TrackOpTypes.ITER, IterateKey.DICT)
+        return self.__vp_target.__format__(format_spec)
 
     def clear(self):
+        ret = self.__vp_target.clear()
         for key in list(self.__vp_target.keys()):
-            trigger(self.__vp_target, TriggerOpTypes.SET, key, None)
-        return self.__vp_target.clear()
+            trigger(self.__vp_target, TriggerOpTypes.CLEAR, key, Nil)
+        return ret
 
     def copy(self):
+        track(self.__vp_target, TrackOpTypes.ITER, IterateKey.DICT)
         return self.__vp_target.copy()
 
-    @classmethod
-    def fromkeys(cls, iterable, value=None):
-        return dict.fromkeys(iterable, value)
+    # @classmethod
+    # def fromkeys(cls, iterable, value=None):
+    #     return dict.fromkeys(iterable, value)
 
     def get(self, key, default=None):
         track(self.__vp_target, TrackOpTypes.GET, key)
-        return self.__vp_target.get(key, default)
-
-    def items(self):
-        return self.__vp_target.items()
+        res = self.__vp_target.get(key, default)
+        return toReactive(res)
 
     def keys(self):
+        track(self.__vp_target, TrackOpTypes.ITER, IterateKey.DICT)
         return self.__vp_target.keys()
 
+    def values(self):
+        track(self.__vp_target, TrackOpTypes.ITER, IterateKey.DICT)
+        return (toReactive(value) for value in self.__vp_target.values())
+
+    def items(self):
+        track(self.__vp_target, TrackOpTypes.ITER, IterateKey.DICT)
+        return ((k, toReactive(v)) for k, v in self.__vp_target.items())
+
     def pop(self, key, default=None):
-        trigger(self.__vp_target, TriggerOpTypes.SET, key, None)
-        return self.__vp_target.pop(key, default)
+        ret = self.__vp_target.pop(key, default)
+        trigger(self.__vp_target, TriggerOpTypes.DELETE, key, None)
+        return ret
 
     def popitem(self):
         key, value = self.__vp_target.popitem()
-        trigger(self.__vp_target, TriggerOpTypes.SET, key, None)
+        trigger(self.__vp_target, TriggerOpTypes.DELETE, key, None)
         return key, value
 
     def setdefault(self, key, default=None):
-        if key not in self.__vp_target:
-            trigger(self.__vp_target, TriggerOpTypes.SET, key, default)
-        return self.__vp_target.setdefault(key, default)
+        if key in self.__vp_target:
+            return
+        ret = self.__setattr__(key, default)
+        return ret
 
     def update(self, other):
         for key, value in other.items():
-            trigger(self.__vp_target, TriggerOpTypes.SET, key, value)
-        return self.__vp_target.update(other)
-
-    def values(self):
-        return self.__vp_target.values()
+            self.__setattr__(key, value)
 
 
 class ListProxy(Proxy):
