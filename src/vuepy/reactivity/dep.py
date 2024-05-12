@@ -1,43 +1,21 @@
-from typing import List
-
-from vuepy.reactivity import ReactiveEffect
-from vuepy.reactivity import effect
+from __future__ import annotations
 
 
 class Dep(set):
     def __init__(self, *args, **kwargs):
-        self.w = kwargs.pop('w', 0)
-        self.n = kwargs.pop('n', 0)
+        self.w = kwargs.pop('w', 0)  # wasTracked
+        self.n = kwargs.pop('n', 0)  # newTracked
         super().__init__(*args, **kwargs)
 
+    def add(self, effect) -> None:
+        super().add(effect)
 
-def createDep(effects: ReactiveEffect = None) -> Dep:
+    def delete(self, effect) -> None:
+        try:
+            self.remove(effect)
+        except Exception:
+            pass
+
+
+def createDep(effects=None) -> Dep:
     return Dep(effects or "")
-
-
-def wasTracked(dep: Dep):
-    return (dep.w & effect.trackOpBit) > 0
-
-
-def newTracked(dep: Dep):
-    return (dep.n & effect.trackOpBit) > 0
-
-
-def initDepMarkers(deps: List[Dep]):
-    for dep in deps:
-        dep.w |= effect.trackOpBit
-
-
-def finalizeDepMarkers(effect):
-    # todo 可优化
-    ptr = 0
-    for dep in effect.deps:
-        if wasTracked(dep) and (not newTracked(dep)):
-            continue
-        else:
-            dep.w &= ~effect.trackOpBit
-            dep.n &= ~effect.trackOpBit
-            effect.deps[ptr] = dep
-            ptr += 1
-    effect.deps = effect.deps[:ptr]
-

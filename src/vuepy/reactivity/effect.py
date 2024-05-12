@@ -1,38 +1,101 @@
 from __future__ import annotations
-import enum
-import weakref
-from collections import defaultdict
-from typing import Any
-from typing import List
-from typing import Type
 
-from vuepy.reactivity import createDep
+import enum
+from dataclasses import dataclass
+from typing import Any
+from typing import Callable
+from typing import List
+
+from vuepy.reactivity import config
+from vuepy.reactivity.constant import IterateKey
 from vuepy.reactivity.dep import Dep
-from vuepy.reactivity.dep import newTracked
-from vuepy.reactivity.dep import wasTracked
+from vuepy.reactivity.dep import createDep
+from vuepy.utils.common import gen_hash_key
 
 
 class DepStore:
     def __init__(self):
-        self._store = defaultdict(createDep)
+        # self._store = weakref.WeakKeyDictionary()
+        self._store = {}
 
-    def get(self, target):
-        return self._store[target]
+    def get_or_create(self, target) -> Dep:
+        key = gen_hash_key(target)
+        if key not in self._store:
+            self._store[key] = createDep()
+        return self._store[key]
 
-    def __contains__(self, target):
-        return target in self._store
+    def get(self, target) -> Dep:
+        return self._store.get(gen_hash_key(target))
+
+    def len(self):
+        return len(self._store)
+
+    def clear(self):
+        return self._store.clear()
+
+    def __contains__(self, target) -> bool:
+        return gen_hash_key(target) in self._store
 
 
-DEP_STORE = DepStore()
+class ReactiveDepStore:
+    """
+    dep for reactive
+    {
+        id(target): DepStore({
+            id(key1): Dep(effect..),
+            id(key2): Dep(effect..),
+            ...
+        }),
+        ...
+    }
+    """
 
-KeyToDepMap = Type[dict[Any, Dep]]
-# obj: KeyToDepMap
-targetMap = weakref.WeakKeyDictionary()
+    def __init__(self):
+        self._store = {}
+
+    def get_or_create(self, target) -> DepStore:
+        key = gen_hash_key(target)
+        if key not in self._store:
+            self._store[key] = DepStore()
+        return self._store[key]
+
+    def get(self, target) -> DepStore:
+        return self._store.get(gen_hash_key(target))
+
+    def len(self):
+        return len(self._store)
+
+    def delete(self, target):
+        self._store.pop(gen_hash_key(target), None)
+
+    def clear(self):
+        self._store.clear()
+
+    def __contains__(self, target) -> bool:
+        return gen_hash_key(target) in self._store
+
+
+targetMap = ReactiveDepStore()  # { target: { key: Dep } }
 
 shouldTrack = True
 activeEffect: "ReactiveEffect" | None = None
 trackOpBit = 1
+effectTrackDepth = 1
 
+
+class IgnoreTracking:
+    def __init__(self):
+        self.shouldTrack = None
+
+    def __enter__(self):
+        global shouldTrack
+        self.shouldTrack = shouldTrack
+        shouldTrack = False
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        global shouldTrack
+        shouldTrack = self.shouldTrack
+        self.shouldTrack = False
 
 
 class TrackOpTypes(enum.Enum):
@@ -66,8 +129,7 @@ class EffectScope:
         pass
 
 
-class EffectScheduler :
-    pass
+EffectScheduler = Callable[..., Any]
 
 
 class ReactiveEffect:
@@ -87,31 +149,77 @@ class ReactiveEffect:
 
         recordEffectScope(self, self.scope)
 
+    def __repr__(self):
+        name = f"{self.fn.__name__} of {self.__class__.__name__} at {id(self)}"
+        return f"{name}"
+
     def run(self):
-        pass
+        if not self.active:
+            return self.fn()
+
+        global activeEffect, trackOpBit, shouldTrack, effectTrackDepth
+        parent = activeEffect
+        last_should_track = shouldTrack
+        while parent:
+            if parent is self:
+                return
+            parent = parent.parent
+
+        try:
+            self.parent = activeEffect
+            activeEffect = self
+            shouldTrack = True
+
+            effectTrackDepth += 1
+            trackOpBit = 1 << effectTrackDepth
+            # todo effectTrackDepth <= maxMarkerBits
+            initDepMarkers(self.deps)
+            return self.fn()
+        finally:
+            finalizeDepMarkers(self)
+            effectTrackDepth -= 1
+            trackOpBit = 1 << effectTrackDepth
+            activeEffect = self.parent
+            shouldTrack = last_should_track
+            self.parent = None
+            if self.deferStop:
+                self.stop()
 
     def stop(self):
-        pass
+        if activeEffect is self:
+            self.deferStop = True
+        elif self.active:
+            cleanupEffect(self)
+            if self.onStop:
+                self.onStop()
+            self.active = False
 
 
-def track(target, track_type: TrackOpTypes, key):
+# todo move to reactiveeffect
+def cleanupEffect(effect: ReactiveEffect):
+    for dep in effect.deps:
+        dep.delete(effect)
+    effect.deps = []
+
+
+def track(target, track_type: TrackOpTypes, key, msg=""):
     if not (shouldTrack and activeEffect):
         return
 
-    # todo weakref defaultdict
-    depsMap = targetMap.get(target, None)
-    if depsMap is None:
-        depsMap = {}
-        targetMap[target] = depsMap
+    eventInfo = config.__DEV__ and {
+        'effect': activeEffect,
+        'target': target,
+        'type': track_type,
+        'key': key,
+        'msg': msg,
+    }
+    if isinstance(target, list) and track_type == TrackOpTypes.ITER:
+        key = IterateKey.get_key(target)
+    dep = targetMap.get_or_create(target).get_or_create(key)
+    trackEffects(dep, eventInfo)
 
-    dep = depsMap.get(key, None)
-    if dep is None:
-        dep = createDep()
-        depsMap[key] = dep
-    trackEffects(dep)
 
-
-def trackEffects(dep: Dep, debuggerEventExtraInfo=None):
+def trackEffects(dep: Dep, debugger_info: DebuggerEventExtraInfo = None):
     should_track = False
     if not newTracked(dep):
         dep.n |= trackOpBit
@@ -123,6 +231,8 @@ def trackEffects(dep: Dep, debuggerEventExtraInfo=None):
 
     dep.add(activeEffect)
     activeEffect.deps.append(dep)
+    if config.__DEV__ and activeEffect.onTrack:
+        activeEffect.onTrack(debugger_info)
 
 
 def trigger(
@@ -131,12 +241,144 @@ def trigger(
         key=None,
         new=None,
         old=None,
-        old_target=None
+        old_target=None,
+        msg="",
 ):
-    pass
+    depsMap = targetMap.get(target)
+    if not depsMap:
+        return
 
-def triggerEffects():
-    pass
+    deps: List[Dep] = []
+    if trigger_type in (TriggerOpTypes.CLEAR, TriggerOpTypes.ITER):
+        deps.extend(depsMap.values())
+    else:
+        if key in depsMap:
+            deps.append(depsMap.get(key))
+
+        iter_key = IterateKey.get_key(target)
+
+        if trigger_type == TriggerOpTypes.ADD:
+            deps.append(depsMap.get(iter_key))
+        elif trigger_type == TriggerOpTypes.DELETE:
+            deps.append(depsMap.get(iter_key))
+        elif trigger_type == TriggerOpTypes.SET:
+            deps.append(depsMap.get(iter_key))
+
+    eventInfo = config.__DEV__ and {
+        'target': target,
+        'type': trigger_type,
+        'key': key,
+        'newValue': new,
+        'oldValue': old,
+        'oldTarget': old_target,
+        'msg': msg,
+    }
+    effects = []
+    for dep in deps:
+        if not dep:
+            continue
+        effects.extend(dep)
+
+    triggerEffects(effects, eventInfo)
+
+
+def triggerEffects(
+        dep: Dep | List[ReactiveEffect],
+        debuggerEventExtraInfo: DebuggerEventExtraInfo = None
+):
+    for effect in dep:
+        if effect.computed:
+            trigggerEffect(effect, debuggerEventExtraInfo)
+
+    for effect in dep:
+        if not effect.computed:
+            trigggerEffect(effect, debuggerEventExtraInfo)
+
+
+def trigggerEffect(effect: ReactiveEffect, debuggerEventExtraInfo=None):
+    if effect is not activeEffect or effect.allow_recurse:
+        if config.__DEV__ and effect.onTrigger:
+            debuggerEventExtraInfo['effect'] = effect
+            effect.onTrigger(debuggerEventExtraInfo)
+
+        if effect.scheduler:
+            effect.scheduler()
+        else:
+            effect.run()
+
+
+@dataclass
+class DebuggerEventExtraInfo:
+    target: Any
+    type: TrackOpTypes | TriggerOpTypes
+    key: Any
+    newValue: Any = None
+    oldValue: Any = None
+    oldTarget: dict[any, any] | set[any] = None
+
+
+@dataclass
+class DebuggerEvent(DebuggerEventExtraInfo):
+    effect: ReactiveEffect = None
+
+
+@dataclass
+class DebuggerOptions:
+    onTrack: Callable[[DebuggerEvent], None] = None
+    onTrigger: Callable[[DebuggerEvent], None] = None
+
+
+@dataclass
+class ReactiveEffectOptions(DebuggerOptions):
+    lazy: bool = False
+    scheduler: EffectScheduler = None
+    scope: EffectScope = None
+    allowRecurse: bool = False
+    onStop: Callable[[], None] = None
+
+    def extend(self, effect: ReactiveEffect):
+        effect.onTrack = self.onTrack
+        effect.onTrigger = self.onTrigger
+        effect.scheduler = self.scheduler
+        effect.allow_recurse = self.allowRecurse
+        effect.onStop = self.onStop
+        if self.scope:
+            recordEffectScope(effect, self.scope)
+
+
+@dataclass
+class ReactiveEffectRunner:
+    effect: ReactiveEffect = None
+
+    def __call__(self):
+        pass
+
+
+def effect_impl(fn, options: ReactiveEffectOptions = None):
+    _effect = ReactiveEffect(fn)
+    if options:
+        options.extend(_effect)
+
+    if not options or not options.lazy:
+        _effect.run()
+
+    runner = ReactiveEffectRunner()
+    runner.effect = _effect
+    return runner
+
+
+def effect(fn_or_options=None, options: ReactiveEffectOptions = None):
+    is_decorator_no_arg = (fn_or_options, options) == (None, None)
+    is_decorator_with_arg = isinstance(fn_or_options, ReactiveEffectOptions)
+    # @effect() or @effect(options)
+    if is_decorator_with_arg or is_decorator_no_arg:
+        def wrap(fn):
+            return effect_impl(fn, fn_or_options)
+
+        return wrap
+    # @effect or effect(fn)
+    else:
+        return effect_impl(fn_or_options, options)
 
 
 MUTABLE_TYPES = (dict, list, set)
@@ -144,3 +386,30 @@ MUTABLE_TYPES = (dict, list, set)
 
 def _can_reactive(target) -> bool:
     return isinstance(target, MUTABLE_TYPES)
+
+
+def wasTracked(dep: Dep):
+    return (dep.w & trackOpBit) > 0
+
+
+def newTracked(dep: Dep):
+    return (dep.n & trackOpBit) > 0
+
+
+def initDepMarkers(deps: List[Dep]):
+    for dep in deps:
+        dep.w |= trackOpBit
+
+
+def finalizeDepMarkers(effect):
+    # todo 可优化
+    ptr = 0
+    for dep in effect.deps:
+        if wasTracked(dep) and (not newTracked(dep)):
+            continue
+        else:
+            dep.w &= ~trackOpBit
+            dep.n &= ~trackOpBit
+            effect.deps[ptr] = dep
+            ptr += 1
+    effect.deps = effect.deps[:ptr]
