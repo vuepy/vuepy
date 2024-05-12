@@ -39,13 +39,13 @@ def get_block_content_from_sfc(sfc_file, block):
 def get_script_py_block_content_from_sfc(sfc_file):
     with open(sfc_file) as f:
         match = re.search(
-            fr'<script\s+lang=(["\'])py\1\s*>(?P<content>.*)</script>',
+            fr'<script\s+lang=(["\'])py\1\s*>(?P<content>.*)?</script>',
             f.read(),
             flags=re.S | re.I
         )
 
     if not match:
-        return None
+        raise ValueError("can't find <script lang=py>")
 
     return match.group('content')
 
@@ -1748,38 +1748,6 @@ class SFCFactory:
     def __call__(self, props: dict, context: SetupContext | dict, app: App) -> "SFC":
         setup_ret = self.setup(props, context, app)
         return SFC(context, props, setup_ret, self.template, app, self.render)
-
-
-def compile_script_block_setup(s):
-    module = ast.parse(s)
-    func_name = 'setup'
-    func_ast = ast.FunctionDef(
-        name=func_name,
-        args=ast.arguments(
-            posonlyargs=[],
-            args=[
-                ast.arg(arg='props', annotation=None),
-                ast.arg(arg='ctx', annotation=None),
-                ast.arg(arg='vm', annotation=None)
-            ],
-            vararg=None,
-            kwonlyargs=[],
-            kw_defaults=[],
-            kwarg=None,
-            defaults=[],
-        ),
-        body=module.body + [ast.parse('return locals()').body[0]],
-        decorator_list=[],
-        returns=None
-    )
-
-    module.body = [func_ast]
-    ast.fix_missing_locations(module)
-    code = compile(module, filename='<ast>', mode='exec')
-
-    local_vars = {}
-    exec(code, {}, local_vars)
-    return local_vars[func_name]
 
 
 def import_sfc(sfc_file):
