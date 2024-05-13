@@ -26,6 +26,10 @@ from IPython.display import display
 from ipywidgets import CallbackDispatcher
 
 from vuepy import log as logging
+from vuepy.reactivity.computed import computed
+from vuepy.reactivity.watch import watch
+from vuepy.reactivity.watch import watchEffect
+from vuepy.utils.common import has_changed
 
 logger = logging.getLogger()
 
@@ -339,34 +343,34 @@ def reactive(obj):
     return observe(obj)
 
 
-def computed(func, setter=None):
-    val_ref = ref(None)
-    watcher = WatcherForComputed(val_ref, func)
-    with ActivateEffect(watcher, PubEnum.SETUP):
-        val_ref.value = func()
-    return val_ref
+# def computed(func, setter=None):
+#     val_ref = ref(None)
+#     watcher = WatcherForComputed(val_ref, func)
+#     with ActivateEffect(watcher, PubEnum.SETUP):
+#         val_ref.value = func()
+#     return val_ref
 
 
-def watch(source, callback, options=None):
-    def _watch_reactive_obj(data: Reactive, source, callback):
-        if isinstance(data, dict):
-            for attr, item in data.items():
-                _watch_reactive_obj(item, source, callback)
-
-        elif isinstance(data, list):
-            for i, item in enumerate(data):
-                _watch_reactive_obj(item, source, callback)
-
-    options = options or {}
-    watcher = WatcherForWatchFunc(source, callback, options)
-    with ActivateEffect(watcher, PubEnum.SETUP):
-        if isinstance(source, VueRef):
-            _ = source.value
-        elif isinstance(source, Reactive):
-            _watch_reactive_obj(source, source, callback)
-        elif callable(source):
-            deep = options.get('deep', True)
-            _ = source()
+# def watch(source, callback, options=None):
+#     def _watch_reactive_obj(data: Reactive, source, callback):
+#         if isinstance(data, dict):
+#             for attr, item in data.items():
+#                 _watch_reactive_obj(item, source, callback)
+#
+#         elif isinstance(data, list):
+#             for i, item in enumerate(data):
+#                 _watch_reactive_obj(item, source, callback)
+#
+#     options = options or {}
+#     watcher = WatcherForWatchFunc(source, callback, options)
+#     with ActivateEffect(watcher, PubEnum.SETUP):
+#         if isinstance(source, VueRef):
+#             _ = source.value
+#         elif isinstance(source, Reactive):
+#             _watch_reactive_obj(source, source, callback)
+#         elif callable(source):
+#             deep = options.get('deep', True)
+#             _ = source()
 
 
 class WatcherForRerender(WatcherBase):
@@ -820,11 +824,17 @@ class VueCompCodeGen:
 
         # v-bind:
         for widget_attr, exp_ast in comp_ast.v_binds.items():
-            update_vm_to_view = cls.handle_value_change_vm_to_view(widget, widget_attr)
-            watcher = WatcherForAttrUpdate(ns, exp_ast, update_vm_to_view)
-            with ActivateEffect(watcher):
-                _value = exp_ast.eval(ns)
-            update_vm_to_view(_value, None)
+            # update_vm_to_view = cls.handle_value_change_vm_to_view(widget, widget_attr)
+            # watcher = WatcherForAttrUpdate(ns, exp_ast, update_vm_to_view)
+            # with ActivateEffect(watcher):
+            #     _value = exp_ast.eval(ns)
+            # update_vm_to_view(_value, None)
+            @watchEffect
+            def update_vm_to_view(on_cleanup, _widget_attr=widget_attr):
+                _old_val = getattr(widget, _widget_attr, Nil)
+                _new_val = exp_ast.eval(ns)
+                if has_changed(_old_val, _new_val):
+                    setattr(widget, _widget_attr, _new_val)
 
         # v-model:define-model=bind
         for _model_key, attr_chain in comp_ast.v_model:
@@ -834,11 +844,17 @@ class VueCompCodeGen:
             if _model_key == defineModel.DEFAULT_KEY and hasattr(component_cls, 'v_model_default'):
                 widget_attr = getattr(component_cls, 'v_model_default')
 
-            update_vm_to_view = cls.handle_value_change_vm_to_view(widget, widget_attr)
-            watcher = WatcherForAttrUpdate(ns, lambda: ns.getattr(attr_chain), update_vm_to_view)
-            with ActivateEffect(watcher):
-                _value = ns.getattr(attr_chain)
-            update_vm_to_view(_value, None)
+            # update_vm_to_view = cls.handle_value_change_vm_to_view(widget, widget_attr)
+            # watcher = WatcherForAttrUpdate(ns, lambda: ns.getattr(attr_chain), update_vm_to_view)
+            # with ActivateEffect(watcher):
+            #     _value = ns.getattr(attr_chain)
+            # update_vm_to_view(_value, None)
+            @watchEffect
+            def update_vm_to_view(on_cleanup, _widget_attr=widget_attr, _attr_chain=attr_chain):
+                _old_val = getattr(widget, _widget_attr, Nil)
+                _new_val = ns.getattr(_attr_chain)
+                if has_changed(_old_val, _new_val):
+                    setattr(widget, _widget_attr, _new_val)
 
             # v-on, child to parent
             def listener(obj, attr):
@@ -890,9 +906,10 @@ class VueCompHtmlTemplateRender:
             exp = match.group(1)
             exp_ast = vue_comp_expr_parse(exp)
             # TODO html可以设置value，按需更新
-            watcher = WatcherForRerender(vm, f'html {for_idx} {{{{ {exp} }}}}')
-            with ActivateEffect(watcher):
-                _value = exp_ast.eval(ns)
+            # watcher = WatcherForRerender(vm, f'html {for_idx} {{{{ {exp} }}}}')
+            # with ActivateEffect(watcher):
+            #     _value = exp_ast.eval(ns)
+            _value = exp_ast.eval(ns)
             return str(_value)
         return warp
 
@@ -964,47 +981,84 @@ class DomCompiler(HTMLParser):
         ast_node = {'type': 'html', 'tag': tag, 'attrs': attrs, 'body': []}
         return ast_node
 
+    # def _html_tag_exit(self, node, for_scope: ForScope = None):
+    #     # TODO 重构
+    #     comp_ast = VueCompAst.parse(node['tag'], node['attrs'])
+    #     local = for_scope.to_ns() if for_scope else None
+    #     ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local)
+    #     # v-if
+    #     widget = widgets.HTML("")
+    #     if comp_ast.v_if:
+    #         watcher = WatcherForRerender(self.vm, f'v_if {comp_ast.v_if}')
+    #         with ActivateEffect(watcher):
+    #             if not comp_ast.v_if.eval(ns):
+    #                 return widget
+    #
+    #     tag = node['tag']
+    #     attr = ' '.join([f"{k}='{v}'" for k, v in node['attrs'].items()])
+    #     html_temp = f"<{tag} {attr}>{{inner_html}}</{tag}>"
+    #
+    #     def gen_html(inner_html):
+    #         return html_temp.format(inner_html=inner_html)
+    #
+    #     def handle_value_change_vm_to_view(widget, attr):
+    #         def warp(val, old_val):
+    #             if val == old_val:
+    #                 return
+    #             setattr(widget, attr, gen_html(val))
+    #         return warp
+    #
+    #     # v-html
+    #     if comp_ast.v_html:
+    #         attr_chain = comp_ast.v_html
+    #         update_vm_to_view = handle_value_change_vm_to_view(widget, 'value')
+    #         watcher = WatcherForAttrUpdate(ns, lambda: ns.getattr(attr_chain), update_vm_to_view)
+    #         with ActivateEffect(watcher):
+    #             _value = ns.getattr(attr_chain)
+    #         update_vm_to_view(_value, None)
+    #     else:
+    #         body = [
+    #             child.value if isinstance(child, widgets.HTML) else child
+    #             for child in node['body']
+    #         ]
+    #         widget.value = gen_html(' '.join(body))
+    #
+    #     return widget
+
     def _html_tag_exit(self, node, for_scope: ForScope = None):
         # TODO 重构
         comp_ast = VueCompAst.parse(node['tag'], node['attrs'])
         local = for_scope.to_ns() if for_scope else None
         ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local)
-        # v-if
-        widget = widgets.HTML("")
-        if comp_ast.v_if:
-            watcher = WatcherForRerender(self.vm, f'v_if {comp_ast.v_if}')
-            with ActivateEffect(watcher):
-                if not comp_ast.v_if.eval(ns):
-                    return widget
-
-        tag = node['tag']
-        attr = ' '.join([f"{k}='{v}'" for k, v in node['attrs'].items()])
-        html_temp = f"<{tag} {attr}>{{inner_html}}</{tag}>"
 
         def gen_html(inner_html):
+            tag = node['tag']
+            attr = ' '.join([f"{k}='{v}'" for k, v in node['attrs'].items()])
+            html_temp = f"<{tag} {attr}>{{inner_html}}</{tag}>"
             return html_temp.format(inner_html=inner_html)
 
-        def handle_value_change_vm_to_view(widget, attr):
-            def warp(val, old_val):
-                if val == old_val:
-                    return
-                setattr(widget, attr, gen_html(val))
-            return warp
+        @computed
+        def render_html():
+            # v-if
+            if not comp_ast.v_if.eval(ns):
+                return ''
 
-        # v-html
-        if comp_ast.v_html:
-            attr_chain = comp_ast.v_html
-            update_vm_to_view = handle_value_change_vm_to_view(widget, 'value')
-            watcher = WatcherForAttrUpdate(ns, lambda: ns.getattr(attr_chain), update_vm_to_view)
-            with ActivateEffect(watcher):
-                _value = ns.getattr(attr_chain)
-            update_vm_to_view(_value, None)
-        else:
+            # v-html
+            if comp_ast.v_html:
+                attr_chain = comp_ast.v_html
+                return ns.getattr(attr_chain)
+
             body = [
                 child.value if isinstance(child, widgets.HTML) else child
                 for child in node['body']
             ]
-            widget.value = gen_html(' '.join(body))
+            return gen_html(' '.join(body))
+
+        @watch(render_html)
+        def update(curr_html, old, on_cleanup):
+            widget.value = curr_html
+
+        widget = widgets.HTML(value=render_html.value)
 
         return widget
 
@@ -1100,8 +1154,18 @@ class DomCompiler(HTMLParser):
                 return
 
             ns = VueCompNamespace(self.vm._data, self.vm.to_ns())
-            result = VueCompHtmlTemplateRender.render(data, self.vm, ns, -1)
-            parent['body'].append(result)
+            # result = VueCompHtmlTemplateRender.render(data, self.vm, ns, -1)
+            # parent['body'].append(result)
+            @computed
+            def gen_html():
+                result = VueCompHtmlTemplateRender.render(data, self.vm, ns, -1)
+                return result
+
+            @watch(gen_html)
+            def rerender(_curr, _old, on_cleanup):
+                self.vm.render()
+
+            parent['body'].append(gen_html.value)
 
         # TODO node的类型判断可以优化
         elif parent['body'] and parent['body'][0].get('type') == 'html':
@@ -1110,8 +1174,17 @@ class DomCompiler(HTMLParser):
             for i, target in enumerate(_iter):
                 for_scope = ForScope(i, v_for_stmt, self.vm)
                 ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), for_scope.to_ns())
-                result = VueCompHtmlTemplateRender.render(data, self.vm, ns, i)
-                parent['body'][i]['body'].append(result)
+                # result = VueCompHtmlTemplateRender.render(data, self.vm, ns, i)
+                # parent['body'][i]['body'].append(result)
+                @computed
+                def gen_html(_ns=ns, _i=i):
+                    result = VueCompHtmlTemplateRender.render(self.vm._data, self.vm, _ns, _i)
+                    return result
+
+                @watch(gen_html)
+                def rerender(_curr, _old, on_cleanup):
+                    self.vm.render()
+                parent['body'][i]['body'].append(gen_html.value)
 
     def handle_endtag(self, tag):
         node = self.parent_node_stack.pop()
