@@ -5,6 +5,7 @@ import enum
 from typing import Any
 from typing import Callable
 from typing import List
+from typing import Union
 
 from vuepy.reactivity import config
 from vuepy.reactivity.computed import ComputedRefImpl
@@ -23,7 +24,7 @@ from vuepy.utils.common import has_changed
 
 OnCleanUp = Callable[[Callable[[], None]], None]  # (cleanupFn: () => void) => void
 WatchEffect = Callable[[OnCleanUp], None]  # (onCleanup: OnCleanup) => void
-WatchSource = RefImpl | ComputedRefImpl | Callable[[], None] | ReactiveProxy
+WatchSource = Union[RefImpl, ComputedRefImpl, Callable[[], None], ReactiveProxy]
 # (val: V, oldVal: OV, onCleanup: OnCleanup) => any
 WatchCallback = Callable[[Any, Any, OnCleanUp], Any]
 MultiWatchSources = List[WatchSource]
