@@ -409,6 +409,35 @@ class TestWatch(BaseTestCase):
         count.value = 2
         self.assertEqual((watch_call, curr_count, prev_count), (1, 2, 1))
 
+    def test_watch_should_reactive_when_src_is_computed_ref(self):
+        count = ref(1)
+
+        computed_call = 0
+
+        @computed
+        def computed_count():
+            nonlocal computed_call
+            computed_call += 1
+            return count.value + 1
+
+        self.assertEqual(computed_call, 0)
+
+        curr_count = 0
+        prev_count = 0
+        watch_call = 0
+
+        @watch(computed_count)
+        def watch_state_handle_with_stop(curr, old, on_cleanup):
+            nonlocal watch_call, curr_count, prev_count
+            watch_call += 1
+            curr_count = curr
+            prev_count = old
+
+        self.assertEqual((watch_call, computed_call, curr_count, prev_count), (0, 1, 0, 0))
+
+        count.value = 2
+        self.assertEqual((watch_call, computed_call, curr_count, prev_count), (1, 2, 3, 2))
+
     def test_watch_should_reactive_when_src_is_getter_function(self):
         state = reactive({
             'count': 0,
