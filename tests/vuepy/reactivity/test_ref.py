@@ -447,19 +447,25 @@ class TestWatch(BaseTestCase):
         curr_count = 0
         prev_count = 0
         watch_call = 0
+        getter_call = 0
+
+        def getter():
+            nonlocal getter_call
+            getter_call += 1
+            return state.count
 
         # default deep = False
-        @watch(lambda: state.count)
+        @watch(getter)
         def watch_state_handle_with_stop(curr, old, on_cleanup):
             nonlocal watch_call, curr_count, prev_count
             watch_call += 1
             curr_count = curr
             prev_count = old
 
-        self.assertEqual((watch_call, curr_count, prev_count), (0, 0, 0))
+        self.assertEqual((watch_call, getter_call, curr_count, prev_count), (0, 1, 0, 0))
 
         state.count = 2
-        self.assertEqual((watch_call, curr_count, prev_count), (1, 2, 0))
+        self.assertEqual((watch_call, getter_call, curr_count, prev_count), (1, 2, 2, 0))
 
         # todo deep = true
 

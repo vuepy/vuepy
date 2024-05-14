@@ -27,6 +27,8 @@ from ipywidgets import CallbackDispatcher
 
 from vuepy import log as logging
 from vuepy.reactivity.computed import computed
+from vuepy.reactivity.ref import RefImpl
+from vuepy.reactivity.ref import ref
 from vuepy.reactivity.watch import watch
 from vuepy.reactivity.watch import watchEffect
 from vuepy.utils.common import has_changed
@@ -309,38 +311,38 @@ def observe(data):
     return data
 
 
-class VueRef(Reactive):
-    _SUB_KEY = '__ref_sub_key'
-
-    def __init__(self, value):
-        super().__init__()
-        self._value = value
-
-    @property
-    def value(self):
-        track(self, self._SUB_KEY)
-        return self._value
-
-    @value.setter
-    def value(self, new_value):
-        self._value = new_value
-        trigger(self, self._SUB_KEY)
-
-    def add_dep(self, sub):
-        add_subscribers_for_property(self, self._SUB_KEY, sub)
-
-    def reset_deps(self):
-        clear_subscribers_for_property(self, self._SUB_KEY, PubEnum.PROPERTY)
-        if isinstance(self._value, Reactive):
-            self._value.reset_deps()
-
-
-def ref(value):
-    return VueRef(value)
+# class VueRef(Reactive):
+#     _SUB_KEY = '__ref_sub_key'
+#
+#     def __init__(self, value):
+#         super().__init__()
+#         self._value = value
+#
+#     @property
+#     def value(self):
+#         track(self, self._SUB_KEY)
+#         return self._value
+#
+#     @value.setter
+#     def value(self, new_value):
+#         self._value = new_value
+#         trigger(self, self._SUB_KEY)
+#
+#     def add_dep(self, sub):
+#         add_subscribers_for_property(self, self._SUB_KEY, sub)
+#
+#     def reset_deps(self):
+#         clear_subscribers_for_property(self, self._SUB_KEY, PubEnum.PROPERTY)
+#         if isinstance(self._value, Reactive):
+#             self._value.reset_deps()
 
 
-def reactive(obj):
-    return observe(obj)
+# def ref(value):
+#     return VueRef(value)
+#
+#
+# def reactive(obj):
+#     return observe(obj)
 
 
 # def computed(func, setter=None):
@@ -404,29 +406,29 @@ class WatcherForComputed(WatcherBase):
         self.source.value = new_val
 
 
-class WatcherForWatchFunc(WatcherBase):
-    def __init__(self, source, callback, options=None):
-        self.source = source
-        self.callback = callback
-        self.value = self.get_val()
-
-    def get_val(self):
-        if isinstance(self.source, VueRef):
-            return self.source.value
-        else:
-            return self.source
-
-    def update(self):
-        old_val = self.value
-        new_val = self.get_val()
-        try:
-            if new_val == self.value:
-                return
-        except Exception as e:
-            pass
-
-        self.value = new_val
-        self.callback(new_val, old_val)
+# class WatcherForWatchFunc(WatcherBase):
+#     def __init__(self, source, callback, options=None):
+#         self.source = source
+#         self.callback = callback
+#         self.value = self.get_val()
+#
+#     def get_val(self):
+#         if isinstance(self.source, VueRef):
+#             return self.source.value
+#         else:
+#             return self.source
+#
+#     def update(self):
+#         old_val = self.value
+#         new_val = self.get_val()
+#         try:
+#             if new_val == self.value:
+#                 return
+#         except Exception as e:
+#             pass
+#
+#         self.value = new_val
+#         self.callback(new_val, old_val)
 
 
 class WatcherForAttrUpdate(WatcherBase):
@@ -785,10 +787,21 @@ class VueCompCodeGen:
         component_cls: Type[VueComponent] = vm.component(comp_ast.tag)
         # v-if
         if comp_ast.v_if:
-            watcher = WatcherForRerender(vm, f'v_if {comp_ast.v_if}')
-            with ActivateEffect(watcher):
-                if not comp_ast.v_if.eval(ns):
-                    return widgets.HTML("")
+            @computed
+            def should_render():
+                return comp_ast.v_if.eval(ns)
+
+            @watch(should_render)
+            def rerender():
+                vm.render()
+
+            if not should_render.value:
+                return widgets.HTML("")
+
+        # watcher = WatcherForRerender(vm, f'v_if {comp_ast.v_if}')
+            # with ActivateEffect(watcher):
+            #     if not comp_ast.v_if.eval(ns):
+            #         return widgets.HTML("")
 
         slots = {'default': []}
         for child in children or []:
@@ -881,7 +894,8 @@ class VueCompCodeGen:
 
         if comp_ast.v_ref:
             _ref = ns.getattr(comp_ast.v_ref)
-            if not isinstance(_ref, VueRef):
+            # if not isinstance(_ref, VueRef):
+            if not isinstance(_ref, RefImpl):
                 logger.error(f'ref={comp_ast.v_ref} is not instance of VueRef.')
             else:
                 _ref.value = widget
@@ -1099,19 +1113,30 @@ class DomCompiler(HTMLParser):
             ns = VueCompNamespace(self.vm._data, self.vm.to_ns())
             # 处理list被整个替换的情况
             attr_chain = v_for_stmt.iter
-            _attrs = attr_chain.split('.', 1)
-            if len(_attrs) > 1:
-                base_attr, sub_attr_chain = _attrs
-                obj = ns.getattr(base_attr)
-                watcher = WatcherForRerender(self.vm, f"for_stme {v_for_stmt.iter} replace")
-                with ActivateEffect(watcher):
-                    VueCompNamespace.get_by_attr_chain(obj, sub_attr_chain)
-            # 处理list本身的变化，append、pop等操作
-            # watcher = WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified")
-            # with ActivateEffect(watcher):
-            obj_iter = ns.getattr(v_for_stmt.iter)
-            if isinstance(obj_iter, Reactive):
-                obj_iter.add_dep(WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified"))
+
+            @computed
+            def track_list_change():
+                obj_iter = ns.getattr(attr_chain)
+                return id(obj_iter), [id(item) for item in obj_iter]
+
+            @watch(track_list_change)
+            def rerender():
+                self.vm.render()
+
+            # _attrs = attr_chain.split('.', 1)
+            # if len(_attrs) > 1:
+            #     base_attr, sub_attr_chain = _attrs
+            #     obj = ns.getattr(base_attr)
+            #     watcher = WatcherForRerender(self.vm, f"for_stme {v_for_stmt.iter} replace")
+            #     with ActivateEffect(watcher):
+            #         VueCompNamespace.get_by_attr_chain(obj, sub_attr_chain)
+            #
+            # # 处理list本身的变化，append、pop等操作
+            # # watcher = WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified")
+            # # with ActivateEffect(watcher):
+            # obj_iter = ns.getattr(v_for_stmt.iter)
+            # if isinstance(obj_iter, Reactive):
+            #     obj_iter.add_dep(WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified"))
 
         return _widgets
 

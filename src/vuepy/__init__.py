@@ -1,4 +1,6 @@
 # coding: utf-8
+from vuepy.reactivity.reactive import reactive
+from vuepy.reactivity.ref import ref
 from vuepy.vue import *
 
 
@@ -8,7 +10,6 @@ __all__ = [
     'App',
     'VueComponent',
     'VuePlugin',
-    'VueRef',
     'get_template_from_sfc',
     'defineEmits',
     'defineModel',
