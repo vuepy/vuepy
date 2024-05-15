@@ -48,8 +48,39 @@ class TestRef(BaseTestCase):
         self.assertEqual(calls, 2)
         self.assertEqual(dummy, 2)
         # same value should not trigger
+        a.value = 2
         self.assertEqual(calls, 2)
         self.assertEqual(dummy, 2)
+
+    def test_ref_should_be_reactive_when_value_dict(self):
+        raw = {
+            'l1': 10,
+            'l2': 20,
+        }
+        a = ref(raw)
+        dummy = 0
+        calls = 0
+
+        @effect
+        def f():
+            nonlocal dummy, calls
+            calls += 1
+            dummy = a.value.l1
+
+        self.assertEqual(calls, 1)
+        self.assertEqual(dummy, 10)
+
+        a.value.l1 = 100
+        self.assertEqual(calls, 2)
+        self.assertEqual(dummy, 100)
+        # same value should not trigger
+        a.value.l1 = 100
+        self.assertEqual(calls, 2)
+        self.assertEqual(dummy, 100)
+
+        a.value.l2 = 200
+        self.assertEqual(calls, 2)
+        self.assertEqual(dummy, 100)
 
 
 class TestReactive(BaseTestCase):
@@ -188,6 +219,35 @@ class TestReactive(BaseTestCase):
         a.l1.l2a = value
         self.assertEqual(l1_l2a_calls, 4)
         self.assertEqual(dummy, value)
+
+    def test_reactive_list_should_reactive_when_item_dict(self):
+        a = reactive([
+            {'l1': 10},
+            {'l2': 100},
+        ])
+        dummy = 0
+        calls = 0
+
+        @effect
+        def f():
+            nonlocal dummy, calls
+            calls += 1
+            dummy = a[0].l1
+
+        self.assertEqual(calls, 1)
+        self.assertEqual(dummy, 10)
+
+        a[0].l1 = 20
+        self.assertEqual(calls, 2)
+        self.assertEqual(dummy, 20)
+        # same value should not trigger
+        a[0].l1 = 20
+        self.assertEqual(calls, 2)
+        self.assertEqual(dummy, 20)
+
+        a[1].l2 = 3
+        self.assertEqual(calls, 2)
+        self.assertEqual(dummy, 20)
 
     def test_reactive_list_should_reactive_when_set(self):
         a = reactive([1, 2])
