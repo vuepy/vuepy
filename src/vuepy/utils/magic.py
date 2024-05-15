@@ -64,11 +64,13 @@ def vuepy_demo(vue_sfc):
 
 
 @register_line_magic
-def vuepy_log(_):
+def vuepy_log(cmd):
     """
     show log.
 
-    :param _:
+    :param cmd: clear
     :return:
     """
+    if cmd == 'clear':
+        log.logout.clear_output()
     return log.logout

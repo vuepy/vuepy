@@ -3,6 +3,7 @@ from __future__ import annotations
 
 class Dep(set):
     def __init__(self, *args, **kwargs):
+        self.key = kwargs.pop('key', None)
         self.w = kwargs.pop('w', 0)  # wasTracked
         self.n = kwargs.pop('n', 0)  # newTracked
         super().__init__(*args, **kwargs)
@@ -17,5 +18,5 @@ class Dep(set):
             pass
 
 
-def createDep(effects=None) -> Dep:
-    return Dep(effects or "")
+def createDep(effects=None, key=None) -> Dep:
+    return Dep(effects or "", key=key)

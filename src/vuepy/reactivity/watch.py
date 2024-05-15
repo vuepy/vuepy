@@ -269,7 +269,8 @@ def callWithErrorHandling(fn, instance, type, args: List = None):
     try:
         res = fn(*args) if args else fn()
     except Exception as err:
-        print(f"call {fn} {type} failed, {err}")
+        print(f"call {fn}({ args }) {type} failed, {err}")
+        raise err
     return res
 
 

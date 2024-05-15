@@ -21,7 +21,7 @@ class DepStore:
     def get_or_create(self, target) -> Dep:
         key = gen_hash_key(target)
         if key not in self._store:
-            self._store[key] = createDep()
+            self._store[key] = createDep(key=key)
         return self._store[key]
 
     def get(self, target) -> Dep:
@@ -177,6 +177,7 @@ class ReactiveEffect:
             return self.fn()
         finally:
             finalizeDepMarkers(self)
+
             effectTrackDepth -= 1
             trackOpBit = 1 << effectTrackDepth
             activeEffect = self.parent
@@ -286,13 +287,25 @@ def triggerEffects(
         dep: Dep | List[ReactiveEffect],
         debuggerEventExtraInfo: DebuggerEventExtraInfo = None
 ):
-    for effect in dep:
-        if effect.computed:
-            trigggerEffect(effect, debuggerEventExtraInfo)
+    try:
+        dep_id = f":{dep.key._raw_value}"
+    except:
+        dep_id = f":{dep.key.effect.fn.__name__}"
 
-    for effect in dep:
-        if not effect.computed:
+    print(f"dep{dep_id} len({len(dep)}) {dep} start")
+    effects = dep if isinstance(dep, list) else list(dep)
+    for effect in effects:
+        if effect.computed:
+            print(f"  effect computed {effect} start")
             trigggerEffect(effect, debuggerEventExtraInfo)
+            print(f"  effect computed {effect} end. dep{dep_id} len({len(dep)}) is {dep}")
+
+    for effect in effects:
+        if not effect.computed:
+            print(f"  effect {effect} start")
+            trigggerEffect(effect, debuggerEventExtraInfo)
+            print(f"  effect {effect} end. dep{dep_id} len({len(dep)}) is {dep}")
+    print(f"dep{dep_id} len({len(dep)}) {dep} end")
 
 
 def trigggerEffect(effect: ReactiveEffect, debuggerEventExtraInfo=None):
@@ -300,10 +313,13 @@ def trigggerEffect(effect: ReactiveEffect, debuggerEventExtraInfo=None):
         if config.__DEV__ and effect.onTrigger:
             debuggerEventExtraInfo['effect'] = effect
             effect.onTrigger(debuggerEventExtraInfo)
+        print(debuggerEventExtraInfo)
 
         if effect.scheduler:
+            print(f"    trigger effect {effect} scheduler")
             effect.scheduler()
         else:
+            print(f"    trigger effect {effect} run")
             effect.run()
 
 
@@ -406,10 +422,13 @@ def finalizeDepMarkers(effect):
     ptr = 0
     for dep in effect.deps:
         if wasTracked(dep) and (not newTracked(dep)):
-            continue
+            print(f"dep{id(dep)} delete effect{id(effect)}")
+            dep.delete(effect)
         else:
-            dep.w &= ~trackOpBit
-            dep.n &= ~trackOpBit
             effect.deps[ptr] = dep
             ptr += 1
+
+        dep.w &= ~trackOpBit
+        dep.n &= ~trackOpBit
+
     effect.deps = effect.deps[:ptr]

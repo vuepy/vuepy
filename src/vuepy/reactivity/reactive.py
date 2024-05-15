@@ -259,7 +259,7 @@ class ListProxy(ReactiveProxy):
         index = index if index >= 0 else len(target) + index
         res = target[index]
         track(self._vp_track_target_, TrackOpTypes.ITER, index, "list.__getitem__")
-        return res
+        return toReactive(res)
 
     def __setitem__(self, index, value):
         target = self._vp_target_
@@ -378,6 +378,9 @@ def toReactive(value):
 
 
 def to_raw(proxy):
+    if isinstance(proxy, ReactiveProxy):
+        return proxy._vp_target_
+
     return proxy
 
 

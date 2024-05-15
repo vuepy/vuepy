@@ -27,6 +27,9 @@ from ipywidgets import CallbackDispatcher
 
 from vuepy import log as logging
 from vuepy.reactivity.computed import computed
+from vuepy.reactivity.effect import targetMap
+from vuepy.reactivity.reactive import reactiveMap
+from vuepy.reactivity.reactive import to_raw
 from vuepy.reactivity.ref import RefImpl
 from vuepy.reactivity.ref import ref
 from vuepy.reactivity.watch import watch
@@ -792,7 +795,7 @@ class VueCompCodeGen:
                 return comp_ast.v_if.eval(ns)
 
             @watch(should_render)
-            def rerender():
+            def rerender(*args):
                 vm.render()
 
             if not should_render.value:
@@ -847,7 +850,7 @@ class VueCompCodeGen:
                 _old_val = getattr(widget, _widget_attr, Nil)
                 _new_val = exp_ast.eval(ns)
                 if has_changed(_old_val, _new_val):
-                    setattr(widget, _widget_attr, _new_val)
+                    setattr(widget, _widget_attr, to_raw(_new_val))
 
         # v-model:define-model=bind
         for _model_key, attr_chain in comp_ast.v_model:
@@ -867,7 +870,7 @@ class VueCompCodeGen:
                 _old_val = getattr(widget, _widget_attr, Nil)
                 _new_val = ns.getattr(_attr_chain)
                 if has_changed(_old_val, _new_val):
-                    setattr(widget, _widget_attr, _new_val)
+                    setattr(widget, _widget_attr, to_raw(_new_val))
 
             # v-on, child to parent
             def listener(obj, attr):
@@ -1045,16 +1048,16 @@ class DomCompiler(HTMLParser):
         local = for_scope.to_ns() if for_scope else None
         ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local)
 
-        def gen_html(inner_html):
+        def __html_tag_exit_gen_html(inner_html):
             tag = node['tag']
             attr = ' '.join([f"{k}='{v}'" for k, v in node['attrs'].items()])
             html_temp = f"<{tag} {attr}>{{inner_html}}</{tag}>"
             return html_temp.format(inner_html=inner_html)
 
         @computed
-        def render_html():
+        def __html_tag_exit_render_html():
             # v-if
-            if not comp_ast.v_if.eval(ns):
+            if comp_ast.v_if and not comp_ast.v_if.eval(ns):
                 return ''
 
             # v-html
@@ -1066,13 +1069,14 @@ class DomCompiler(HTMLParser):
                 child.value if isinstance(child, widgets.HTML) else child
                 for child in node['body']
             ]
-            return gen_html(' '.join(body))
+            return __html_tag_exit_gen_html(' '.join(body))
 
-        @watch(render_html)
+        @watch(__html_tag_exit_render_html)
         def update(curr_html, old, on_cleanup):
+            print("html_tag_exit set value")
             widget.value = curr_html
 
-        widget = widgets.HTML(value=render_html.value)
+        widget = widgets.HTML(value=__html_tag_exit_render_html.value)
 
         return widget
 
@@ -1114,14 +1118,14 @@ class DomCompiler(HTMLParser):
             # 处理list被整个替换的情况
             attr_chain = v_for_stmt.iter
 
-            @computed
-            def track_list_change():
-                obj_iter = ns.getattr(attr_chain)
-                return id(obj_iter), [id(item) for item in obj_iter]
-
-            @watch(track_list_change)
-            def rerender():
-                self.vm.render()
+            # @computed
+            # def track_list_change():
+            #     obj_iter = ns.getattr(attr_chain)
+            #     return id(obj_iter), [id(item) for item in obj_iter]
+            #
+            # @watch(track_list_change)
+            # def rerender(*args):
+            #     self.vm.render()
 
             # _attrs = attr_chain.split('.', 1)
             # if len(_attrs) > 1:
@@ -1182,15 +1186,15 @@ class DomCompiler(HTMLParser):
             # result = VueCompHtmlTemplateRender.render(data, self.vm, ns, -1)
             # parent['body'].append(result)
             @computed
-            def gen_html():
+            def __handle_data_gen_html():
                 result = VueCompHtmlTemplateRender.render(data, self.vm, ns, -1)
                 return result
 
-            @watch(gen_html)
+            @watch(__handle_data_gen_html)
             def rerender(_curr, _old, on_cleanup):
                 self.vm.render()
 
-            parent['body'].append(gen_html.value)
+            parent['body'].append(__handle_data_gen_html.value)
 
         # TODO node的类型判断可以优化
         elif parent['body'] and parent['body'][0].get('type') == 'html':
@@ -1202,14 +1206,16 @@ class DomCompiler(HTMLParser):
                 # result = VueCompHtmlTemplateRender.render(data, self.vm, ns, i)
                 # parent['body'][i]['body'].append(result)
                 @computed
-                def gen_html(_ns=ns, _i=i):
-                    result = VueCompHtmlTemplateRender.render(self.vm._data, self.vm, _ns, _i)
+                def __handle_data_for_stmt_gen_html(_ns=ns, _i=i):
+                    logger.info("gen html")
+                    result = VueCompHtmlTemplateRender.render(data, self.vm, _ns, _i)
                     return result
 
-                @watch(gen_html)
+                @watch(__handle_data_for_stmt_gen_html)
                 def rerender(_curr, _old, on_cleanup):
+                    logger.info("rerender")
                     self.vm.render()
-                parent['body'][i]['body'].append(gen_html.value)
+                parent['body'][i]['body'].append(__handle_data_for_stmt_gen_html.value)
 
     def handle_endtag(self, tag):
         node = self.parent_node_stack.pop()
@@ -1429,6 +1435,7 @@ class App:
         self.dom = None
 
         self._proxy_methods()
+        self.render_count = 0
 
     def _call_if_callable(self, func):
         if callable(func):
@@ -1456,6 +1463,12 @@ class App:
         pass
 
     def render(self):
+        if self.render_count > 0:
+            raise()
+        self.render_count += 1
+        targetMap.clear()
+        reactiveMap.clear()
+        logger.info('render start')
         if not isinstance(self.root_component, SFC):
             raise ValueError(f"render failed, root_component type {type(self.root_component)}.")
 
@@ -1465,6 +1478,7 @@ class App:
         with self._container:
             clear_output(True)
             display(self.dom)
+        logger.info('render end')
 
     def component(self, name: str, comp: 'VueComponent' = None):
         """
