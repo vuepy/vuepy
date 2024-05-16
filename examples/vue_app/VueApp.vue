@@ -7,13 +7,14 @@
     <template v-slot:center>
       <HBox>
         <Dropdown :options="attr_options" v-model="option.value" description="options" width="200px"></Dropdown>
-        <span v-for="(i, n) in option.value.in">{{ n }}</span>
+        <span>{{ option.value }}</span>
+<!--        <span v-for="(i, n) in option.value.in">{{ n }}</span>-->
       </HBox>
 
       <Box v-for="(i, msg) in messages.value">
         <HBox>
           <Button width='60px' v-model="msg.role" @click="handle_change_role"></Button>
-          <Textarea v-else width='450px' v-model="msg.content"></Textarea>
+          <Input v-else width='450px' v-model="msg.content" type="textarea"></Input>
           <Button width='40px' icon="edit" @click="handle_edit_msg" button_style='info'></Button>
           <Button width='40px' icon="minus-circle" @click="handle_del_msg(i)" button_style='danger'></Button>
         </HBox>
@@ -26,15 +27,17 @@
       <hr/>
       <p v-if="False">v-if=False for html </p>
       <p v-if="True">v-if=True for html</p>
-      <Button description="Add message" button_style="info" icon="plus-circle" @click="handle_add_msg()"></Button>
-      <Button description='show/edit' icon="edit" @click="handle_edit_msg" button_style='info'></Button>
-      <Button description="Submit" button_style="success" @click="handle_on_submit()"></Button>
-      <Button description="message" button_style="info" @click="send_msg()"></Button>
-      <Button description="dialog" button_style="info" @click="switch_dialog()"></Button>
+      <HBox>
+        <Button description="Add message" button_style="info" icon="plus-circle" @click="handle_add_msg()"></Button>
+        <Button description='show/edit' icon="edit" @click="handle_edit_msg" button_style='info'></Button>
+        <Button description="Submit" button_style="success" @click="handle_on_submit()"></Button>
+        <Button description="message" button_style="info" @click="send_msg()"></Button>
+        <Button description="dialog" button_style="info" @click="switch_dialog()"></Button>
+      </HBox>
       <p style="background: #ffaa00" v-for="msg in messages.value">
         <span>model: {{ model.value }}, top_p: {{ top_p.value }} {{ msg.role }}</span>
       </p>
-      <Display :obj="df.value"></Display>
+<!--      <Display :obj="df.value"></Display>-->
     </template>
   </AppLayout>
   <Dialog title="test" v-model="show_dialog.value"></Dialog>
@@ -48,12 +51,12 @@ import AppLayout from "../../src/ipywui/components/AppLayout.vue";
 import Slider from "../../src/ipywui/components/Slider.vue";
 import Box from "../../src/ipywui/components/Box.vue";
 import Dropdown from "../../src/ipywui/components/Dropdown.vue";
-import Textarea from "../../src/ipywui/components/Textarea.vue";
 import Button from "../../src/ipywui/components/Button.vue";
 import HBox from "../../src/ipywui/components/HBox.vue";
 import MarkdownViewer from "../../src/ipywui/components/MarkdownViewer.vue";
 import Display from "../../src/ipywui/components/Display";
 import Dialog from "../../src/ipywui/components/Dialog";
+import Input from "../../src/ipywui/components/Input";
 
 const False = false;
 const True = true;

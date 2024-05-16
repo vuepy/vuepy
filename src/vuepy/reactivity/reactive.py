@@ -281,7 +281,7 @@ class ListProxy(ReactiveProxy):
 
     def __iter__(self):
         track(self._vp_track_target_, TrackOpTypes.ITER, IterateKey.LIST, msg="__iter__")
-        return iter(self._vp_target_)
+        return iter(toReactive(item) for item in self._vp_target_)
 
     def __contains__(self, item):
         track(self._vp_track_target_, TrackOpTypes.ITER, item, msg='__contains__')

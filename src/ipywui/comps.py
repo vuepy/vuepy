@@ -72,7 +72,7 @@ class Accordion(IPywidgetsComponent):
 
 @wui.register()
 class Button(IPywidgetsComponent):
-    v_model_default = 'label'
+    v_model_default = 'description'
 
     PARAMS_STORE_TRUE = [
         ('disabled', False),

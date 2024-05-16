@@ -10,6 +10,9 @@ from vuepy.reactivity import config
 from vuepy.reactivity.constant import IterateKey
 from vuepy.reactivity.dep import Dep
 from vuepy.reactivity.dep import createDep
+from vuepy.reactivity.effect_scope import EffectScope
+from vuepy.reactivity.effect_scope import getCurrentScope
+from vuepy.reactivity.effect_scope import recordEffectScope
 from vuepy.utils.common import gen_hash_key
 
 
@@ -112,23 +115,6 @@ class TriggerOpTypes(enum.Enum):
     ITER = 'iter'
 
 
-def recordEffectScope(effect: "ReactiveEffect", scope: "EffectScope" = None):
-    if scope and scope.active:
-        scope.effects.append(effect)
-
-
-class EffectScope:
-    def __init__(self):
-        self.active = True
-        self.effects: List["ReactiveEffect"] = []
-
-    def run(self, fn):
-        pass
-
-    def stop(self):
-        pass
-
-
 EffectScheduler = Callable[..., Any]
 
 
@@ -147,6 +133,7 @@ class ReactiveEffect:
         self.onTrigger = None
         self.deps = []
 
+        self.scope = getCurrentScope()
         recordEffectScope(self, self.scope)
 
     def __repr__(self):
@@ -287,25 +274,25 @@ def triggerEffects(
         dep: Dep | List[ReactiveEffect],
         debuggerEventExtraInfo: DebuggerEventExtraInfo = None
 ):
-    try:
-        dep_id = f":{dep.key._raw_value}"
-    except:
-        dep_id = f":{dep.key.effect.fn.__name__}"
+    # try:
+    #     dep_id = f":{dep.key._raw_value}"
+    # except:
+    #     dep_id = f":{dep.key.effect.fn.__name__}"
 
-    print(f"dep{dep_id} len({len(dep)}) {dep} start")
+    # print(f"dep{dep_id} len({len(dep)}) {dep} start")
     effects = dep if isinstance(dep, list) else list(dep)
-    for effect in effects:
+    for effect in list(effects):
         if effect.computed:
-            print(f"  effect computed {effect} start")
+            # print(f"  effect computed {effect} start")
             trigggerEffect(effect, debuggerEventExtraInfo)
-            print(f"  effect computed {effect} end. dep{dep_id} len({len(dep)}) is {dep}")
+            # print(f"  effect computed {effect} end. dep{dep_id} len({len(dep)}) is {dep}")
 
-    for effect in effects:
+    for effect in list(effects):
         if not effect.computed:
-            print(f"  effect {effect} start")
+            # print(f"  effect {effect} start")
             trigggerEffect(effect, debuggerEventExtraInfo)
-            print(f"  effect {effect} end. dep{dep_id} len({len(dep)}) is {dep}")
-    print(f"dep{dep_id} len({len(dep)}) {dep} end")
+            # print(f"  effect {effect} end. dep{dep_id} len({len(dep)}) is {dep}")
+    # print(f"dep{dep_id} len({len(dep)}) {dep} end")
 
 
 def trigggerEffect(effect: ReactiveEffect, debuggerEventExtraInfo=None):
@@ -313,13 +300,13 @@ def trigggerEffect(effect: ReactiveEffect, debuggerEventExtraInfo=None):
         if config.__DEV__ and effect.onTrigger:
             debuggerEventExtraInfo['effect'] = effect
             effect.onTrigger(debuggerEventExtraInfo)
-        print(debuggerEventExtraInfo)
+        # print(debuggerEventExtraInfo)
 
         if effect.scheduler:
-            print(f"    trigger effect {effect} scheduler")
+            # print(f"    trigger effect {effect} scheduler")
             effect.scheduler()
         else:
-            print(f"    trigger effect {effect} run")
+            # print(f"    trigger effect {effect} run")
             effect.run()
 
 
@@ -420,15 +407,17 @@ def initDepMarkers(deps: List[Dep]):
 def finalizeDepMarkers(effect):
     # todo 可优化
     ptr = 0
-    for dep in effect.deps:
+    dep_len = len(effect.deps)
+    for i, dep in enumerate(effect.deps):
         if wasTracked(dep) and (not newTracked(dep)):
-            print(f"dep{id(dep)} delete effect{id(effect)}")
             dep.delete(effect)
         else:
-            effect.deps[ptr] = dep
+            if i != ptr:
+                effect.deps[ptr] = dep
             ptr += 1
 
         dep.w &= ~trackOpBit
         dep.n &= ~trackOpBit
 
-    effect.deps = effect.deps[:ptr]
+    if ptr != dep_len:
+        effect.deps = effect.deps[:ptr]

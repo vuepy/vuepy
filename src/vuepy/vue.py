@@ -28,6 +28,7 @@ from ipywidgets import CallbackDispatcher
 from vuepy import log as logging
 from vuepy.reactivity.computed import computed
 from vuepy.reactivity.effect import targetMap
+from vuepy.reactivity.effect_scope import EffectScope
 from vuepy.reactivity.reactive import reactiveMap
 from vuepy.reactivity.reactive import to_raw
 from vuepy.reactivity.ref import RefImpl
@@ -774,23 +775,23 @@ class VueCompCodeGen:
     """
     h()
     """
-    @staticmethod
-    def handle_value_change_vm_to_view(widget, attr):
-        def warp(val, old_val):
-            try:
-                if val == old_val:
-                    return
-            except Exception as e:
-                pass
-            setattr(widget, attr, val)
-        return warp
+    # @staticmethod
+    # def handle_value_change_vm_to_view(widget, attr):
+    #     def warp(val, old_val):
+    #         try:
+    #             if val == old_val:
+    #                 return
+    #         except Exception as e:
+    #             pass
+    #         setattr(widget, attr, val)
+    #     return warp
 
     @classmethod
     def gen(cls, comp_ast: VueCompAst, children, vm: 'VueComponent', ns: VueCompNamespace, app: App):
         component_cls: Type[VueComponent] = vm.component(comp_ast.tag)
         # v-if
         if comp_ast.v_if:
-            @computed
+            # @computed
             def should_render():
                 return comp_ast.v_if.eval(ns)
 
@@ -798,7 +799,7 @@ class VueCompCodeGen:
             def rerender(*args):
                 vm.render()
 
-            if not should_render.value:
+            if not should_render():
                 return widgets.HTML("")
 
         # watcher = WatcherForRerender(vm, f'v_if {comp_ast.v_if}')
@@ -884,7 +885,7 @@ class VueCompCodeGen:
             obj, attr = ns.get_obj_and_attr(attr_chain)
             add_event_listener(
                 widget,
-                f'update:{_model_key}',
+                f'update:{widget_attr}',
                 listener(obj, attr),
             )
 
@@ -1054,7 +1055,7 @@ class DomCompiler(HTMLParser):
             html_temp = f"<{tag} {attr}>{{inner_html}}</{tag}>"
             return html_temp.format(inner_html=inner_html)
 
-        @computed
+        # @computed
         def __html_tag_exit_render_html():
             # v-if
             if comp_ast.v_if and not comp_ast.v_if.eval(ns):
@@ -1076,7 +1077,7 @@ class DomCompiler(HTMLParser):
             print("html_tag_exit set value")
             widget.value = curr_html
 
-        widget = widgets.HTML(value=__html_tag_exit_render_html.value)
+        widget = widgets.HTML(value=__html_tag_exit_render_html())
 
         return widget
 
@@ -1119,13 +1120,13 @@ class DomCompiler(HTMLParser):
             attr_chain = v_for_stmt.iter
 
             # @computed
-            # def track_list_change():
-            #     obj_iter = ns.getattr(attr_chain)
-            #     return id(obj_iter), [id(item) for item in obj_iter]
-            #
-            # @watch(track_list_change)
-            # def rerender(*args):
-            #     self.vm.render()
+            def track_list_change():
+                obj_iter = ns.getattr(attr_chain)
+                return id(obj_iter), [id(item) for item in obj_iter]
+
+            @watch(track_list_change)
+            def rerender(*args):
+                self.vm.render()
 
             # _attrs = attr_chain.split('.', 1)
             # if len(_attrs) > 1:
@@ -1185,8 +1186,7 @@ class DomCompiler(HTMLParser):
             ns = VueCompNamespace(self.vm._data, self.vm.to_ns())
             # result = VueCompHtmlTemplateRender.render(data, self.vm, ns, -1)
             # parent['body'].append(result)
-            @computed
-            def __handle_data_gen_html():
+            def __handle_data_gen_html() :
                 result = VueCompHtmlTemplateRender.render(data, self.vm, ns, -1)
                 return result
 
@@ -1194,7 +1194,7 @@ class DomCompiler(HTMLParser):
             def rerender(_curr, _old, on_cleanup):
                 self.vm.render()
 
-            parent['body'].append(__handle_data_gen_html.value)
+            parent['body'].append(__handle_data_gen_html())
 
         # TODO node的类型判断可以优化
         elif parent['body'] and parent['body'][0].get('type') == 'html':
@@ -1205,7 +1205,7 @@ class DomCompiler(HTMLParser):
                 ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), for_scope.to_ns())
                 # result = VueCompHtmlTemplateRender.render(data, self.vm, ns, i)
                 # parent['body'][i]['body'].append(result)
-                @computed
+                # @computed
                 def __handle_data_for_stmt_gen_html(_ns=ns, _i=i):
                     logger.info("gen html")
                     result = VueCompHtmlTemplateRender.render(data, self.vm, _ns, _i)
@@ -1215,7 +1215,7 @@ class DomCompiler(HTMLParser):
                 def rerender(_curr, _old, on_cleanup):
                     logger.info("rerender")
                     self.vm.render()
-                parent['body'][i]['body'].append(__handle_data_for_stmt_gen_html.value)
+                parent['body'][i]['body'].append(__handle_data_for_stmt_gen_html())
 
     def handle_endtag(self, tag):
         node = self.parent_node_stack.pop()
@@ -1746,6 +1746,7 @@ class SFC(VueComponent):
         self._define_props = {}
         self._define_emits = {}
         self._render = render
+        self.scope: EffectScope = EffectScope(True)
 
         # setup define_x
         _emits, _on_fn = self._gen_widget_on_fn()
@@ -1832,17 +1833,22 @@ class SFC(VueComponent):
                 count += 1
         return ret
 
-    def clear_property_subs(self):
-        for item in self._data.values():
-            if isinstance(item, Reactive):
-                item.reset_deps()
+    # def clear_property_subs(self):
+    #     for item in self._data.values():
+    #         if isinstance(item, Reactive):
+    #             item.reset_deps()
 
     def render(self, ctx: SetupContext = None, props: dict = None, setup_returned: dict = None) -> VNode:
-        self.clear_property_subs()
-        if self._render:
-            dom = self._render(self._context, self._props, self.setup_returned)
-        else:
-            dom = DomCompiler(self, self.app).compile(self.template)
+        # self.clear_property_subs()
+        logger.info("=============== SFC rerender")
+        self.scope.clear()
+
+        with self.scope:
+            if self._render:
+                dom = self._render(self._context, self._props, self.setup_returned)
+            else:
+                dom = DomCompiler(self, self.app).compile(self.template)
+
         self.root.children = [dom]
 
         return self.root
