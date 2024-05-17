@@ -26,7 +26,6 @@ from IPython.display import display
 from ipywidgets import CallbackDispatcher
 
 from vuepy import log as logging
-from vuepy.reactivity.computed import computed
 from vuepy.reactivity.effect import targetMap
 from vuepy.reactivity.effect_scope import EffectScope
 from vuepy.reactivity.reactive import reactiveMap
@@ -846,12 +845,25 @@ class VueCompCodeGen:
             # with ActivateEffect(watcher):
             #     _value = exp_ast.eval(ns)
             # update_vm_to_view(_value, None)
-            @watchEffect
-            def update_vm_to_view(on_cleanup, _widget_attr=widget_attr):
-                _old_val = getattr(widget, _widget_attr, Nil)
-                _new_val = exp_ast.eval(ns)
-                if has_changed(_old_val, _new_val):
-                    setattr(widget, _widget_attr, to_raw(_new_val))
+
+            def _get_v_bind_value(_exp_ast=exp_ast):
+                return _exp_ast.eval(ns)
+
+            @watch(_get_v_bind_value)
+            def _v_bind_update_vm_to_view(curr, old, on_cleanup, _widget_attr=widget_attr):
+                _old_val = to_raw(getattr(widget, _widget_attr, Nil))
+                curr = to_raw(curr)
+                if has_changed(curr, _old_val):
+                    setattr(widget, _widget_attr, curr)
+
+            setattr(widget, widget_attr, _get_v_bind_value())
+
+            # @watchEffect
+            # def update_vm_to_view(on_cleanup, _widget_attr=widget_attr):
+            #     _old_val = getattr(widget, _widget_attr, Nil)
+            #     _new_val = exp_ast.eval(ns)
+            #     if has_changed(_old_val, _new_val):
+            #         setattr(widget, _widget_attr, to_raw(_new_val))
 
         # v-model:define-model=bind
         for _model_key, attr_chain in comp_ast.v_model:
@@ -866,27 +878,40 @@ class VueCompCodeGen:
             # with ActivateEffect(watcher):
             #     _value = ns.getattr(attr_chain)
             # update_vm_to_view(_value, None)
-            @watchEffect
-            def update_vm_to_view(on_cleanup, _widget_attr=widget_attr, _attr_chain=attr_chain):
-                _old_val = getattr(widget, _widget_attr, Nil)
-                _new_val = ns.getattr(_attr_chain)
-                if has_changed(_old_val, _new_val):
-                    setattr(widget, _widget_attr, to_raw(_new_val))
+
+            def _get_v_model_value(_attr_chain=attr_chain):
+                return ns.getattr(_attr_chain)
+
+            @watch(_get_v_model_value)
+            def _v_model_update_vm_to_view(curr, old, on_cleanup, _widget_attr=widget_attr):
+                _old_val = to_raw(getattr(widget, _widget_attr, Nil))
+                curr = to_raw(curr)
+                if has_changed(curr, _old_val):
+                    setattr(widget, _widget_attr, curr)
+
+            setattr(widget, widget_attr, _get_v_model_value())
+
+            # @watchEffect
+            # def update_vm_to_view(on_cleanup, _widget_attr=widget_attr, _attr_chain=attr_chain):
+            #     _old_val = getattr(widget, _widget_attr, Nil)
+            #     _new_val = ns.getattr(_attr_chain)
+            #     if has_changed(_old_val, _new_val):
+            #         setattr(widget, _widget_attr, to_raw(_new_val))
 
             # v-on, child to parent
-            def listener(obj, attr):
+            def listener(_vm, _obj, _attr):
                 def _(change):
-                    val = change['new']
-                    setattr(obj, attr, val)
-                    if isinstance(obj, defineModel) and isinstance(widget, SFCWidgetContainer):
-                        getattr(widget, SFC.EMIT_FN)(obj.update_event, val)
+                    val = change['new'] if isinstance(change, dict) else change
+                    setattr(_obj, _attr, val)
+                    if isinstance(_obj, defineModel) and isinstance(_vm, SFC):
+                        getattr(_vm.root, SFC.EMIT_FN)(_obj.update_event, val)
                 return _
 
             obj, attr = ns.get_obj_and_attr(attr_chain)
             add_event_listener(
                 widget,
                 f'update:{widget_attr}',
-                listener(obj, attr),
+                listener(vm, obj, attr),
             )
 
         # v-on
@@ -1248,7 +1273,7 @@ class DomCompiler(HTMLParser):
 
 class ScriptCompiler:
     @staticmethod
-    def compile_script_block(code_str):
+    def compile_script_block(code_str, source_file_path):
         module = ast.parse(code_str)
         func_name = 'setup'
         func_ast = ast.FunctionDef(
@@ -1276,7 +1301,7 @@ class ScriptCompiler:
         code = compile(module, filename='<ast>', mode='exec')
 
         local_vars = {}
-        exec(code, {}, local_vars)
+        exec(code, {'__file__': source_file_path}, local_vars)
         return local_vars[func_name]
 
     @staticmethod
@@ -1298,7 +1323,7 @@ class ScriptCompiler:
             return cls.compile_script_src(sfc_file.parent, script_src)
         else:
             script_block = get_script_py_block_content_from_sfc(sfc_file)
-            return cls.compile_script_block(script_block)
+            return cls.compile_script_block(script_block, str(sfc_file.absolute()))
 
 
 class Dom(widgets.VBox):
@@ -1735,6 +1760,7 @@ class SFC(VueComponent):
             template: str,
             app: "App",
             render: Callable[[SetupContext | dict, dict, dict], VNode] = None,
+            file: str = None,
     ):
         super().__init__()
         self.app = app
@@ -1746,6 +1772,7 @@ class SFC(VueComponent):
         self._define_props = {}
         self._define_emits = {}
         self._render = render
+        self.file = file
         self.scope: EffectScope = EffectScope(True)
 
         # setup define_x
@@ -1837,10 +1864,12 @@ class SFC(VueComponent):
     #     for item in self._data.values():
     #         if isinstance(item, Reactive):
     #             item.reset_deps()
+    def __repr__(self):
+        return f"{self.__class__.__name__}<{self.file}> at {id(self)}"
 
     def render(self, ctx: SetupContext = None, props: dict = None, setup_returned: dict = None) -> VNode:
         # self.clear_property_subs()
-        logger.info("=============== SFC rerender")
+        logger.info(f"=============== {self} rerender")
         self.scope.clear()
 
         with self.scope:
@@ -1865,7 +1894,7 @@ class SFCFactory:
 
     def __call__(self, props: dict, context: SetupContext | dict, app: App) -> "SFC":
         setup_ret = self.setup(props, context, app)
-        return SFC(context, props, setup_ret, self.template, app, self.render)
+        return SFC(context, props, setup_ret, self.template, app, self.render, self._file)
 
 
 def import_sfc(sfc_file):
