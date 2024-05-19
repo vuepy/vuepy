@@ -11,7 +11,7 @@ from ipywui.widgets import DisplayViewer
 from ipywui.widgets import MarkdownViewerWidget
 from vuepy import log as logging
 
-LOG = logging.getLogger()
+logger = logging.getLogger()
 
 
 @wui.register()

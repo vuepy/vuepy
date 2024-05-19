@@ -24,7 +24,7 @@ from vuepy.utils.common import has_changed
 
 OnCleanUp = Callable[[Callable[[], None]], None]  # (cleanupFn: () => void) => void
 WatchEffect = Callable[[OnCleanUp], None]  # (onCleanup: OnCleanup) => void
-WatchSource = Union[RefImpl, ComputedRefImpl, Callable[[], None], ReactiveProxy]
+WatchSource = Union[RefImpl, ComputedRefImpl, Callable[[], Any], ReactiveProxy]
 # (val: V, oldVal: OV, onCleanup: OnCleanup) => any
 WatchCallback = Callable[[Any, Any, OnCleanUp], Any]
 MultiWatchSources = List[WatchSource]
@@ -125,7 +125,7 @@ def watchEffect_impl(watch_effect: WatchEffect, options: WatchOptionsBase = None
 
 def watch(
         source: WatchSource | MultiWatchSources,
-        cb_or_options: WatchCallback = None,
+        cb_or_options: WatchCallback | WatchOptions = None,
         options: WatchOptions = None
 ):
     is_decorator_src = (cb_or_options, options) == (None, None)

@@ -1,22 +1,20 @@
 #!coding: utf-8
 from __future__ import annotations
+
 import abc
 import ast
 import dataclasses
-from dataclasses import field
-import enum
 import importlib.util
 import pathlib
 import re
 import types
 from _ast import Attribute
-from collections import defaultdict
+from dataclasses import field
 from html.parser import HTMLParser
 from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
-from typing import SupportsIndex
 from typing import Type
 from typing import Union
 
@@ -32,8 +30,8 @@ from vuepy.reactivity.reactive import reactiveMap
 from vuepy.reactivity.reactive import to_raw
 from vuepy.reactivity.ref import RefImpl
 from vuepy.reactivity.ref import ref
+from vuepy.reactivity.watch import WatchOptions
 from vuepy.reactivity.watch import watch
-from vuepy.reactivity.watch import watchEffect
 from vuepy.utils.common import has_changed
 
 logger = logging.getLogger()
@@ -71,247 +69,247 @@ def get_script_src_from_sfc(sfc_file):
         return match.group('src')
 
 
-class WatcherBase(metaclass=abc.ABCMeta):
-    @abc.abstractmethod
-    def update(self):
-        pass
-
-
-class PubEnum(enum.Enum):
-    PROPERTY = 'property'
-    SETUP = 'setup'
-
-
-# Map<target_id, Map<key, List<effect>>>
-SUBS_MAP = {
-    PubEnum.PROPERTY: {},
-    PubEnum.SETUP: {},
-}
-
-
-def get_subscribers_for_property_by_id(target_id, key, pub=PubEnum.PROPERTY):
-    subs_map = SUBS_MAP[pub]
-    if target_id not in subs_map:
-        subs_map[target_id] = {}
-
-    if key not in subs_map[target_id]:
-        subs_map[target_id][key] = []
-
-    return subs_map[target_id][key]
-
-
-def get_subscribers_for_property(target, key, pub=PubEnum.PROPERTY):
-    return get_subscribers_for_property_by_id(id(target), key, pub)
-
-
-def add_subscribers_for_property(target, key, sub: WatcherBase, pub=PubEnum.PROPERTY):
-    effects = get_subscribers_for_property(target, key, pub)
-    effects.append(sub)
-
-
-def clear_subscribers_for_property(target, key, pub=PubEnum.PROPERTY):
-    effects = get_subscribers_for_property(target, key, pub)
-    effects.clear()
-
-
-def trigger_subscribers_for_property(target, key):
-    for pub in PubEnum:
-        effects = get_subscribers_for_property(target, key, pub)
-        for effect in effects:
-            effect.update()
-            if isinstance(effect, WatcherForRerender):
-                return
-
-
-g_active_effect = None
-g_pub = None
-
-
-def track(target, key):
-    if not g_active_effect:
-        return
-
-    if g_pub:
-        add_subscribers_for_property(target, key, g_active_effect, g_pub)
-    else:
-        add_subscribers_for_property(target, key, g_active_effect, PubEnum.PROPERTY)
-
-
-def trigger(target, key):
-    trigger_subscribers_for_property(target, key)
-
-
-class ActivateEffect:
-    def __init__(self, effect, pub=PubEnum.PROPERTY):
-        self.effect = effect
-        self.pub = pub
-
-    def __enter__(self):
-        global g_active_effect
-        global g_pub
-        g_active_effect = self.effect
-        g_pub = self.pub
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        global g_active_effect
-        global g_pub
-        g_active_effect = None
-        g_pub = None
-
-
-class Dep:
-    def __init__(self):
-        self.subs: List[WatcherBase] = []
-
-    def add_sub(self, sub):
-        if sub in self.subs:
-            return
-
-        self.subs.append(sub)
-
-    def reset_subs(self):
-        self.subs.clear()
-
-    def notify(self):
-        for sub in self.subs:
-            sub.update()
-
-
-class DepStoreField:
-    _deps: Dict[int, Dict[str, Dep]] = {}
-
-    def __init__(self):
-        pass
-
-    @classmethod
-    def reset(cls):
-        cls._deps = {}
-
-    def __get__(self, instance, owner):
-        instance_id = id(instance)
-        if instance_id not in self._deps:
-            self._deps[instance_id] = defaultdict(Dep)
-
-        return self._deps[instance_id]
-
-    def __set__(self, instance, new_value):
-        pass
-
-    def __delete__(self, instance):
-        instance_id = id(instance)
-        if instance_id in self._deps:
-            del self._deps[instance_id]
-
-
-class Reactive(metaclass=abc.ABCMeta):
-    _deps = DepStoreField()
-
-    @abc.abstractmethod
-    def add_dep(self, attr, sub):
-        pass
-
-    @abc.abstractmethod
-    def reset_deps(self):
-        pass
-
-
-class ReactiveDict(dict, Reactive):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def __getitem__(self, attr):
-        track(self, attr)
-        return super().__getitem__(attr)
-
-    def __setitem__(self, attr, value):
-        super().__setitem__(attr, value)
-        trigger(self, attr)
-
-    def __getattr__(self, attr):
-        return self.__getitem__(attr)
-
-    def __setattr__(self, attr, value):
-        self.__setitem__(attr, value)
-
-    def __delete__(self, instance):
-        del self._deps
-
-    def add_dep(self, attr, sub):
-        self._deps[attr].add_sub(sub)
-
-    def reset_deps(self):
-        for k, v in self.items():
-            clear_subscribers_for_property(self, k, PubEnum.PROPERTY)
-            if isinstance(v, Reactive):
-                v.reset_deps()
-
-
-class ReactiveList(list, Reactive):
-    _SUB_KEY = '__reactive_list_sub_key'
-
-    def append(self, __object) -> None:
-        super().append(__object)
-        trigger(self, self._SUB_KEY)
-
-    def extend(self, __iterable) -> None:
-        super().extend(__iterable)
-        trigger(self, self._SUB_KEY)
-
-    def insert(self, __index: SupportsIndex, __object) -> None:
-        super().insert(__index, __object)
-        trigger(self, self._SUB_KEY)
-
-    def __setitem__(self, key, value):
-        super().__setitem__(key, value)
-        trigger(self, self._SUB_KEY)
-
-    def sort(self, *, key: None = ..., reverse: bool = ...) -> None:
-        super().sort(key=key, reverse=reverse)
-        trigger(self, self._SUB_KEY)
-
-    def reverse(self) -> None:
-        super().reverse()
-        trigger(self, self._SUB_KEY)
-
-    def pop(self, __index: SupportsIndex = ...):
-        ret = super().pop(__index)
-        trigger(self, self._SUB_KEY)
-        return ret
-
-    def remove(self, __value) -> None:
-        super().remove(__value)
-        trigger(self, self._SUB_KEY)
-
-    def __delete__(self, instance):
-        del self._deps
-
-    def add_dep(self, sub):
-        add_subscribers_for_property(self, self._SUB_KEY, sub)
-
-    def reset_deps(self):
-        clear_subscribers_for_property(self, self._SUB_KEY, PubEnum.PROPERTY)
-        for item in self:
-            if isinstance(item, Reactive):
-                item.reset_deps()
-
-
-def observe(data):
-    if isinstance(data, Reactive):
-        data.reset_deps()
-
-    if isinstance(data, dict):
-        for attr, item in data.items():
-            data[attr] = observe(item)
-        if not isinstance(data, Reactive):
-            data = ReactiveDict(data)
-
-    elif isinstance(data, list):
-        for i, item in enumerate(data):
-            data[i] = observe(item)
-        if not isinstance(data, Reactive):
-            data = ReactiveList(data)
-
-    return data
+# class WatcherBase(metaclass=abc.ABCMeta):
+#     @abc.abstractmethod
+#     def update(self):
+#         pass
+#
+#
+# class PubEnum(enum.Enum):
+#     PROPERTY = 'property'
+#     SETUP = 'setup'
+#
+#
+# # Map<target_id, Map<key, List<effect>>>
+# SUBS_MAP = {
+#     PubEnum.PROPERTY: {},
+#     PubEnum.SETUP: {},
+# }
+#
+#
+# def get_subscribers_for_property_by_id(target_id, key, pub=PubEnum.PROPERTY):
+#     subs_map = SUBS_MAP[pub]
+#     if target_id not in subs_map:
+#         subs_map[target_id] = {}
+#
+#     if key not in subs_map[target_id]:
+#         subs_map[target_id][key] = []
+#
+#     return subs_map[target_id][key]
+#
+#
+# def get_subscribers_for_property(target, key, pub=PubEnum.PROPERTY):
+#     return get_subscribers_for_property_by_id(id(target), key, pub)
+#
+#
+# def add_subscribers_for_property(target, key, sub: WatcherBase, pub=PubEnum.PROPERTY):
+#     effects = get_subscribers_for_property(target, key, pub)
+#     effects.append(sub)
+#
+#
+# def clear_subscribers_for_property(target, key, pub=PubEnum.PROPERTY):
+#     effects = get_subscribers_for_property(target, key, pub)
+#     effects.clear()
+#
+#
+# def trigger_subscribers_for_property(target, key):
+#     for pub in PubEnum:
+#         effects = get_subscribers_for_property(target, key, pub)
+#         for effect in effects:
+#             effect.update()
+#             if isinstance(effect, WatcherForRerender):
+#                 return
+#
+#
+# g_active_effect = None
+# g_pub = None
+#
+#
+# def track(target, key):
+#     if not g_active_effect:
+#         return
+#
+#     if g_pub:
+#         add_subscribers_for_property(target, key, g_active_effect, g_pub)
+#     else:
+#         add_subscribers_for_property(target, key, g_active_effect, PubEnum.PROPERTY)
+#
+#
+# def trigger(target, key):
+#     trigger_subscribers_for_property(target, key)
+#
+#
+# class ActivateEffect:
+#     def __init__(self, effect, pub=PubEnum.PROPERTY):
+#         self.effect = effect
+#         self.pub = pub
+#
+#     def __enter__(self):
+#         global g_active_effect
+#         global g_pub
+#         g_active_effect = self.effect
+#         g_pub = self.pub
+#
+#     def __exit__(self, exc_type, exc_val, exc_tb):
+#         global g_active_effect
+#         global g_pub
+#         g_active_effect = None
+#         g_pub = None
+#
+#
+# class Dep:
+#     def __init__(self):
+#         self.subs: List[WatcherBase] = []
+#
+#     def add_sub(self, sub):
+#         if sub in self.subs:
+#             return
+#
+#         self.subs.append(sub)
+#
+#     def reset_subs(self):
+#         self.subs.clear()
+#
+#     def notify(self):
+#         for sub in self.subs:
+#             sub.update()
+#
+#
+# class DepStoreField:
+#     _deps: Dict[int, Dict[str, Dep]] = {}
+#
+#     def __init__(self):
+#         pass
+#
+#     @classmethod
+#     def reset(cls):
+#         cls._deps = {}
+#
+#     def __get__(self, instance, owner):
+#         instance_id = id(instance)
+#         if instance_id not in self._deps:
+#             self._deps[instance_id] = defaultdict(Dep)
+#
+#         return self._deps[instance_id]
+#
+#     def __set__(self, instance, new_value):
+#         pass
+#
+#     def __delete__(self, instance):
+#         instance_id = id(instance)
+#         if instance_id in self._deps:
+#             del self._deps[instance_id]
+#
+#
+# class Reactive(metaclass=abc.ABCMeta):
+#     _deps = DepStoreField()
+#
+#     @abc.abstractmethod
+#     def add_dep(self, attr, sub):
+#         pass
+#
+#     @abc.abstractmethod
+#     def reset_deps(self):
+#         pass
+#
+#
+# class ReactiveDict(dict, Reactive):
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#
+#     def __getitem__(self, attr):
+#         track(self, attr)
+#         return super().__getitem__(attr)
+#
+#     def __setitem__(self, attr, value):
+#         super().__setitem__(attr, value)
+#         trigger(self, attr)
+#
+#     def __getattr__(self, attr):
+#         return self.__getitem__(attr)
+#
+#     def __setattr__(self, attr, value):
+#         self.__setitem__(attr, value)
+#
+#     def __delete__(self, instance):
+#         del self._deps
+#
+#     def add_dep(self, attr, sub):
+#         self._deps[attr].add_sub(sub)
+#
+#     def reset_deps(self):
+#         for k, v in self.items():
+#             clear_subscribers_for_property(self, k, PubEnum.PROPERTY)
+#             if isinstance(v, Reactive):
+#                 v.reset_deps()
+#
+#
+# class ReactiveList(list, Reactive):
+#     _SUB_KEY = '__reactive_list_sub_key'
+#
+#     def append(self, __object) -> None:
+#         super().append(__object)
+#         trigger(self, self._SUB_KEY)
+#
+#     def extend(self, __iterable) -> None:
+#         super().extend(__iterable)
+#         trigger(self, self._SUB_KEY)
+#
+#     def insert(self, __index: SupportsIndex, __object) -> None:
+#         super().insert(__index, __object)
+#         trigger(self, self._SUB_KEY)
+#
+#     def __setitem__(self, key, value):
+#         super().__setitem__(key, value)
+#         trigger(self, self._SUB_KEY)
+#
+#     def sort(self, *, key: None = ..., reverse: bool = ...) -> None:
+#         super().sort(key=key, reverse=reverse)
+#         trigger(self, self._SUB_KEY)
+#
+#     def reverse(self) -> None:
+#         super().reverse()
+#         trigger(self, self._SUB_KEY)
+#
+#     def pop(self, __index: SupportsIndex = ...):
+#         ret = super().pop(__index)
+#         trigger(self, self._SUB_KEY)
+#         return ret
+#
+#     def remove(self, __value) -> None:
+#         super().remove(__value)
+#         trigger(self, self._SUB_KEY)
+#
+#     def __delete__(self, instance):
+#         del self._deps
+#
+#     def add_dep(self, sub):
+#         add_subscribers_for_property(self, self._SUB_KEY, sub)
+#
+#     def reset_deps(self):
+#         clear_subscribers_for_property(self, self._SUB_KEY, PubEnum.PROPERTY)
+#         for item in self:
+#             if isinstance(item, Reactive):
+#                 item.reset_deps()
+#
+#
+# def observe(data):
+#     if isinstance(data, Reactive):
+#         data.reset_deps()
+#
+#     if isinstance(data, dict):
+#         for attr, item in data.items():
+#             data[attr] = observe(item)
+#         if not isinstance(data, Reactive):
+#             data = ReactiveDict(data)
+#
+#     elif isinstance(data, list):
+#         for i, item in enumerate(data):
+#             data[i] = observe(item)
+#         if not isinstance(data, Reactive):
+#             data = ReactiveList(data)
+#
+#     return data
 
 
 # class VueRef(Reactive):
@@ -376,37 +374,37 @@ def observe(data):
 #         elif callable(source):
 #             deep = options.get('deep', True)
 #             _ = source()
-
-
-class WatcherForRerender(WatcherBase):
-    def __init__(self, vm, name):
-        self.vm = vm
-        self.name = name
-
-    def update(self):
-        self.vm.render()
-
-
-class WatcherForComputed(WatcherBase):
-    def __init__(self, source, func, options=None):
-        self.source = source
-        self.func = func
-        self.value = self.get_val()
-
-    def get_val(self):
-        return self.func()
-
-    def update(self):
-        old_val = self.value
-        new_val = self.get_val()
-        try:
-            if new_val == self.value:
-                return
-        except Exception as e:
-            pass
-
-        self.value = new_val
-        self.source.value = new_val
+#
+#
+# class WatcherForRerender(WatcherBase):
+#     def __init__(self, vm, name):
+#         self.vm = vm
+#         self.name = name
+#
+#     def update(self):
+#         self.vm.render()
+#
+#
+# class WatcherForComputed(WatcherBase):
+#     def __init__(self, source, func, options=None):
+#         self.source = source
+#         self.func = func
+#         self.value = self.get_val()
+#
+#     def get_val(self):
+#         return self.func()
+#
+#     def update(self):
+#         old_val = self.value
+#         new_val = self.get_val()
+#         try:
+#             if new_val == self.value:
+#                 return
+#         except Exception as e:
+#             pass
+#
+#         self.value = new_val
+#         self.source.value = new_val
 
 
 # class WatcherForWatchFunc(WatcherBase):
@@ -432,32 +430,32 @@ class WatcherForComputed(WatcherBase):
 #
 #         self.value = new_val
 #         self.callback(new_val, old_val)
-
-
-class WatcherForAttrUpdate(WatcherBase):
-    def __init__(self, ns: "VueCompNamespace", val_expr_or_fn, callback, options=None):
-        self.callback = callback
-        self.val_expr_or_fn = val_expr_or_fn
-        self.ns = ns
-        self.value = self.get_val()
-
-    def get_val(self):
-        if callable(self.val_expr_or_fn):
-            return self.val_expr_or_fn()
-        else:
-            return self.val_expr_or_fn.eval(self.ns)
-
-    def update(self):
-        new_val = self.get_val()
-        old_val = self.value
-        try:
-            if new_val == old_val:
-                return
-        except Exception as e:
-            pass
-
-        self.value = new_val
-        self.callback(new_val, old_val)
+#
+#
+# class WatcherForAttrUpdate(WatcherBase):
+#     def __init__(self, ns: "VueCompNamespace", val_expr_or_fn, callback, options=None):
+#         self.callback = callback
+#         self.val_expr_or_fn = val_expr_or_fn
+#         self.ns = ns
+#         self.value = self.get_val()
+#
+#     def get_val(self):
+#         if callable(self.val_expr_or_fn):
+#             return self.val_expr_or_fn()
+#         else:
+#             return self.val_expr_or_fn.eval(self.ns)
+#
+#     def update(self):
+#         new_val = self.get_val()
+#         old_val = self.value
+#         try:
+#             if new_val == old_val:
+#                 return
+#         except Exception as e:
+#             pass
+#
+#         self.value = new_val
+#         self.callback(new_val, old_val)
 
 
 class VForStatement:
@@ -570,6 +568,7 @@ def vue_comp_expr_eval(expr_ast: VueCompExprAst, ns: "VueCompNamespace", local_v
 class VueCompAst:
     V_IF = 'v-if'
     V_FOR = 'v-for'
+    V_SHOW = 'v-show'
     V_SLOT = 'v-slot:'
     V_SLOT_ABBR = '#'
     V_JS_LINK = 'v-js-link'
@@ -588,6 +587,7 @@ class VueCompAst:
     def __init__(self, tag):
         self.tag = tag
         self.v_if: VueCompExprAst = None
+        self.v_show: VueCompExprAst = None
         # todo rename to attrs
         self.kwargs = {}
         self.v_binds: Dict[str, VueCompExprAst] = {}
@@ -602,6 +602,10 @@ class VueCompAst:
     @classmethod
     def is_v_if(cls, attr):
         return attr == cls.V_IF
+
+    @classmethod
+    def is_v_show(cls, attr):
+        return attr == cls.V_SHOW
 
     @classmethod
     def is_v_slot(cls, attr):
@@ -653,6 +657,9 @@ class VueCompAst:
         for attr, value in attr_dict.items():
             if cls.is_v_if(attr):
                 comp.v_if = vue_comp_expr_parse(value)
+
+            elif cls.is_v_show(attr):
+                comp.v_show = vue_comp_expr_parse(value)
 
             elif cls.is_v_bind(attr):
                 attr = attr.split(cls.V_BIND, 1)[1]
@@ -774,6 +781,7 @@ class VueCompCodeGen:
     """
     h()
     """
+
     # @staticmethod
     # def handle_value_change_vm_to_view(widget, attr):
     #     def warp(val, old_val):
@@ -784,27 +792,72 @@ class VueCompCodeGen:
     #             pass
     #         setattr(widget, attr, val)
     #     return warp
-
     @classmethod
-    def gen(cls, comp_ast: VueCompAst, children, vm: 'VueComponent', ns: VueCompNamespace, app: App):
-        component_cls: Type[VueComponent] = vm.component(comp_ast.tag)
+    def gen(
+            cls,
+            comp_ast: VueCompAst,
+            children,
+            vm: 'VueComponent',
+            ns: VueCompNamespace,
+            app: App
+    ):
         # v-if
         if comp_ast.v_if:
-            # @computed
-            def should_render():
+            dummy = widgets.VBox()
+
+            def _if_cond():
                 return comp_ast.v_if.eval(ns)
 
-            @watch(should_render)
-            def rerender(*args):
-                vm.render()
+            @watch(_if_cond, WatchOptions(immediate=True))
+            def _change_v_if_widget(cond, old, on_cleanup):
+                dummy.children = (cls._gen(comp_ast, children, vm, ns, app),) if cond else ()
 
-            if not should_render():
-                return widgets.HTML("")
+            # dummy.children = (cls._gen(comp_ast, children, vm, ns, app),) if _if_cond() else ()
+            return dummy
+        # v-show
+        elif comp_ast.v_show:
+            dummy = widgets.VBox()
+            w = cls._gen(comp_ast, children, vm, ns, app)
+
+            def _if_show():
+                return comp_ast.v_show.eval(ns)
+
+            @watch(_if_show, WatchOptions(immediate=True))
+            def _show_widget(curr_show, old, on_cleanup):
+                dummy.children = (w,) if curr_show else ()
+
+            # dummy.children = (w,) if _if_show() else ()
+            return dummy
+        else:
+            return cls._gen(comp_ast, children, vm, ns, app)
+
+    @classmethod
+    def _gen(
+            cls,
+            comp_ast: VueCompAst,
+            children,
+            vm: 'VueComponent',
+            ns: VueCompNamespace,
+            app: App
+    ):
+        component_cls: Type[VueComponent] = vm.component(comp_ast.tag)
+        # # v-if
+        # if comp_ast.v_if:
+        #     # @computed
+        #     def should_render():
+        #         return comp_ast.v_if.eval(ns)
+        #
+        #     @watch(should_render)
+        #     def rerender(*args):
+        #         vm.render()
+        #
+        #     if not should_render():
+        #         return widgets.HTML("")
 
         # watcher = WatcherForRerender(vm, f'v_if {comp_ast.v_if}')
-            # with ActivateEffect(watcher):
-            #     if not comp_ast.v_if.eval(ns):
-            #         return widgets.HTML("")
+        # with ActivateEffect(watcher):
+        #     if not comp_ast.v_if.eval(ns):
+        #         return widgets.HTML("")
 
         slots = {'default': []}
         for child in children or []:
@@ -849,14 +902,14 @@ class VueCompCodeGen:
             def _get_v_bind_value(_exp_ast=exp_ast):
                 return _exp_ast.eval(ns)
 
-            @watch(_get_v_bind_value)
+            @watch(_get_v_bind_value, WatchOptions(immediate=True))
             def _v_bind_update_vm_to_view(curr, old, on_cleanup, _widget_attr=widget_attr):
                 _old_val = to_raw(getattr(widget, _widget_attr, Nil))
                 curr = to_raw(curr)
                 if has_changed(curr, _old_val):
                     setattr(widget, _widget_attr, curr)
 
-            setattr(widget, widget_attr, _get_v_bind_value())
+            # setattr(widget, widget_attr, _get_v_bind_value())
 
             # @watchEffect
             # def update_vm_to_view(on_cleanup, _widget_attr=widget_attr):
@@ -880,16 +933,16 @@ class VueCompCodeGen:
             # update_vm_to_view(_value, None)
 
             def _get_v_model_value(_attr_chain=attr_chain):
-                return ns.getattr(_attr_chain)
+                return to_raw(ns.getattr(_attr_chain))
 
-            @watch(_get_v_model_value)
+            @watch(_get_v_model_value, WatchOptions(immediate=True))
             def _v_model_update_vm_to_view(curr, old, on_cleanup, _widget_attr=widget_attr):
                 _old_val = to_raw(getattr(widget, _widget_attr, Nil))
                 curr = to_raw(curr)
                 if has_changed(curr, _old_val):
                     setattr(widget, _widget_attr, curr)
 
-            setattr(widget, widget_attr, _get_v_model_value())
+            # setattr(widget, widget_attr, _get_v_model_value())
 
             # @watchEffect
             # def update_vm_to_view(on_cleanup, _widget_attr=widget_attr, _attr_chain=attr_chain):
@@ -904,7 +957,9 @@ class VueCompCodeGen:
                     val = change['new'] if isinstance(change, dict) else change
                     setattr(_obj, _attr, val)
                     if isinstance(_obj, defineModel) and isinstance(_vm, SFC):
+                        logger.debug("%s emit(%s, %s)", _vm, _obj.update_event, val)
                         getattr(_vm.root, SFC.EMIT_FN)(_obj.update_event, val)
+
                 return _
 
             obj, attr = ns.get_obj_and_attr(attr_chain)
@@ -925,7 +980,7 @@ class VueCompCodeGen:
             _ref = ns.getattr(comp_ast.v_ref)
             # if not isinstance(_ref, VueRef):
             if not isinstance(_ref, RefImpl):
-                logger.error(f'ref={comp_ast.v_ref} is not instance of VueRef.')
+                logger.error(f'v-ref={comp_ast.v_ref} needs to be of type Ref.')
             else:
                 _ref.value = widget
 
@@ -943,6 +998,8 @@ def add_event_listener(widget, event, listener):
 
 
 class VueCompHtmlTemplateRender:
+    EXP_PATTERN = r"\{\{\s*(.*?)\s*\}\}"
+
     @staticmethod
     def replace(vm: "VueComponent", ns: VueCompNamespace, for_idx):
         def warp(match):
@@ -954,24 +1011,32 @@ class VueCompHtmlTemplateRender:
             #     _value = exp_ast.eval(ns)
             _value = exp_ast.eval(ns)
             return str(_value)
+
         return warp
 
     @classmethod
+    def is_raw_html(cls, template):
+        return not re.search(cls.EXP_PATTERN, template)
+
+    @classmethod
     def render(cls, template, vm: 'VueComponent', ns: VueCompNamespace, for_idx=-1):
-        exp_pattern = r"\{\{\s*(.*?)\s*\}\}"
-        result = re.sub(exp_pattern, cls.replace(vm, ns, for_idx), template)
+        result = re.sub(cls.EXP_PATTERN, cls.replace(vm, ns, for_idx), template)
         return result
+
+    @classmethod
+    def gen_from_fn(cls, fn):
+        widget = widgets.HTML()
+
+        @watch(fn, WatchOptions(immediate=True))
+        def _update_html_widget_value(new_html, old_html, on_cleanup):
+            widget.value = new_html
+
+        return widget
 
 
 class DomCompiler(HTMLParser):
     """
     @vue/compiler-dom
-
-    数据绑定:
-    https://docs.python.org/zh-cn/3.10/library/ast.html#function-and-class-definitions
-    https://juejin.cn/post/7242700247440293925
-    https://www.chuchur.com/article/vue-mvvm-complie
-    https://github.com/leilux/SICP-exercises/blob/master/book/p216-constraint-propagate(python%20version).py
     """
 
     def __init__(self, vm: VueComponent, app: 'App'):
@@ -1074,16 +1139,17 @@ class DomCompiler(HTMLParser):
         local = for_scope.to_ns() if for_scope else None
         ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local)
 
-        def __html_tag_exit_gen_html(inner_html):
+        def __html_tag_exit_gen_outerhtml(inner_html):
             tag = node['tag']
             attr = ' '.join([f"{k}='{v}'" for k, v in node['attrs'].items()])
             html_temp = f"<{tag} {attr}>{{inner_html}}</{tag}>"
             return html_temp.format(inner_html=inner_html)
 
         # @computed
-        def __html_tag_exit_render_html():
-            # v-if
-            if comp_ast.v_if and not comp_ast.v_if.eval(ns):
+        def __html_tag_exit_gen_html():
+            # v-if or v-show
+            if_cond = comp_ast.v_if or comp_ast.v_show
+            if if_cond and not if_cond.eval(ns):
                 return ''
 
             # v-html
@@ -1091,20 +1157,33 @@ class DomCompiler(HTMLParser):
                 attr_chain = comp_ast.v_html
                 return ns.getattr(attr_chain)
 
-            body = [
-                child.value if isinstance(child, widgets.HTML) else child
-                for child in node['body']
-            ]
-            return __html_tag_exit_gen_html(' '.join(body))
+            # innerHtml
+            inner = []
+            for child in node['body']:
+                if callable(child):
+                    inner.append(child())
+                elif isinstance(child, widgets.HTML):
+                    inner.append(child.value)
+                else:
+                    inner.append(child)
+            # body = [
+            #     child.value if isinstance(child, widgets.HTML) else child
+            #     for child in node['body']
+            # ]
+            return __html_tag_exit_gen_outerhtml(' '.join(inner))
 
-        @watch(__html_tag_exit_render_html)
-        def update(curr_html, old, on_cleanup):
-            print("html_tag_exit set value")
-            widget.value = curr_html
+        # @watch(__html_tag_exit_gen_html)
+        # def __update_html_widget_value(curr_html, old, on_cleanup):
+        #     logger.info(f"{self.vm} html_tag_exit set value")
+        #     logger.info(f"{id(widget)} {widget.value} to {curr_html}")
+        #     widget.value = curr_html
+        #     logger.info(f"{widget.value}")
+        #
+        # widget = widgets.HTML(value=__html_tag_exit_gen_html())
+        # logger.warn(f"html exit gen {id(widget)} {widget}")
+        # return widget
 
-        widget = widgets.HTML(value=__html_tag_exit_render_html())
-
-        return widget
+        return __html_tag_exit_gen_html
 
     def _for_stmt_enter(self, for_stmt: VForStatement, tag, attrs, is_body):
         body = []
@@ -1141,16 +1220,16 @@ class DomCompiler(HTMLParser):
         # todo 加到v-for的解析处
         if not is_body:
             ns = VueCompNamespace(self.vm._data, self.vm.to_ns())
-            # 处理list被整个替换的情况
             attr_chain = v_for_stmt.iter
 
-            # @computed
-            def track_list_change():
+            def __track_list_change():
+                # track list replacements
                 obj_iter = ns.getattr(attr_chain)
+                # track changes in the list itself, such as append, pop...
                 return id(obj_iter), [id(item) for item in obj_iter]
 
-            @watch(track_list_change)
-            def rerender(*args):
+            @watch(__track_list_change)
+            def __track_list_change_rerender(new, old, on_cleanup):
                 self.vm.render()
 
             # _attrs = attr_chain.split('.', 1)
@@ -1185,6 +1264,7 @@ class DomCompiler(HTMLParser):
     def handle_starttag(self, case_insensitive_tag, attrs):
         raw_tag = self._get_raw_tag(case_insensitive_tag)
         tag = self._to_camel_case_tag(raw_tag)
+        self._tag = tag
 
         attrs = dict(attrs)
         v_for_stmt = attrs.pop(VueCompAst.V_FOR, None)
@@ -1203,23 +1283,28 @@ class DomCompiler(HTMLParser):
         if not self.parent_node_stack:
             return
 
+        tag = self._tag
+        should_render = not VueCompHtmlTemplateRender.is_raw_html(data)
         parent = self.parent_node_stack[-1]
         if not self.is_in_for_stmt:
             if parent.get('type') != 'html':
                 return
 
             ns = VueCompNamespace(self.vm._data, self.vm.to_ns())
+
             # result = VueCompHtmlTemplateRender.render(data, self.vm, ns, -1)
             # parent['body'].append(result)
-            def __handle_data_gen_html() :
-                result = VueCompHtmlTemplateRender.render(data, self.vm, ns, -1)
-                return result
 
-            @watch(__handle_data_gen_html)
-            def rerender(_curr, _old, on_cleanup):
-                self.vm.render()
+            def __handle_data_gen_html(_should_render=should_render):
+                return VueCompHtmlTemplateRender.render(data, self.vm, ns, -1) if _should_render else data
 
-            parent['body'].append(__handle_data_gen_html())
+            # @watch(__handle_data_gen_html)
+            # def __handle_data_rerender(_curr, _old, on_cleanup):
+            #     logger.info(f"{self.vm} __handle_data_rerender {id(__handle_data_gen_html)}")
+            #     self.vm.render()
+            # parent['body'].append(__handle_data_gen_html())
+
+            parent['body'].append(__handle_data_gen_html)
 
         # TODO node的类型判断可以优化
         elif parent['body'] and parent['body'][0].get('type') == 'html':
@@ -1231,16 +1316,22 @@ class DomCompiler(HTMLParser):
                 # result = VueCompHtmlTemplateRender.render(data, self.vm, ns, i)
                 # parent['body'][i]['body'].append(result)
                 # @computed
-                def __handle_data_for_stmt_gen_html(_ns=ns, _i=i):
-                    logger.info("gen html")
-                    result = VueCompHtmlTemplateRender.render(data, self.vm, _ns, _i)
-                    return result
 
-                @watch(__handle_data_for_stmt_gen_html)
-                def rerender(_curr, _old, on_cleanup):
-                    logger.info("rerender")
-                    self.vm.render()
-                parent['body'][i]['body'].append(__handle_data_for_stmt_gen_html())
+                def __handle_data_for_stmt_gen_html(_ns=ns, _i=i, _should_render=should_render) -> str:
+                    if _should_render:
+                        logger.debug("for_stmt_gen_html index=%s <%s> tmpl=`%s`", _i, tag, data)
+                        return VueCompHtmlTemplateRender.render(data, self.vm, _ns, _i)
+                    else:
+                        return data
+
+                # @watch(__handle_data_for_stmt_gen_html)
+                # def __handle_data_for_stmt_rerender(_curr, _old, on_cleanup):
+                #     logger.info("__handle_data_for_stmt_rerender")
+                #     self.vm.render()
+
+                parent['body'][i]['body'].append(__handle_data_for_stmt_gen_html)
+        else:
+            logger.error(f"miss match `{repr(data)}`")
 
     def handle_endtag(self, tag):
         node = self.parent_node_stack.pop()
@@ -1251,12 +1342,18 @@ class DomCompiler(HTMLParser):
                 for i, widget in enumerate(_widgets):
                     self.parent_node_stack[-1]['body'][i]['body'].append(widget)
             else:
+                for i, _widget in enumerate(_widgets):
+                    if callable(_widget):
+                        _widgets[i] = VueCompHtmlTemplateRender.gen_from_fn(_widget)
                 self.parent_node_stack[-1]['body'].extend(_widgets)
                 self.v_for_stack.pop()
         else:
             widget = self._gen_widget(node)
             if not widget:
                 return
+
+            if callable(widget):
+                widget = VueCompHtmlTemplateRender.gen_from_fn(widget)
 
             if self.parent_node_stack:
                 self.parent_node_stack[-1]['body'].append(widget)
@@ -1330,6 +1427,7 @@ class Dom(widgets.VBox):
     """
     https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model/Introduction
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -1346,6 +1444,7 @@ class Document(widgets.VBox):
     """
     https://developer.mozilla.org/en-US/docs/Web/API/Document
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.body = Dom()
@@ -1460,7 +1559,6 @@ class App:
         self.dom = None
 
         self._proxy_methods()
-        self.render_count = 0
 
     def _call_if_callable(self, func):
         if callable(func):
@@ -1488,12 +1586,7 @@ class App:
         pass
 
     def render(self):
-        if self.render_count > 0:
-            raise()
-        self.render_count += 1
-        targetMap.clear()
-        reactiveMap.clear()
-        logger.info('render start')
+        logger.info('App render start.')
         if not isinstance(self.root_component, SFC):
             raise ValueError(f"render failed, root_component type {type(self.root_component)}.")
 
@@ -1503,7 +1596,7 @@ class App:
         with self._container:
             clear_output(True)
             display(self.dom)
-        logger.info('render end')
+        logger.info('App render end.')
 
     def component(self, name: str, comp: 'VueComponent' = None):
         """
@@ -1604,8 +1697,8 @@ class VueComponent(metaclass=abc.ABCMeta):
             pass
 
         comp = self.app.component(name)
-        if comp is None:
-            logger.warn(f"component({name}) not found in Component `{self.name()}`.")
+        # if comp is None:
+        #     logger.warn(f"component({name}) not found in Component `{self.name()}`.")
 
         return comp
 
@@ -1625,6 +1718,7 @@ class VueComponent(metaclass=abc.ABCMeta):
         #     return None
         # return vue_compiler_dom(self.template)
         pass
+
 
 #
 # def create_vnode(component: VueComponent, props):
@@ -1660,9 +1754,9 @@ class VuePlugin:
 
 
 class DefineProp:
-    def __init__(self, prop_name, default=None):
+    def __init__(self, prop_name: str, default=None):
         self.name = prop_name
-        self._value = ref(default)
+        self._value = ref(default, debug_msg=f"prop:{prop_name}")
 
     @property
     def value(self):
@@ -1741,6 +1835,7 @@ class defineModel:
 
     @value.setter
     def value(self, val):
+        logger.debug("defineModel:%s set value %s to %s", self.model_key, self.prop.value, val)
         self.prop.value = val
 
 
@@ -1811,11 +1906,13 @@ class SFC(VueComponent):
         def _get(prop: DefineProp):
             def _(this):
                 return prop.value
+
             return _
 
         def _set(prop: DefineProp):
             def _(this, val):
                 prop.value = val
+
             return _
 
         props = [model.prop for _, model in self.define_models]
@@ -1865,11 +1962,11 @@ class SFC(VueComponent):
     #         if isinstance(item, Reactive):
     #             item.reset_deps()
     def __repr__(self):
-        return f"{self.__class__.__name__}<{self.file}> at {id(self)}"
+        return f"{self.__class__.__name__}<{pathlib.Path(self.file).name}> at {id(self)}"
 
     def render(self, ctx: SetupContext = None, props: dict = None, setup_returned: dict = None) -> VNode:
         # self.clear_property_subs()
-        logger.info(f"=============== {self} rerender")
+        logger.info(f"🔥 Rerender {self}")
         self.scope.clear()
 
         with self.scope:

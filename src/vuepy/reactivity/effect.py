@@ -6,6 +6,7 @@ from typing import Any
 from typing import Callable
 from typing import List
 
+from vuepy import log
 from vuepy.reactivity import config
 from vuepy.reactivity.constant import IterateKey
 from vuepy.reactivity.dep import Dep
@@ -14,6 +15,8 @@ from vuepy.reactivity.effect_scope import EffectScope
 from vuepy.reactivity.effect_scope import getCurrentScope
 from vuepy.reactivity.effect_scope import recordEffectScope
 from vuepy.utils.common import gen_hash_key
+
+logger = log.getLogger()
 
 
 class DepStore:
@@ -236,6 +239,8 @@ def trigger(
     if not depsMap:
         return
 
+    logger.debug(f"trigger %s.%s %s", target, key, msg)
+
     deps: List[Dep] = []
     if trigger_type in (TriggerOpTypes.CLEAR, TriggerOpTypes.ITER):
         deps.extend(depsMap.values())
@@ -281,6 +286,8 @@ def triggerEffects(
 
     # print(f"dep{dep_id} len({len(dep)}) {dep} start")
     effects = dep if isinstance(dep, list) else list(dep)
+    logger.debug("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+    logger.debug("🚀trigger effects%s len(%s) start", id(effects), len(effects))
     for effect in list(effects):
         if effect.computed:
             # print(f"  effect computed {effect} start")
@@ -292,6 +299,8 @@ def triggerEffects(
             # print(f"  effect {effect} start")
             trigggerEffect(effect, debuggerEventExtraInfo)
             # print(f"  effect {effect} end. dep{dep_id} len({len(dep)}) is {dep}")
+    logger.debug(f"effects%s len(%s) end🚀", id(effects), len(effects))
+    logger.debug("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
     # print(f"dep{dep_id} len({len(dep)}) {dep} end")
 
 

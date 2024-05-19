@@ -11,7 +11,7 @@ from ipywui.widgets.custom.dialog import DialogWidget
 from ipywui.widgets.custom.message import Message
 from vuepy.log import getLogger
 
-LOG = getLogger()
+logger = getLogger()
 
 
 class MarkdownViewerWidget(widgets.HTML):

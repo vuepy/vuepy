@@ -1,7 +1,9 @@
-import ipywidgets as widgets
 import logging
 
+import ipywidgets as widgets
 from IPython.core.display_functions import display
+
+from vuepy.reactivity import config
 
 LOGGER_NAME = 'vuepy'
 logout = widgets.Output()
@@ -39,12 +41,14 @@ def getLogger(name=LOGGER_NAME):
 
 def init():
     handler = OutputWidgetHandler(logout)
-    handler.setFormatter(logging.Formatter(
-        '%(asctime)s  - [%(levelname)s] %(filename)s:%(funcName)s:%(lineno)s - %(message)s'))
+    formatter = logging.Formatter(
+        '%(asctime)s [%(levelname)s] %(filename)s:%(funcName)s:%(lineno)s - %(message)s'
+    )
+    handler.setFormatter(formatter)
 
     logger = getLogger(LOGGER_NAME)
     logger.addHandler(handler)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(config.LOG_LEVEL)
 
 
 init()
