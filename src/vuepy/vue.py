@@ -457,6 +457,122 @@ def get_script_src_from_sfc(sfc_file):
 #         self.value = new_val
 #         self.callback(new_val, old_val)
 
+@dataclasses.dataclass
+class VForAst:
+    iter: str
+    target: str
+    idx: str = None
+
+    @classmethod
+    def parse(cls, exp):
+        """
+        (i, target) in iter
+        :param exp:
+        :return:
+        """
+        i_target, iters = [i.strip() for i in exp.split(' in ')]
+        i_target = [i.strip() for i in i_target.strip('()').split(',')]
+        if len(i_target) == 1:
+            i, target = None, i_target[0]
+        else:
+            i, target = i_target[0], i_target[1]
+
+        return cls(iter=iters, target=target.strip(), idx=i)
+
+
+@dataclasses.dataclass
+class NodeAst:
+    tag: str
+    attrs: dict
+    parent: "NodeAst"
+    children: List["NodeAst"]
+    plain: bool
+    v_for: VForAst
+    for_processed: bool
+
+
+class VForBLockScope:
+    def __init__(self, v_for_ast: VForAst, ns):
+        self.ns = ns
+        self.v_for_ast = v_for_ast
+
+        self.iter = None
+        self.target = None
+        self.idx = 0
+        self.vars_bak = {}
+        self.for_vars = {}
+
+    def __enter__(self):
+        iter_exp = self.v_for_ast.iter
+        if iter_exp in self.ns:
+            self.iter = self.ns[iter_exp]
+        else:
+            self.iter = eval(iter_exp, {}, self.ns)
+
+        self.for_vars[iter_exp] = self.iter
+
+        target_var = self.v_for_ast.target
+        if target_var in self.ns:
+            self.vars_bak[target_var] = self.ns[target_var]
+
+        idx_var = self.v_for_ast.idx
+        if idx_var in self.ns:
+            self.vars_bak[idx_var] = self.ns[idx_var]
+
+        return self
+
+    def __iter__(self):
+        self.idx = 0
+        return self
+
+    def __next__(self):
+        if self.idx <= len(self.iter):
+            self.idx = 0
+            raise StopIteration()
+
+        self.for_vars[self.v_for_ast.target] = self.iter[self.idx]
+        self.for_vars[self.v_for_ast.idx] = self.idx
+        self.idx += 1
+        return self.for_vars[self.v_for_ast.target]
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.ns.update(self.vars_bak)
+        self.vars_bak = {}
+
+
+def v_for_stack_to_iter(stack: List[VForAst], idxs=(), values=()):
+    """
+    s1 = [1,2]
+    s2 = [3,4,5]
+    s3 = [6,7]
+    for_stack = [s1, s2, s3]
+    --
+    [ [ [((0, 0, 0), (1, 3, 6)),
+         ((0, 0, 1), (1, 3, 7))],
+        [((0, 1, 0), (1, 4, 6)),
+         ((0, 1, 1), (1, 4, 7))],
+        [((0, 2, 0), (1, 5, 6)),
+         ((0, 2, 1), (1, 5, 7))]],
+      [ [((1, 0, 0), (2, 3, 6)),
+         ((1, 0, 1), (2, 3, 7))],
+        [((1, 1, 0), (2, 4, 6)),
+         ((1, 1, 1), (2, 4, 7))],
+        [((1, 2, 0), (2, 5, 6)),
+         ((1, 2, 1), (2, 5, 7))]]]
+
+    :param stack:
+    :param idxs:
+    :param values:
+    :return:
+    """
+    if len(stack) == 1:
+        return [((*idxs, i), (*values, ii)) for i, ii in enumerate(stack[0])]
+
+    ret = []
+    for i, ii in enumerate(stack[0]):
+        ret.append(v_for_stack_to_iter(stack[1:], (*idxs, i), (*values, ii)))
+    return ret
+
 
 class VForStatement:
     def __init__(self, target, iters, index=None):
@@ -982,7 +1098,7 @@ class VueCompCodeGen:
             if not isinstance(_ref, RefImpl):
                 logger.error(f'v-ref={comp_ast.v_ref} needs to be of type Ref.')
             else:
-                _ref.value = widget
+                _ref.value = component if isinstance(component_cls, SFCFactory) else widget
 
         return widget
 
