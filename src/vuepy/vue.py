@@ -540,37 +540,46 @@ class VForBLockScope:
         self.vars_bak = {}
 
 
-def v_for_stack_to_iter(stack: List[VForAst], idxs=(), values=()):
+def v_for_stack_to_iter(stack: List[VForAst], fn, ns, idxs=(), values=()):
     """
     s1 = [1,2]
     s2 = [3,4,5]
     s3 = [6,7]
     for_stack = [s1, s2, s3]
     --
-    [ [ [((0, 0, 0), (1, 3, 6)),
-         ((0, 0, 1), (1, 3, 7))],
-        [((0, 1, 0), (1, 4, 6)),
-         ((0, 1, 1), (1, 4, 7))],
-        [((0, 2, 0), (1, 5, 6)),
-         ((0, 2, 1), (1, 5, 7))]],
-      [ [((1, 0, 0), (2, 3, 6)),
-         ((1, 0, 1), (2, 3, 7))],
-        [((1, 1, 0), (2, 4, 6)),
-         ((1, 1, 1), (2, 4, 7))],
-        [((1, 2, 0), (2, 5, 6)),
-         ((1, 2, 1), (2, 5, 7))]]]
+    [ [ [ fn((0, 0, 0), (1, 3, 6)),
+          fn((0, 0, 1), (1, 3, 7)) ],
+        [ fn((0, 1, 0), (1, 4, 6)),
+          fn((0, 1, 1), (1, 4, 7)) ],
+        [ fn((0, 2, 0), (1, 5, 6)),
+          fn((0, 2, 1), (1, 5, 7)) ]],
+      [ [ fn((1, 0, 0), (2, 3, 6)),
+          fn((1, 0, 1), (2, 3, 7)) ],
+        [ fn((1, 1, 0), (2, 4, 6)),
+          fn((1, 1, 1), (2, 4, 7)) ],
+        [ fn((1, 2, 0), (2, 5, 6)),
+          fn((1, 2, 1), (2, 5, 7)) ]]]
 
     :param stack:
     :param idxs:
     :param values:
     :return:
     """
+    if not stack:
+        return []
+
+    v_for_ast = stack[0]
     if len(stack) == 1:
-        return [((*idxs, i), (*values, ii)) for i, ii in enumerate(stack[0])]
+        ret = []
+        with VForBLockScope(v_for_ast, ns) as for_block_scope:
+            for i, val in enumerate(for_block_scope):
+                ret.append(fn((*idxs, i), (*values, val)))
+            return ret
 
     ret = []
-    for i, ii in enumerate(stack[0]):
-        ret.append(v_for_stack_to_iter(stack[1:], (*idxs, i), (*values, ii)))
+    with VForBLockScope(v_for_ast, ns) as for_block_scope:
+        for i, val in enumerate(for_block_scope):
+            ret.append(v_for_stack_to_iter(stack[1:], (*idxs, i), (*values, val)))
     return ret
 
 
