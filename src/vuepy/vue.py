@@ -1003,6 +1003,12 @@ class VueCompCodeGen:
             component = component_cls()
         widget = component.render(ctx, props, {})
 
+        if comp_ast.tag == 'slot' and isinstance(vm, SFC):
+            _slot_name = comp_ast.kwargs.get('name', 'default')
+            _slot = vm._context.get('slots', {}).get(_slot_name)
+            if _slot:
+                widget.children = _slot
+
         # v-slot
         if comp_ast.v_slot:
             widget.v_slot = comp_ast.v_slot

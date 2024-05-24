@@ -34,6 +34,11 @@ class Template(VBox):
     pass
 
 
+@wui.register('slot')
+class Slot(VBox):
+    pass
+
+
 @wui.register()
 class Box(IPywidgetsComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
