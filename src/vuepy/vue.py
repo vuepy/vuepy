@@ -4,6 +4,8 @@ from __future__ import annotations
 import abc
 import ast
 import dataclasses
+import enum
+import functools
 import importlib.util
 import pathlib
 import re
@@ -15,6 +17,7 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Tuple
 from typing import Type
 from typing import Union
 
@@ -470,25 +473,70 @@ class VForAst:
         :param exp:
         :return:
         """
-        i_target, iters = [i.strip() for i in exp.split(' in ')]
-        i_target = [i.strip() for i in i_target.strip('()').split(',')]
-        if len(i_target) == 1:
-            i, target = None, i_target[0]
-        else:
-            i, target = i_target[0], i_target[1]
+        if not exp:
+            return None
+
+        try:
+            i_target, iters = [i.strip() for i in exp.split(' in ')]
+            i_target = [i.strip() for i in i_target.strip('()').split(',')]
+            if len(i_target) == 1:
+                i, target = None, i_target[0]
+            else:
+                i, target = i_target[0], i_target[1]
+        except Exception as err:
+            msg = f"parse v-for='{exp}' failed, {err}"
+            raise ValueError(msg)
 
         return cls(iter=iters, target=target.strip(), idx=i)
 
 
 @dataclasses.dataclass
+class VForScopes:
+    idxs: Tuple[int]
+    vars: dict
+
+    def to_ns(self):
+        return self.vars
+
+
+class NodeType(enum.Enum):
+    RAW_HTML = 'raw_html'
+    WIDGET = 'widget'
+
+
+@dataclasses.dataclass
 class NodeAst:
     tag: str
-    attrs: dict
-    parent: "NodeAst"
-    children: List["NodeAst"]
-    plain: bool
-    v_for: VForAst
-    for_processed: bool
+    attrs: dict = None
+    parent: "NodeAst" = None
+    children: List["NodeAst"] = None
+    plain: bool = False
+    v_for: VForAst = None
+    v_for_scopes: VForScopes = None
+    for_processed: bool = False
+    type: NodeType = NodeType.WIDGET
+
+    def add_child(self, child):
+        self.children.append(child)
+
+
+@dataclasses.dataclass
+class VForNodeAst(NodeAst):
+
+    @property
+    def children_flat(self) -> List["NodeAst"]:
+        ret = []
+
+        def _travel(children):
+            if not isinstance(children, list):
+                ret.append(children)
+                return
+
+            for child in children:
+                _travel(child)
+
+        _travel(self.children)
+        return ret
 
 
 class VForBLockScope:
@@ -509,8 +557,6 @@ class VForBLockScope:
         else:
             self.iter = eval(iter_exp, {}, self.ns)
 
-        self.for_vars[iter_exp] = self.iter
-
         target_var = self.v_for_ast.target
         if target_var in self.ns:
             self.vars_bak[target_var] = self.ns[target_var]
@@ -519,6 +565,8 @@ class VForBLockScope:
         if idx_var in self.ns:
             self.vars_bak[idx_var] = self.ns[idx_var]
 
+        self.for_vars[iter_exp] = self.iter
+
         return self
 
     def __iter__(self):
@@ -526,21 +574,38 @@ class VForBLockScope:
         return self
 
     def __next__(self):
-        if self.idx <= len(self.iter):
+        if self.idx >= len(self.iter):
             self.idx = 0
             raise StopIteration()
 
-        self.for_vars[self.v_for_ast.target] = self.iter[self.idx]
-        self.for_vars[self.v_for_ast.idx] = self.idx
+        # set target
+        target_exp = self.v_for_ast.target
+        target = self.iter[self.idx]
+        self.for_vars[target_exp] = target
+        self.ns[target_exp] = target
+
+        if self.v_for_ast.idx is not None:
+            # set idx
+            idx_exp = self.v_for_ast.idx
+            self.for_vars[idx_exp] = self.idx
+            self.ns[idx_exp] = self.idx
+
         self.idx += 1
-        return self.for_vars[self.v_for_ast.target]
+
+        return target
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.ns.update(self.vars_bak)
         self.vars_bak = {}
+        self.for_vars = {}
 
 
-def v_for_stack_to_iter(stack: List[VForAst], fn, ns, idxs=(), values=()):
+VForIterFn = Callable[[Tuple[int], dict, VForAst], Any]
+
+
+def v_for_stack_to_iter(stack: List[VForAst], fn: VForIterFn, ns: dict,
+                        for_block_stack_idxs: Tuple[int] = (),
+                        for_block_stack_vars: dict = None) -> List[Any]:
     """
     s1 = [1,2]
     s2 = [3,4,5]
@@ -561,69 +626,76 @@ def v_for_stack_to_iter(stack: List[VForAst], fn, ns, idxs=(), values=()):
           fn((1, 2, 1), (2, 5, 7)) ]]]
 
     :param stack:
-    :param idxs:
-    :param values:
+    :param fn:
+    :param ns:
+    :param for_block_stack_idxs:
+    :param for_block_stack_vars:
     :return:
     """
     if not stack:
         return []
 
+    for_block_stack_vars = for_block_stack_vars or {}
     v_for_ast = stack[0]
     if len(stack) == 1:
         ret = []
         with VForBLockScope(v_for_ast, ns) as for_block_scope:
             for i, val in enumerate(for_block_scope):
-                ret.append(fn((*idxs, i), (*values, val)))
-            return ret
+                _idxs = (*for_block_stack_idxs, i)
+                _vars = {**for_block_stack_vars, **for_block_scope.for_vars}
+                ret.append(fn(_idxs, _vars, v_for_ast))
+        return ret
 
     ret = []
     with VForBLockScope(v_for_ast, ns) as for_block_scope:
         for i, val in enumerate(for_block_scope):
-            ret.append(v_for_stack_to_iter(stack[1:], (*idxs, i), (*values, val)))
+            _idxs = (*for_block_stack_idxs, i)
+            _vars = {**for_block_stack_vars, **for_block_scope.for_vars}
+            ret.append(v_for_stack_to_iter(stack[1:], fn, for_block_scope.ns, _idxs, _vars))
     return ret
 
 
-class VForStatement:
-    def __init__(self, target, iters, index=None):
-        self.i = index
-        self.target = target
-        self.iter = iters
-
-    @classmethod
-    def parse(cls, s):
-        """
-        (i, target) in iter
-        :param s:
-        :return:
-        """
-        i_target, iters = [i.strip() for i in s.split(' in ')]
-        i_target = [i.strip() for i in i_target.strip('()').split(',')]
-        if len(i_target) == 1:
-            i, target = None, i_target[0]
-        else:
-            i, target = i_target[0], i_target[1]
-
-        return cls(target.strip(), iters, i)
-
-
-class ForScope:
-    def __init__(self, i_val, for_stmt: VForStatement, vm: 'VueComponent'):
-        self.for_stmt = for_stmt
-        self.i = i_val
-        self.iter = VueCompNamespace.get_by_attr_chain(vm._data, for_stmt.iter)
-        self.target = self.iter[self.i]
-
-    def to_ns(self):
-        return {
-            self.for_stmt.i: self.i,
-            self.for_stmt.target: self.target,
-            self.for_stmt.iter: self.iter,
-        }
+# class VForStatement:
+#     def __init__(self, target, iters, index=None):
+#         self.i = index
+#         self.target = target
+#         self.iter = iters
+#
+#     @classmethod
+#     def parse(cls, s):
+#         """
+#         (i, target) in iter
+#         :param s:
+#         :return:
+#         """
+#         i_target, iters = [i.strip() for i in s.split(' in ')]
+#         i_target = [i.strip() for i in i_target.strip('()').split(',')]
+#         if len(i_target) == 1:
+#             i, target = None, i_target[0]
+#         else:
+#             i, target = i_target[0], i_target[1]
+#
+#         return cls(target.strip(), iters, i)
+#
+#
+# class ForScope:
+#     def __init__(self, i_val, for_stmt: VForStatement, vm: 'VueComponent'):
+#         self.for_stmt = for_stmt
+#         self.i = i_val
+#         self.iter = VueCompNamespace.get_by_attr_chain(vm._data, for_stmt.iter)
+#         self.target = self.iter[self.i]
+#
+#     def to_ns(self):
+#         return {
+#             self.for_stmt.i: self.i,
+#             self.for_stmt.target: self.target,
+#             self.for_stmt.iter: self.iter,
+#         }
 
 
 class VueCompExprAst:
-    def __init__(self, exp_ast, vars=None, exp_str=''):
-        self.vars = vars if vars else []
+    def __init__(self, exp_ast, _vars=None, exp_str=''):
+        self.vars = _vars if _vars else []
         self.exp_ast = exp_ast
         self.exp_str = exp_str
 
@@ -920,12 +992,12 @@ class VueCompCodeGen:
     @classmethod
     def gen(
             cls,
-            comp_ast: VueCompAst,
-            children,
+            node: NodeAst,
             vm: 'VueComponent',
             ns: VueCompNamespace,
             app: App
     ):
+        comp_ast = VueCompAst.parse(node.tag, node.attrs)
         # v-if
         if comp_ast.v_if:
             dummy = widgets.VBox()
@@ -935,14 +1007,14 @@ class VueCompCodeGen:
 
             @watch(_if_cond, WatchOptions(immediate=True))
             def _change_v_if_widget(cond, old, on_cleanup):
-                dummy.children = (cls._gen(comp_ast, children, vm, ns, app),) if cond else ()
+                dummy.children = (cls._gen(comp_ast, node.children, vm, ns, app),) if cond else ()
 
             # dummy.children = (cls._gen(comp_ast, children, vm, ns, app),) if _if_cond() else ()
             return dummy
         # v-show
         elif comp_ast.v_show:
             dummy = widgets.VBox()
-            w = cls._gen(comp_ast, children, vm, ns, app)
+            w = cls._gen(comp_ast, node.children, vm, ns, app)
 
             def _if_show():
                 return comp_ast.v_show.eval(ns)
@@ -954,7 +1026,7 @@ class VueCompCodeGen:
             # dummy.children = (w,) if _if_show() else ()
             return dummy
         else:
-            return cls._gen(comp_ast, children, vm, ns, app)
+            return cls._gen(comp_ast, node.children, vm, ns, app)
 
     @classmethod
     def _gen(
@@ -1128,7 +1200,7 @@ def add_event_listener(widget, event, listener):
         getattr(widget, f"on_{event}")(listener)
 
 
-class VueCompHtmlTemplateRender:
+class VueHtmlTextRender:
     EXP_PATTERN = r"\{\{\s*(.*?)\s*\}\}"
 
     @staticmethod
@@ -1154,6 +1226,45 @@ class VueCompHtmlTemplateRender:
         result = re.sub(cls.EXP_PATTERN, cls.replace(vm, ns, for_idx), template)
         return result
 
+
+class VueHtmlCompCodeGen:
+    @classmethod
+    def gen(cls, node: NodeAst, ns: VueCompNamespace):
+        comp_ast = VueCompAst.parse(node.tag, node.attrs)
+
+        def __html_tag_exit_gen_outerhtml(inner_html):
+            tag = node.tag
+            attr = ' '.join([f"{k}='{v}'" for k, v in node.attrs.items()])
+            html_temp = f"<{tag} {attr}>{{inner_html}}</{tag}>"
+            return html_temp.format(inner_html=inner_html)
+
+        # @computed
+        def __html_tag_exit_gen_html():
+            # v-if or v-show
+            if_cond = comp_ast.v_if or comp_ast.v_show
+            if if_cond and not if_cond.eval(ns):
+                return ''
+
+            # v-html
+            if comp_ast.v_html:
+                attr_chain = comp_ast.v_html
+                return ns.getattr(attr_chain)
+
+            # innerHtml
+            inner = []
+            # for child in node['body']:
+            for child in node.children:
+                if callable(child):
+                    inner.append(child())
+                elif isinstance(child, widgets.HTML):
+                    inner.append(child.value)
+                else:
+                    inner.append(child)
+
+            return __html_tag_exit_gen_outerhtml(' '.join(inner))
+
+        return __html_tag_exit_gen_html
+
     @classmethod
     def gen_from_fn(cls, fn):
         widget = widgets.HTML()
@@ -1174,11 +1285,10 @@ class DomCompiler(HTMLParser):
         super().__init__()
         self.vm = vm
         self.app = app
-        self.widgets = []
+        self.widgets = NodeAst('dummy', children=[])
         self.widgets_by_id = {}
-        self.parent_node_stack = []
-        self.v_for_stack = []
-        self.html_tags = []
+        self.parent_node_stack: List[NodeAst | VForNodeAst] = []
+        self.v_for_stack: List[VForAst] = []
 
     def _get_element_by_id(self, el_id):
         return self.widgets_by_id.get(el_id)
@@ -1190,36 +1300,39 @@ class DomCompiler(HTMLParser):
     def _process_directive(self):
         pass
 
-    def _gen_ast_node(self, tag, attrs, for_scope=None):
-        if self.vm.component(tag):
-            node = self._component_tag_enter(tag, attrs, for_scope)
-        else:
-            node = self._html_tag_enter(tag, attrs)
-        return node
+    # def _gen_ast_node(self, tag, attrs, for_scope=None):
+    #     if self.vm.component(tag):
+    #         # node = self._component_tag_enter(tag, attrs, for_scope)
+    #         node = {"tag": tag, 'attrs': attrs, 'body': []}
+    #     else:
+    #         # node = self._html_tag_enter(tag, attrs)
+    #         node = {'tag': tag, 'attrs': attrs, 'body': [], 'type': 'html'}
+    #     return node
 
-    def _gen_widget(self, node, for_scope=None):
-        tag = node['tag']
-        if self.vm.component(tag):
-            widget = self._component_tag_exit(node, for_scope)
+    def _gen_widget(self, node: NodeAst, for_scope: VForScopes = None):
+        local_vars = for_scope and for_scope.to_ns()
+        ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local_vars)
+        if self.vm.component(node.tag):
+            widget = VueCompCodeGen.gen(node, self.vm, ns, self.app)
         else:
-            widget = self._html_tag_exit(node, for_scope)
+            widget = VueHtmlCompCodeGen.gen(node, ns)
 
         return widget
 
-    def _component_tag_enter(self, tag, attrs, for_scope=None):
-        return {"tag": tag, 'attrs': attrs, 'body': []}
-
-    def _component_tag_exit(self, node, for_scope=None):
-        comp_ast = VueCompAst.parse(node['tag'], node['attrs'])
-        local = for_scope.to_ns() if for_scope else None
-        ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local)
-        widget = VueCompCodeGen.gen(comp_ast, node['body'], self.vm, ns, self.app)
-        return widget
-
-    def _html_tag_enter(self, tag, attrs):
-        ast_node = {'type': 'html', 'tag': tag, 'attrs': attrs, 'body': []}
-        return ast_node
-
+    # def _component_tag_enter(self, tag, attrs, for_scope=None):
+    #     return {"tag": tag, 'attrs': attrs, 'body': []}
+    #
+    # def _component_tag_exit(self, node: NodeAst, for_scope: ForScope | VForScopes =None):
+    #     comp_ast = VueCompAst.parse(node.tag, node.attrs)
+    #     local = for_scope.to_ns() if for_scope else None
+    #     ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local)
+    #     widget = VueCompCodeGen.gen(comp_ast, node.children, self.vm, ns, self.app)
+    #     return widget
+    #
+    # def _html_tag_enter(self, tag, attrs):
+    #     ast_node = {'type': 'html', 'tag': tag, 'attrs': attrs, 'body': []}
+    #     return ast_node
+    #
     # def _html_tag_exit(self, node, for_scope: ForScope = None):
     #     # TODO 重构
     #     comp_ast = VueCompAst.parse(node['tag'], node['attrs'])
@@ -1264,121 +1377,109 @@ class DomCompiler(HTMLParser):
     #
     #     return widget
 
-    def _html_tag_exit(self, node, for_scope: ForScope = None):
-        # TODO 重构
-        comp_ast = VueCompAst.parse(node['tag'], node['attrs'])
-        local = for_scope.to_ns() if for_scope else None
-        ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local)
+    # def _html_tag_exit(self, node: NodeAst, for_scope: ForScope | VForScopes = None):
+    #     # TODO 重构 移到gen里
+    #     # comp_ast = VueCompAst.parse(node['tag'], node['attrs'])
+    #     comp_ast = VueCompAst.parse(node.tag, node.attrs)
+    #     local = for_scope.to_ns() if for_scope else None
+    #     ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local)
+    #
+    #     def __html_tag_exit_gen_outerhtml(inner_html):
+    #         tag = node.tag
+    #         attr = ' '.join([f"{k}='{v}'" for k, v in node.attrs.items()])
+    #         html_temp = f"<{tag} {attr}>{{inner_html}}</{tag}>"
+    #         return html_temp.format(inner_html=inner_html)
+    #
+    #     # @computed
+    #     def __html_tag_exit_gen_html():
+    #         # v-if or v-show
+    #         if_cond = comp_ast.v_if or comp_ast.v_show
+    #         if if_cond and not if_cond.eval(ns):
+    #             return ''
+    #
+    #         # v-html
+    #         if comp_ast.v_html:
+    #             attr_chain = comp_ast.v_html
+    #             return ns.getattr(attr_chain)
+    #
+    #         # innerHtml
+    #         inner = []
+    #         # for child in node['body']:
+    #         for child in node.children:
+    #             if callable(child):
+    #                 inner.append(child())
+    #             elif isinstance(child, widgets.HTML):
+    #                 inner.append(child.value)
+    #             else:
+    #                 inner.append(child)
+    #
+    #         return __html_tag_exit_gen_outerhtml(' '.join(inner))
+    #
+    #     return __html_tag_exit_gen_html
 
-        def __html_tag_exit_gen_outerhtml(inner_html):
-            tag = node['tag']
-            attr = ' '.join([f"{k}='{v}'" for k, v in node['attrs'].items()])
-            html_temp = f"<{tag} {attr}>{{inner_html}}</{tag}>"
-            return html_temp.format(inner_html=inner_html)
-
-        # @computed
-        def __html_tag_exit_gen_html():
-            # v-if or v-show
-            if_cond = comp_ast.v_if or comp_ast.v_show
-            if if_cond and not if_cond.eval(ns):
-                return ''
-
-            # v-html
-            if comp_ast.v_html:
-                attr_chain = comp_ast.v_html
-                return ns.getattr(attr_chain)
-
-            # innerHtml
-            inner = []
-            for child in node['body']:
-                if callable(child):
-                    inner.append(child())
-                elif isinstance(child, widgets.HTML):
-                    inner.append(child.value)
-                else:
-                    inner.append(child)
-            # body = [
-            #     child.value if isinstance(child, widgets.HTML) else child
-            #     for child in node['body']
-            # ]
-            return __html_tag_exit_gen_outerhtml(' '.join(inner))
-
-        # @watch(__html_tag_exit_gen_html)
-        # def __update_html_widget_value(curr_html, old, on_cleanup):
-        #     logger.info(f"{self.vm} html_tag_exit set value")
-        #     logger.info(f"{id(widget)} {widget.value} to {curr_html}")
-        #     widget.value = curr_html
-        #     logger.info(f"{widget.value}")
-        #
-        # widget = widgets.HTML(value=__html_tag_exit_gen_html())
-        # logger.warn(f"html exit gen {id(widget)} {widget}")
-        # return widget
-
-        return __html_tag_exit_gen_html
-
-    def _for_stmt_enter(self, for_stmt: VForStatement, tag, attrs, is_body):
-        body = []
-        _iter = VueCompNamespace.get_by_attr_chain(self.vm._data, for_stmt.iter)
-        for i, target in enumerate(_iter):
-            for_scope = (i, target)
-            body.append(self._gen_ast_node(tag, attrs, for_scope))
-
-        if is_body:
-            ast_node = {
-                "tag": 'v_for',
-                'v_for_body': for_stmt,
-                "body": body,
-            }
-        else:
-            ast_node = {
-                "tag": 'v_for',
-                'v_for': for_stmt,
-                "body": body,
-            }
-        return ast_node
-
-    def _for_stmt_exit(self, v_for_ast_node, is_body=False):
-        _widgets = []
-        v_for_stmt = self.v_for_stack[-1]
-        _iter = VueCompNamespace.get_by_attr_chain(self.vm._data, v_for_stmt.iter)
-        for i, target in enumerate(_iter):
-            for_scope = ForScope(i, v_for_stmt, self.vm)
-            node = v_for_ast_node['body'][i]
-            widget = self._gen_widget(node, for_scope)
-            if widget:
-                _widgets.append(widget)
-
-        # todo 加到v-for的解析处
-        if not is_body:
-            ns = VueCompNamespace(self.vm._data, self.vm.to_ns())
-            attr_chain = v_for_stmt.iter
-
-            def __track_list_change():
-                # track list replacements
-                obj_iter = ns.getattr(attr_chain)
-                # track changes in the list itself, such as append, pop...
-                return id(obj_iter), [id(item) for item in obj_iter]
-
-            @watch(__track_list_change)
-            def __track_list_change_rerender(new, old, on_cleanup):
-                self.vm.render()
-
-            # _attrs = attr_chain.split('.', 1)
-            # if len(_attrs) > 1:
-            #     base_attr, sub_attr_chain = _attrs
-            #     obj = ns.getattr(base_attr)
-            #     watcher = WatcherForRerender(self.vm, f"for_stme {v_for_stmt.iter} replace")
-            #     with ActivateEffect(watcher):
-            #         VueCompNamespace.get_by_attr_chain(obj, sub_attr_chain)
-            #
-            # # 处理list本身的变化，append、pop等操作
-            # # watcher = WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified")
-            # # with ActivateEffect(watcher):
-            # obj_iter = ns.getattr(v_for_stmt.iter)
-            # if isinstance(obj_iter, Reactive):
-            #     obj_iter.add_dep(WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified"))
-
-        return _widgets
+    # def _for_stmt_enter(self, for_stmt: VForStatement, tag, attrs, is_body):
+    #     body = []
+    #     _iter = VueCompNamespace.get_by_attr_chain(self.vm._data, for_stmt.iter)
+    #     for i, target in enumerate(_iter):
+    #         for_scope = (i, target)
+    #         body.append(self._gen_ast_node(tag, attrs, for_scope))
+    #
+    #     if is_body:
+    #         ast_node = {
+    #             "tag": 'v_for',
+    #             'v_for_body': for_stmt,
+    #             "body": body,
+    #         }
+    #     else:
+    #         ast_node = {
+    #             "tag": 'v_for',
+    #             'v_for': for_stmt,
+    #             "body": body,
+    #         }
+    #     return ast_node
+    #
+    # def _for_stmt_exit(self, v_for_ast_node, is_body=False):
+    #     _widgets = []
+    #     v_for_stmt = self.v_for_stack[-1]
+    #     _iter = VueCompNamespace.get_by_attr_chain(self.vm._data, v_for_stmt.iter)
+    #     for i, target in enumerate(_iter):
+    #         for_scope = ForScope(i, v_for_stmt, self.vm)
+    #         node = v_for_ast_node['body'][i]
+    #         widget = self._gen_widget(node, for_scope)
+    #         if widget:
+    #             _widgets.append(widget)
+    #
+    #     # todo 加到v-for的解析处
+    #     if not is_body:
+    #         ns = VueCompNamespace(self.vm._data, self.vm.to_ns())
+    #         attr_chain = v_for_stmt.iter
+    #
+    #         def __track_list_change():
+    #             # track list replacements
+    #             obj_iter = ns.getattr(attr_chain)
+    #             # track changes in the list itself, such as append, pop...
+    #             return id(obj_iter), [id(item) for item in obj_iter]
+    #
+    #         @watch(__track_list_change)
+    #         def __track_list_change_rerender(new, old, on_cleanup):
+    #             self.vm.render()
+    #
+    #         # _attrs = attr_chain.split('.', 1)
+    #         # if len(_attrs) > 1:
+    #         #     base_attr, sub_attr_chain = _attrs
+    #         #     obj = ns.getattr(base_attr)
+    #         #     watcher = WatcherForRerender(self.vm, f"for_stme {v_for_stmt.iter} replace")
+    #         #     with ActivateEffect(watcher):
+    #         #         VueCompNamespace.get_by_attr_chain(obj, sub_attr_chain)
+    #         #
+    #         # # 处理list本身的变化，append、pop等操作
+    #         # # watcher = WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified")
+    #         # # with ActivateEffect(watcher):
+    #         # obj_iter = ns.getattr(v_for_stmt.iter)
+    #         # if isinstance(obj_iter, Reactive):
+    #         #     obj_iter.add_dep(WatcherForRerender(self.vm, f"{v_for_stmt.iter} modified"))
+    #
+    #     return _widgets
 
     def _get_raw_tag(self, tag):
         row, col = self.getpos()
@@ -1393,110 +1494,208 @@ class DomCompiler(HTMLParser):
         return ''.join(w.title() for w in words)
 
     def handle_starttag(self, case_insensitive_tag, attrs):
+        def _gen_node_ast(tag, attrs, for_processed: bool = False, idxs: Tuple[int] = None,
+                          vars: dict = None, v_for: VForAst = None) -> NodeAst:
+            idxs = idxs or []
+            if self.parent_node_stack:
+                _parent = self.parent_node_stack[-1]
+                _parent = _parent.children if isinstance(_parent, VForNodeAst) else _parent
+            else:
+                _parent = self.widgets
+
+            for idx in (idxs[:-1] if for_processed else idxs):
+                _parent = _parent[idx]
+
+            _for_scopes = VForScopes(idxs=idxs, vars=vars) if idxs and vars else None
+            _node = NodeAst(
+                tag=tag, attrs=attrs, parent=_parent, children=[], plain=False, v_for=v_for,
+                v_for_scopes=_for_scopes, for_processed=for_processed,
+                type=node_type
+            )
+            return _node
+
         raw_tag = self._get_raw_tag(case_insensitive_tag)
         tag = self._to_camel_case_tag(raw_tag)
+        node_type = NodeType.WIDGET if self.vm.component(tag) else NodeType.RAW_HTML
         self._tag = tag
-
         attrs = dict(attrs)
-        v_for_stmt = attrs.pop(VueCompAst.V_FOR, None)
-        if v_for_stmt or self.v_for_stack:
-            is_header = bool(v_for_stmt)
-            if is_header:
-                v_for = VForStatement.parse(v_for_stmt)
-                self.v_for_stack.append(v_for)
-            v_for = self.v_for_stack[-1]
-            node = self._for_stmt_enter(v_for, tag, attrs, not is_header)
+
+        v_for = attrs.pop(VueCompAst.V_FOR, None)
+        v_for_ast = VForAst.parse(v_for)
+        for_processed = False
+        if v_for_ast:
+            for_processed = True
+            self.v_for_stack.append(v_for_ast)
+
+        if self.v_for_stack:
+            nodes = v_for_stack_to_iter(
+                self.v_for_stack,
+                functools.partial(_gen_node_ast, tag, attrs, for_processed),
+                self.vm._data
+            )
+            node = VForNodeAst(tag, children=nodes, for_processed=for_processed, type=node_type)
         else:
-            node = self._gen_ast_node(tag, attrs)
+            node = _gen_node_ast(tag, attrs, for_processed)
         self.parent_node_stack.append(node)
+
+        # v_for_stmt = attrs.pop(VueCompAst.V_FOR, None)
+        #
+        # if v_for_stmt or self.v_for_stack:
+        #     is_header = bool(v_for_stmt)
+        #     if is_header:
+        #         v_for = VForStatement.parse(v_for_stmt)
+        #         self.v_for_stack.append(v_for)
+        #     v_for = self.v_for_stack[-1]
+        #     node = self._for_stmt_enter(v_for, tag, attrs, not is_header)
+        # else:
+        #     node = self._gen_ast_node(tag, attrs)
+        # self.parent_node_stack.append(node)
 
     def handle_data(self, data: str) -> None:
         if not self.parent_node_stack:
             return
 
         tag = self._tag
-        should_render = not VueCompHtmlTemplateRender.is_raw_html(data)
-        parent = self.parent_node_stack[-1]
-        if not self.is_in_for_stmt:
-            if parent.get('type') != 'html':
+
+        def _gen_text(node: NodeAst, should_render: bool):
+            if isinstance(node, VForNodeAst):
+                for _node in node.children_flat:
+                    _gen_text(_node, should_render)
                 return
 
-            ns = VueCompNamespace(self.vm._data, self.vm.to_ns())
+            if node.type != NodeType.RAW_HTML:
+                logger.debug(f"<{tag}>{repr(data)}</{tag}> not support innerText.")
+                return
 
-            # result = VueCompHtmlTemplateRender.render(data, self.vm, ns, -1)
-            # parent['body'].append(result)
+            ns = VueCompNamespace(self.vm._data, self.vm.to_ns(),
+                                  node.v_for_scopes and node.v_for_scopes.to_ns())
+            i = -1
+            if node.v_for_scopes:
+                i = node.v_for_scopes.idxs[-1]
 
-            def __handle_data_gen_html(_should_render=should_render):
-                return VueCompHtmlTemplateRender.render(data, self.vm, ns, -1) if _should_render else data
+            def __handle_data_gen_html(_ns=ns, _i=i, _should_render=should_render):
+                if _should_render:
+                    logger.debug("for_stmt_gen_html index=%s <%s> tmpl=`%s`", _i, tag, data)
+                    return VueHtmlTextRender.render(data, self.vm, _ns, _i)
+                else:
+                    return data
 
-            # @watch(__handle_data_gen_html)
-            # def __handle_data_rerender(_curr, _old, on_cleanup):
-            #     logger.info(f"{self.vm} __handle_data_rerender {id(__handle_data_gen_html)}")
-            #     self.vm.render()
-            # parent['body'].append(__handle_data_gen_html())
+            node.add_child(__handle_data_gen_html)
 
-            parent['body'].append(__handle_data_gen_html)
+        should_render = not VueHtmlTextRender.is_raw_html(data)
+        parent = self.parent_node_stack[-1]
+        _gen_text(parent, should_render)
 
-        # TODO node的类型判断可以优化
-        elif parent['body'] and parent['body'][0].get('type') == 'html':
-            v_for_stmt = self.v_for_stack[-1]
-            _iter = VueCompNamespace.get_by_attr_chain(self.vm._data, v_for_stmt.iter)
-            for i, target in enumerate(_iter):
-                for_scope = ForScope(i, v_for_stmt, self.vm)
-                ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), for_scope.to_ns())
-                # result = VueCompHtmlTemplateRender.render(data, self.vm, ns, i)
-                # parent['body'][i]['body'].append(result)
-                # @computed
+        #
+        #
+        # if not self.is_in_for_stmt:
+        #     if parent.type != NodeType.RAW_HTML:
+        #         logger.warning(f"<{tag}> not support innerText.")
+        #         return
+        #
+        #     ns = VueCompNamespace(self.vm._data, self.vm.to_ns())
+        #
+        #     # result = VueCompHtmlTemplateRender.render(data, self.vm, ns, -1)
+        #     # parent['body'].append(result)
+        #
+        #     def __handle_data_gen_html(_should_render=should_render):
+        #         return VueCompHtmlTemplateRender.render(data, self.vm, ns, -1) if _should_render else data
+        #
+        #     parent.add_child(__handle_data_gen_html)
+        #     # parent['body'].append(__handle_data_gen_html)
+        #
+        # # v-for
+        # # TODO node的类型判断可以优化
+        # elif parent['body'] and parent['body'][0].get('type') == 'html':
+        #     v_for_stmt = self.v_for_stack[-1]
+        #     _iter = VueCompNamespace.get_by_attr_chain(self.vm._data, v_for_stmt.iter)
+        #     for i, _ in enumerate(_iter):
+        #         for_scope = ForScope(i, v_for_stmt, self.vm)
+        #         ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), for_scope.to_ns())
+        #
+        #         def __handle_data_for_stmt_gen_html(_ns=ns, _i=i, _should_render=should_render) -> str:
+        #             if _should_render:
+        #                 logger.debug("for_stmt_gen_html index=%s <%s> tmpl=`%s`", _i, tag, data)
+        #                 return VueCompHtmlTemplateRender.render(data, self.vm, _ns, _i)
+        #             else:
+        #                 return data
+        #
+        #         parent['body'][i]['body'].append(__handle_data_for_stmt_gen_html)
+        # else:
+        #     logger.error(f"miss match `{repr(data)}`")
 
-                def __handle_data_for_stmt_gen_html(_ns=ns, _i=i, _should_render=should_render) -> str:
-                    if _should_render:
-                        logger.debug("for_stmt_gen_html index=%s <%s> tmpl=`%s`", _i, tag, data)
-                        return VueCompHtmlTemplateRender.render(data, self.vm, _ns, _i)
-                    else:
-                        return data
-
-                # @watch(__handle_data_for_stmt_gen_html)
-                # def __handle_data_for_stmt_rerender(_curr, _old, on_cleanup):
-                #     logger.info("__handle_data_for_stmt_rerender")
-                #     self.vm.render()
-
-                parent['body'][i]['body'].append(__handle_data_for_stmt_gen_html)
-        else:
-            logger.error(f"miss match `{repr(data)}`")
+    # def handle_endtag_bak(self, tag):
+    #     node = self.parent_node_stack.pop()
+    #     if self.is_in_for_stmt:
+    #         is_body = 'v_for' not in node
+    #         _widgets = self._for_stmt_exit(node, is_body)
+    #         if is_body:
+    #             for i, widget in enumerate(_widgets):
+    #                 self.parent_node_stack[-1]['body'][i]['body'].append(widget)
+    #         else:
+    #             for i, _widget in enumerate(_widgets):
+    #                 if callable(_widget):
+    #                     _widgets[i] = VueHtmlCompRender.gen_from_fn(_widget)
+    #             self.parent_node_stack[-1]['body'].extend(_widgets)
+    #             self.v_for_stack.pop()
+    #     else:
+    #         widget = self._gen_widget(node)
+    #         if not widget:
+    #             return
+    #
+    #         if callable(widget):
+    #             widget = VueHtmlCompRender.gen_from_fn(widget)
+    #
+    #         if self.parent_node_stack:
+    #             self.parent_node_stack[-1]['body'].append(widget)
+    #         else:
+    #             self.widgets.add_child(widget)
 
     def handle_endtag(self, tag):
-        node = self.parent_node_stack.pop()
-        if self.is_in_for_stmt:
-            is_body = 'v_for' not in node
-            _widgets = self._for_stmt_exit(node, is_body)
-            if is_body:
-                for i, widget in enumerate(_widgets):
-                    self.parent_node_stack[-1]['body'][i]['body'].append(widget)
-            else:
-                for i, _widget in enumerate(_widgets):
-                    if callable(_widget):
-                        _widgets[i] = VueCompHtmlTemplateRender.gen_from_fn(_widget)
-                self.parent_node_stack[-1]['body'].extend(_widgets)
-                self.v_for_stack.pop()
-        else:
-            widget = self._gen_widget(node)
-            if not widget:
+        def _gen_element(_node: NodeAst):
+            if isinstance(_node, VForNodeAst):
+                for _node in _node.children_flat:
+                    _gen_element(_node)
                 return
 
-            if callable(widget):
-                widget = VueCompHtmlTemplateRender.gen_from_fn(widget)
+            widget = self._gen_widget(_node, _node.v_for_scopes)
+            # not v-for
+            if not _node.v_for_scopes:
+                widget = VueHtmlCompCodeGen.gen_from_fn(widget) if callable(widget) else widget
+                _node.parent.add_child(widget)
+            # curr v-for end
+            elif _node.for_processed:
+                widget = VueHtmlCompCodeGen.gen_from_fn(widget) if callable(widget) else widget
+                _node.parent.add_child(widget)
 
-            if self.parent_node_stack:
-                self.parent_node_stack[-1]['body'].append(widget)
+                # todo 加到v-for的解析处
+                ns = VueCompNamespace(self.vm._data, self.vm.to_ns())
+                attr_chain = _node.v_for.iter
+
+                def __track_list_change():
+                    # track list replacements
+                    obj_iter = ns.getattr(attr_chain)
+                    # track changes in the list itself, such as append, pop...
+                    return id(obj_iter), [id(item) for item in obj_iter]
+
+                @watch(__track_list_change)
+                def __track_list_change_rerender(new, old, on_cleanup):
+                    self.vm.render()
+            # v-for in process
             else:
-                self.widgets.append(widget)
+                _node.parent.add_child(widget)
+
+        node = self.parent_node_stack.pop()
+        _gen_element(node)
+        if node.for_processed:
+            self.v_for_stack.pop()
 
     def compile(self, html):
         self.html_lines = [line for line in html.splitlines()]
         self.feed(html)
-        if len(self.widgets) == 1:
-            return self.widgets[0]
-        return widgets.VBox(self.widgets)
+        if len(self.widgets.children) == 1:
+            return self.widgets.children[0]
+        return widgets.VBox(self.widgets.children)
 
 
 class ScriptCompiler:
