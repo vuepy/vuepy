@@ -291,6 +291,14 @@ class ListProxy(ReactiveProxy):
         track(self._vp_track_target_, TrackOpTypes.ITER, IterateKey.LIST, msg="__len__")
         return len(self._vp_target_)
 
+    def __repr__(self):
+        track(self._vp_track_target_, TrackOpTypes.ITER, IterateKey.LIST, msg="__repr__")
+        return f"{self.__class__.__name__}: {repr(self._vp_target_)}"
+
+    def __str__(self):
+        track(self._vp_track_target_, TrackOpTypes.ITER, IterateKey.LIST, msg="__str__")
+        return f"{self.__class__.__name__}: {str(self._vp_target_)}"
+
     def append(self, item):
         ret = self._vp_target_.append(item)
         trigger(self._vp_track_target_, TriggerOpTypes.ADD, len(self._vp_target_), item, msg="append")
@@ -402,3 +410,7 @@ def isShallow(value) -> bool:
 
 def isReadonly(value) -> bool:
     return False
+
+
+def isProxy(value):
+    return is_reactive(value) or isReadonly(value)
