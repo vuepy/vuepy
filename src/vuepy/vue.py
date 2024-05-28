@@ -55,7 +55,8 @@ def get_script_py_block_content_from_sfc(sfc_file):
         )
 
     if not match:
-        raise ValueError("can't find <script lang=py>")
+        logger.debug("can't find <script lang=py>")
+        return None
 
     return match.group('content')
 
@@ -1079,7 +1080,7 @@ class VueCompCodeGen:
         #     })
 
         if isinstance(component_cls, SFCFactory):
-            component = component_cls(props, ctx, app)
+            component = component_cls.gen(props, ctx, app)
         else:
             component = component_cls()
         widget = component.render(ctx, props, {})
@@ -1748,9 +1749,12 @@ class ScriptCompiler:
         script_src = get_script_src_from_sfc(sfc_file)
         if script_src:
             return cls.compile_script_src(sfc_file.parent, script_src)
-        else:
-            script_block = get_script_py_block_content_from_sfc(sfc_file)
-            return cls.compile_script_block(script_block, str(sfc_file.absolute()))
+
+        script_block = get_script_py_block_content_from_sfc(sfc_file)
+        if not script_block:
+            return lambda *args: {}
+
+        return cls.compile_script_block(script_block, str(sfc_file.absolute()))
 
 
 class Dom(widgets.VBox):
@@ -1831,30 +1835,6 @@ class SetupContext:
         self.expose = {}
 
 
-@dataclasses.dataclass
-class VueOptions:
-    # (props: dict, context: SetupContext, app: App) -> dict | Callable[[], h]:
-    setup: Callable[[dict, SetupContext | dict, 'App'], dict | Callable]
-    template: str = ''
-    # (self, ctx, props, setup_returned) -> VNode:
-    render: Callable[[SetupContext | dict, dict, dict], VNode] = None
-
-    def gen_component(self, props: dict, context: SetupContext, app: App) -> SFC:
-        template_path = pathlib.Path(self.template)
-        if template_path.exists():
-            template = get_template_from_sfc(template_path)
-        else:
-            template = self.template
-
-        sfc_factory = SFCFactory(
-            setup=self.setup,
-            template=template,
-            _file='',
-        )
-        sfc = sfc_factory(props, context, app)
-        return sfc
-
-
 class App:
     components = {}
 
@@ -1874,9 +1854,7 @@ class App:
         props = {}
         context = {}
         if isinstance(root_component, SFCFactory):
-            self.root_component: SFC = root_component(props, context, self)
-        elif isinstance(root_component, VueOptions):
-            self.root_component: SFC = root_component.gen_component(props, context, self)
+            self.root_component: SFC = root_component.gen(props, context, self)
         else:
             raise ValueError(
                 f"root_component only support {RootComponent}, {type(root_component)} found."
@@ -2017,10 +1995,7 @@ class VueComponent(metaclass=abc.ABCMeta):
     def component(self, name: str):
         comp = self._data.get(name)
         try:
-            if comp and (
-                    isinstance(comp, SFCFactory)
-                    or issubclass(comp, VueComponent)
-            ):
+            if comp and (isinstance(comp, SFCFactory) or issubclass(comp, VueComponent)):
                 return comp
         except Exception as e:
             logger.warn(f"find component({name}) in Component `{self.name()}` failed, {e}.")
@@ -2319,9 +2294,12 @@ class SFCFactory:
     render: Callable[[SetupContext | dict, dict, dict], VNode] = None
     _file: str = ''
 
-    def __call__(self, props: dict, context: SetupContext | dict, app: App) -> "SFC":
+    def gen(self, props: dict, context: SetupContext | dict, app: App) -> "SFC":
         setup_ret = self.setup(props, context, app)
         return SFC(context, props, setup_ret, self.template, app, self.render, self._file)
+
+
+VueOptions = SFCFactory
 
 
 def import_sfc(sfc_file):
