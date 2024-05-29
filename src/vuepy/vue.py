@@ -11,6 +11,10 @@ import pathlib
 import re
 import types
 from _ast import Attribute
+from _ast import Load
+from _ast import Name
+from _ast import Starred
+from _ast import keyword
 from dataclasses import field
 from html.parser import HTMLParser
 from typing import Any
@@ -27,15 +31,14 @@ from IPython.display import display
 from ipywidgets import CallbackDispatcher
 
 from vuepy import log as logging
-from vuepy.reactivity.effect import targetMap
 from vuepy.reactivity.effect_scope import EffectScope
-from vuepy.reactivity.reactive import reactiveMap
 from vuepy.reactivity.reactive import to_raw
 from vuepy.reactivity.ref import RefImpl
 from vuepy.reactivity.ref import ref
 from vuepy.reactivity.watch import WatchOptions
 from vuepy.reactivity.watch import watch
 from vuepy.utils.common import has_changed
+
 
 logger = logging.getLogger()
 
@@ -883,9 +886,11 @@ class VueCompAst:
                 func_ast = vue_comp_expr_parse(value)
                 if isinstance(func_ast.exp_ast.body, (ast.Name, ast.Attribute)):
                     exp_ast = ast.Expression(
-                        ast.Call(func=func_ast.exp_ast.body,
-                                 args=[ast.Name(id='__owner', ctx=ast.Load())],
-                                 keywords=[])
+                        ast.Call(
+                            func=func_ast.exp_ast.body,
+                            args=[Starred(value=Name(id='__vp_args', ctx=Load()), ctx=Load())],
+                            keywords=[keyword(value=Name(id='__vp_kwargs', ctx=Load()))],
+                        )
                     )
                     ast.fix_missing_locations(exp_ast)
                     func_ast.exp_ast = exp_ast
@@ -1175,10 +1180,10 @@ class VueCompCodeGen:
 
         # v-on
         for ev, func_ast in comp_ast.v_on.items():
-            add_event_listener(
-                widget, ev,
-                lambda payload, _func_ast=func_ast: _func_ast.eval(ns, {'__owner': payload})
-            )
+            def _event_handle(*args, _func_ast=func_ast, **kwargs):
+                return _func_ast.eval(ns, {'__vp_args': args, '__vp_kwargs': kwargs})
+
+            add_event_listener(widget, ev, _event_handle)
 
         if comp_ast.v_ref:
             _ref = ns.getattr(comp_ast.v_ref)
@@ -2108,17 +2113,18 @@ class defineEmits:
     def clear_events(self):
         self.events_to_cb_dispatcher = {}
 
-    def __call__(self, event, payload=None):
+    def __call__(self, event, *args, **kwargs):
         """$emit event.
 
         :param event:
-        :param payload:
+        :param args: payload
+        :param kwargs: payload
         :return:
         """
         handlers = self.events_to_cb_dispatcher.get(event)
         if not handlers:
             raise Exception(f"Event {event} not supported.")
-        handlers(payload)
+        handlers(*args, **kwargs)
 
 
 class defineModel:
@@ -2288,14 +2294,14 @@ class SFC(VueComponent):
 @dataclasses.dataclass
 class SFCFactory:
     # (props: dict, context: SetupContext, vm: App) -> dict | Callable[[], h]:
-    setup: Callable[[dict, SetupContext | dict, 'App'], dict | Callable]
+    setup: Callable[[dict, SetupContext | dict, 'App'], dict | Callable] = None
     template: str = ''
     # (self, ctx, props, setup_returned) -> VNode:
     render: Callable[[SetupContext | dict, dict, dict], VNode] = None
     _file: str = ''
 
     def gen(self, props: dict, context: SetupContext | dict, app: App) -> "SFC":
-        setup_ret = self.setup(props, context, app)
+        setup_ret = self.setup(props, context, app) if self.setup else {}
         return SFC(context, props, setup_ret, self.template, app, self.render, self._file)
 
 
