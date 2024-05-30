@@ -792,7 +792,6 @@ class VueCompAst:
         # todo rename to attrs
         self.kwargs = {}
         self.v_binds: Dict[str, VueCompExprAst] = {}
-        # todo support only one v-model
         self.v_model: List[(str, str)] = []
         self.v_html = None
         self.v_on: Dict[str, VueCompExprAst] = {}
@@ -1569,10 +1568,6 @@ class DomCompiler(HTMLParser):
                     _gen_text(_node, should_render)
                 return
 
-            if node.type != NodeType.RAW_HTML:
-                logger.debug(f"<{tag}>{repr(data)}</{tag}> not support innerText.")
-                return
-
             ns = VueCompNamespace(self.vm._data, self.vm.to_ns(),
                                   node.v_for_scopes and node.v_for_scopes.to_ns())
             i = -1
@@ -1586,7 +1581,10 @@ class DomCompiler(HTMLParser):
                 else:
                     return data
 
-            node.add_child(__handle_data_gen_html)
+            if node.type == NodeType.RAW_HTML:
+                node.add_child(__handle_data_gen_html)
+            else:
+                node.add_child(VueHtmlCompCodeGen.gen_from_fn(__handle_data_gen_html))
 
         should_render = not VueHtmlTextRender.is_raw_html(data)
         parent = self.parent_node_stack[-1]
