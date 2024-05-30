@@ -511,9 +511,9 @@ class NodeType(enum.Enum):
 @dataclasses.dataclass
 class NodeAst:
     tag: str
-    attrs: dict = None
+    attrs: dict = field(default_factory=dict)
     parent: "NodeAst" = None
-    children: List["NodeAst"] = None
+    children: List["NodeAst"] = field(default_factory=list)
     plain: bool = False
     v_for: VForAst = None
     v_for_scopes: VForScopes = None
@@ -1294,6 +1294,7 @@ class DomCompiler(HTMLParser):
         self.widgets_by_id = {}
         self.parent_node_stack: List[NodeAst | VForNodeAst] = []
         self.v_for_stack: List[VForAst] = []
+        self._tag = self.widgets.tag
 
     def _get_element_by_id(self, el_id):
         return self.widgets_by_id.get(el_id)
@@ -1810,8 +1811,8 @@ class AppConfig:
     # error_handler: ErrorHandler
     # warn_handler: WarningHandler
     # option_merge_strategies: dict[str, OptionMergeFunction] = {}
-    global_properties: dict[str, Any] = field(default_factory=dict)
-    compiler_options: CompilerOptions = CompilerOptions()
+    globalProperties: dict[str, Any] = field(default_factory=dict)
+    compilerOptions: CompilerOptions = CompilerOptions()
     performance: bool = False
 
 
