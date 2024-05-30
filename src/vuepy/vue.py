@@ -1806,12 +1806,18 @@ class CompilerOptions:
 
 
 @dataclasses.dataclass
+class Record:
+    def to_ns(self):
+        return self.__dict__
+
+
+@dataclasses.dataclass
 class AppConfig:
     """应用的配置设定"""
     # error_handler: ErrorHandler
     # warn_handler: WarningHandler
     # option_merge_strategies: dict[str, OptionMergeFunction] = {}
-    globalProperties: dict[str, Any] = field(default_factory=dict)
+    globalProperties: Record = field(default_factory=Record)
     compilerOptions: CompilerOptions = CompilerOptions()
     performance: bool = False
 
