@@ -1317,7 +1317,7 @@ class DomCompiler(HTMLParser):
 
     def _gen_widget(self, node: NodeAst, for_scope: VForScopes = None):
         local_vars = for_scope and for_scope.to_ns()
-        ns = VueCompNamespace(self.vm._data, self.vm.to_ns(), local_vars)
+        ns = VueCompNamespace(self.vm.to_ns(), self.vm.to_ns(), local_vars)
         if self.vm.component(node.tag):
             widget = VueCompCodeGen.gen(node, self.vm, ns, self.app)
         else:
@@ -1569,7 +1569,7 @@ class DomCompiler(HTMLParser):
                     _gen_text(_node, should_render)
                 return
 
-            ns = VueCompNamespace(self.vm._data, self.vm.to_ns(),
+            ns = VueCompNamespace(self.vm.to_ns(), self.vm.to_ns(),
                                   node.v_for_scopes and node.v_for_scopes.to_ns())
             i = -1
             if node.v_for_scopes:
@@ -1674,7 +1674,7 @@ class DomCompiler(HTMLParser):
                 _node.parent.add_child(widget)
 
                 # todo 加到v-for的解析处
-                ns = VueCompNamespace(self.vm._data, self.vm.to_ns())
+                ns = VueCompNamespace(self.vm.to_ns(), self.vm.to_ns())
                 attr_chain = _node.v_for.iter
 
                 def __track_list_change():
@@ -2003,7 +2003,7 @@ class VueComponent(metaclass=abc.ABCMeta):
         pass
 
     def component(self, name: str):
-        comp = self._data.get(name)
+        comp = self.to_ns().get(name)
         try:
             if comp and (isinstance(comp, SFCFactory) or issubclass(comp, VueComponent)):
                 return comp
@@ -2018,7 +2018,10 @@ class VueComponent(metaclass=abc.ABCMeta):
         return comp
 
     def to_ns(self):
-        return self._data
+        return {
+            **self.app.config.globalProperties.to_ns(),
+            **self._data,
+        }
 
     def render(self, ctx, props, setup_returned) -> VNode:
         """
