@@ -1107,6 +1107,9 @@ class VueCompCodeGen:
             #     _value = exp_ast.eval(ns)
             # update_vm_to_view(_value, None)
 
+            if widget_attr == 'style' and hasattr(widget, 'css_style'):
+                widget_attr = 'css_style'
+
             def _get_v_bind_value(_exp_ast=exp_ast):
                 return _exp_ast.eval(ns)
 
@@ -1237,12 +1240,6 @@ class VueHtmlCompCodeGen:
     def gen(cls, node: NodeAst, ns: VueCompNamespace):
         comp_ast = VueCompAst.parse(node.tag, node.attrs)
 
-        def __html_tag_exit_gen_outerhtml(inner_html):
-            tag = node.tag
-            attr = ' '.join([f"{k}='{v}'" for k, v in node.attrs.items()])
-            html_temp = f"<{tag} {attr}>{{inner_html}}</{tag}>"
-            return html_temp.format(inner_html=inner_html)
-
         # @computed
         def __html_tag_exit_gen_html():
             # v-if or v-show
@@ -1265,8 +1262,20 @@ class VueHtmlCompCodeGen:
                     inner.append(child.value)
                 else:
                     inner.append(child)
+            inner_html = ' '.join(inner)
 
-            return __html_tag_exit_gen_outerhtml(' '.join(inner))
+            attrs = [f"{k}='{v}'" for k, v in comp_ast.kwargs.items()]
+
+            # v-bind:
+            for attr, exp_ast in comp_ast.v_binds.items():
+                attrs.append(f"{attr}='{to_raw(exp_ast.eval(ns))}'")
+
+            html = f'''
+                <{node.tag} {' '.join(attrs)}>
+                  {inner_html}
+                </{node.tag}>'''
+
+            return html
 
         return __html_tag_exit_gen_html
 
@@ -1846,10 +1855,10 @@ class SetupContext:
 
 
 class App:
+    version = '0.0.1'
     components = {}
 
     def __init__(self, root_component: RootComponent, debug=False):
-        self.version = ''
         self.config: AppConfig = AppConfig()
 
         self._installed_plugins = []
@@ -1916,14 +1925,14 @@ class App:
             display(self.dom)
         logger.info('App render end.')
 
-    def component(self, name: str, comp: 'VueComponent' = None):
+    def component(self, name: str, comp: 'VueComponent' = None) -> App:
         """
         query component(name) -> Component | None
         register component(name, comp) -> self
 
         :param name:
         :param comp:
-        :return:
+        :return: self
         """
         # query
         if comp is None:
@@ -1944,13 +1953,13 @@ class App:
         """
         pass
 
-    def use(self, plugin: Type["VuePlugin"], options: dict = None):
+    def use(self, plugin: Type["VuePlugin"], options: dict = None) -> "App":
         """
         install plugin.
 
         :param plugin: 插件本身
         :param options: 要传递给插件的选项
-        :return:
+        :return: self
         """
         if plugin in self._installed_plugins:
             return self

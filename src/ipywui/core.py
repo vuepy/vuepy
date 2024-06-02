@@ -1,6 +1,7 @@
 from typing import List
 from typing import Tuple
 
+from ipywui.widgets import WidgetCssStyle
 from ipywui.widgets.custom.message import MessageService
 from vuepy import App
 from vuepy import VueComponent
@@ -21,73 +22,12 @@ class wui(VuePlugin, metaclass=FactoryMeta):
 
 class IPywidgetsComponent(VueComponent):
     STYLE_ATTR = 'style'
-    CSS_TO_WIDGET_STYLE_MAP = {
-        "background_color": "button_color",
-        "color": "text_color",
-    }
-    LAYOUT_ATTRS = {
-        # size
-        "height",
-        "width",
-        "max_height",
-        "max_width",
-        "min_height",
-        "min_width",
-        # display
-        "visibility",
-        "display",
-        "overflow",
-        # box model
-        "border",
-        "margin",
-        "padding",
-        # positioning
-        "top",
-        "left",
-        "bottom",
-        "right",
-        # Flexbox
-        "order",
-        "flex_flow",
-        "align_items",
-        "flex",
-        "align_self",
-        "align_content",
-        "justify_content",
-    }
-
     PARAMS_STORE_TRUE: List[Tuple[str, bool]] = []
-
-    def convert_css_style(self, styles):
-        for css_attr, widget_attr in self.CSS_TO_WIDGET_STYLE_MAP.items():
-            val = styles.pop(css_attr, None)
-            if val:
-                styles[widget_attr] = val
-
-        return styles
-
-    def parse_style(self, style):
-        attrs_str = (kv.strip().split(':') for kv in style.rstrip(';').split(';'))
-        attrs = ((k.strip().replace('-', '_'), v.strip()) for k, v in attrs_str)
-        styles = {}
-        layout = {}
-        for attr, val in attrs:
-            if attr in self.LAYOUT_ATTRS:
-                layout[attr] = val
-            else:
-                styles[attr] = val
-
-        ret = {}
-        if styles:
-            ret[self.STYLE_ATTR] = self.convert_css_style(styles)
-        if layout:
-            ret['layout'] = layout
-        return ret
 
     def update_style(self, kw):
         styles = kw.pop(self.STYLE_ATTR, None)
         if styles:
-            kw.update(self.parse_style(styles))
+            kw.update(WidgetCssStyle.convert_css_style_to_widget_style_and_layout(styles))
 
     def _process_store_true_params(self, attrs, props):
         params = {}

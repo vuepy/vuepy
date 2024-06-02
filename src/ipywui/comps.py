@@ -1,6 +1,4 @@
 #!coding: utf-8
-import ipywidgets
-
 import ipywui
 from ipywui.core import IPywidgetsComponent
 from ipywui.core import is_float
@@ -19,14 +17,14 @@ class AppLayout(IPywidgetsComponent):
     def render(self, ctx, props, setup_returned):
         slots = ctx.get('slots', {})
         attrs = ctx.get('attrs', {})
-        return ipywidgets.AppLayout(**slots, **props, **attrs)
+        return ipywui.widgets.AppLayout(**slots, **props, **attrs)
 
 
 @wui.register()
 class VBox(IPywidgetsComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
-        return ipywidgets.VBox(children=slots.get('default', []), **props, **attrs, **params)
+        return ipywui.widgets.VBox(children=slots.get('default', []), **props, **attrs, **params)
 
 
 @wui.register('template')
@@ -43,14 +41,14 @@ class Slot(VBox):
 class Box(IPywidgetsComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
-        return ipywidgets.VBox(children=slots.get('default', []), **props, **attrs, **params)
+        return ipywui.widgets.VBox(children=slots.get('default', []), **props, **attrs, **params)
 
 
 @wui.register()
 class HBox(IPywidgetsComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
-        return ipywidgets.HBox(children=slots.get('default', []), **props, **attrs, **params)
+        return ipywui.widgets.HBox(children=slots.get('default', []), **props, **attrs, **params)
 
 
 @wui.register()
@@ -59,7 +57,7 @@ class AccordionItem(IPywidgetsComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
         title = attrs.pop('title', '-')
-        widget = ipywidgets.VBox(children=slots.get('default', []), **props, **attrs, **params)
+        widget = ipywui.widgets.VBox(children=slots.get('default', []), **props, **attrs, **params)
         widget.title = title
         return widget
 
@@ -72,7 +70,7 @@ class Accordion(IPywidgetsComponent):
         slots = ctx.get('slots', {})
         children = slots.get('default', [])
         titles = [child.title for child in children]
-        return ipywidgets.Accordion(children=children, titles=titles, **props, **attrs, **params)
+        return ipywui.widgets.Accordion(children=children, titles=titles, **props, **attrs, **params)
 
 
 @wui.register()
@@ -90,8 +88,6 @@ class Button(IPywidgetsComponent):
 @wui.register()
 class Checkbox(IPywidgetsComponent):
     v_model_default = 'value'
-
-    CSS_TO_WIDGET_STYLE_MAP = {}
 
     def render(self, ctx, props, setup_returned):
         attrs = ctx.get('attrs', {})
@@ -131,7 +127,7 @@ class Controller(IPywidgetsComponent):
 
     def render(self, ctx, props, setup_returned):
         attrs = ctx.get('attrs', {})
-        return ipywidgets.Controller(**props, **attrs)
+        return ipywui.widgets.Controller(**props, **attrs)
 
 
 @wui.register()
@@ -146,7 +142,7 @@ class Clipboard(IPywidgetsComponent):
 class Col(IPywidgetsComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
-        widget = ipywidgets.VBox(children=slots.get('default', []), **props, **attrs)
+        widget = ipywui.widgets.VBox(children=slots.get('default', []), **props, **attrs)
 
         widget.span = attrs.pop('span', 24)
         widget.offset = attrs.pop('offset', 0)
@@ -219,7 +215,7 @@ class Dropdown(IPywidgetsComponent):
     ]
 
     def _render(self, ctx, attrs, props, params, setup_returned):
-        return ipywidgets.Dropdown(**props, **attrs, **params)
+        return ipywui.widgets.Dropdown(**props, **attrs, **params)
 
 
 @wui.register()
@@ -231,16 +227,7 @@ class FileUpload(IPywidgetsComponent):
     ]
 
     def _render(self, ctx, attrs, props, params, setup_returned):
-        return ipywidgets.FileUpload(**props, **attrs, **params)
-
-
-@wui.register()
-class FloatsInput(IPywidgetsComponent):
-    v_model_default = 'value'
-
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return ipywidgets.FloatsInput(**props, **attrs)
+        return ipywui.widgets.FileUpload(**props, **attrs, **params)
 
 
 @wui.register()
@@ -249,7 +236,7 @@ class HTMLMath(IPywidgetsComponent):
 
     def render(self, ctx, props, setup_returned):
         attrs = ctx.get('attrs', {})
-        return ipywidgets.HTMLMath(**props, **attrs)
+        return ipywui.widgets.HTMLMath(**props, **attrs)
 
 
 @wui.register()
@@ -257,7 +244,7 @@ class Image(IPywidgetsComponent):
     v_model_default = 'value'
 
     def _render(self, ctx, attrs, props, params, setup_returned):
-        return ipywidgets.Image(**props, **attrs, **params)
+        return ipywui.widgets.Image(**props, **attrs, **params)
 
 
 @wui.register()
@@ -298,14 +285,14 @@ class InputNumber(IPywidgetsComponent):
 
         if is_float(value) or is_float(step):
             if is_float(min_) or is_float(max_):
-                cls = ipywidgets.BoundedFloatText
+                cls = ipywui.widgets.BoundedFloatText
             else:
-                cls = ipywidgets.FloatText
+                cls = ipywui.widgets.FloatText
         else:
             if min_ is None and max_ is None:
-                cls = ipywidgets.IntText
+                cls = ipywui.widgets.IntText
             else:
-                cls = ipywidgets.BoundedIntText
+                cls = ipywui.widgets.BoundedIntText
 
         return cls(**props, **attrs, **params)
 
@@ -314,12 +301,8 @@ class InputNumber(IPywidgetsComponent):
 class Label(IPywidgetsComponent):
     v_model_default = 'value'
 
-    CSS_TO_WIDGET_STYLE_MAP = {
-        'color': 'text_color',
-    }
-
     def _render(self, ctx, attrs, props, params, setup_returned):
-        return ipywidgets.Label(**props, **attrs, **params)
+        return ipywui.widgets.Label(**props, **attrs, **params)
 
 
 @wui.register()
@@ -347,10 +330,6 @@ class Play(IPywidgetsComponent):
 class Progress(IPywidgetsComponent):
     v_model_default = 'value'
 
-    CSS_TO_WIDGET_STYLE_MAP = {
-        'color': 'bar_color',
-    }
-
     PARAMS_STORE_TRUE = [
         ('vertical', False),
     ]
@@ -370,7 +349,7 @@ class RadioButtons(IPywidgetsComponent):
     ]
 
     def _render(self, ctx, attrs, props, params, setup_returned):
-        return ipywidgets.RadioButtons(**props, **attrs, **params)
+        return ipywui.widgets.RadioButtons(**props, **attrs, **params)
 
 
 @wui.register()
@@ -394,7 +373,7 @@ class Row(IPywidgetsComponent):
         if grid_gap:
             params['grid_gap'] = grid_gap
 
-        widget = ipywidgets.GridspecLayout(self.N_ROWS, self.N_COLS, **props, **attrs, **params)
+        widget = ipywui.widgets.GridspecLayout(self.N_ROWS, self.N_COLS, **props, **attrs, **params)
         idx = 0
         for col in cols:
             idx += col.offset
@@ -415,9 +394,9 @@ class Select(IPywidgetsComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         multiple = params.pop('multiple', False)
         if multiple:
-            cls = ipywidgets.SelectMultiple
+            cls = ipywui.widgets.SelectMultiple
         else:
-            cls = ipywidgets.Select
+            cls = ipywui.widgets.Select
 
         return cls(**props, **attrs, **params)
 
@@ -481,18 +460,18 @@ class Slider(IPywidgetsComponent):
         select_options = props.get('options', attrs.get('options', None))
         if params.pop('range', False):
             if select_options:
-                cls = ipywidgets.SelectionRangeSlider
+                cls = ipywui.widgets.SelectionRangeSlider
             elif (value and is_float(value[0])) or is_float(step):
-                cls = ipywidgets.FloatRangeSlider
+                cls = ipywui.widgets.FloatRangeSlider
             else:
-                cls = ipywidgets.IntRangeSlider
+                cls = ipywui.widgets.IntRangeSlider
         else:
             if select_options:
-                cls = ipywidgets.SelectionSlider
+                cls = ipywui.widgets.SelectionSlider
             elif is_float(value) or is_float(step):
-                cls = ipywidgets.FloatSlider
+                cls = ipywui.widgets.FloatSlider
             else:
-                cls = ipywidgets.IntSlider
+                cls = ipywui.widgets.IntSlider
 
         return cls(**props, **attrs, **params)
 
@@ -513,7 +492,7 @@ class StackItem(IPywidgetsComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
         label = props.pop('label', attrs.pop('label', '-'))
-        widget = ipywidgets.VBox(children=slots.get('default', []), **props, **attrs, **params)
+        widget = ipywui.widgets.VBox(children=slots.get('default', []), **props, **attrs, **params)
         widget.label = label
         return widget
 
@@ -523,7 +502,7 @@ class TabPane(IPywidgetsComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
         title = props.pop('title', attrs.pop('title', '-'))
-        widget = ipywidgets.VBox(children=slots.get('default', []), **props, **attrs, **params)
+        widget = ipywui.widgets.VBox(children=slots.get('default', []), **props, **attrs, **params)
         widget.title = title
         return widget
 
@@ -536,7 +515,7 @@ class Tabs(IPywidgetsComponent):
         slots = ctx.get('slots', {})
         children = slots.get('default', [])
         titles = [child.title for child in children]
-        return ipywidgets.Tab(children=children, titles=titles, **props, **attrs, **params)
+        return ipywui.widgets.Tab(children=children, titles=titles, **props, **attrs, **params)
 
 
 @wui.register()
@@ -580,4 +559,4 @@ class Valid(IPywidgetsComponent):
     v_model_default = 'value'
 
     def _render(self, ctx, attrs, props, params, setup_returned):
-        return ipywui.ipywidgets.Valid(readout='', **props, **attrs, **params)
+        return ipywui.widgets.Valid(readout='', **props, **attrs, **params)

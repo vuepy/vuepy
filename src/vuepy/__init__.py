@@ -1,10 +1,11 @@
 # coding: utf-8
+from vuepy.reactivity.computed import computed
 from vuepy.reactivity.reactive import reactive
 from vuepy.reactivity.ref import ref
 from vuepy.vue import *
 
 
-__version__ = '1.0.0'
+__version__ = App.version
 
 __all__ = [
     'App',
