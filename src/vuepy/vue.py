@@ -7,6 +7,7 @@ import dataclasses
 import enum
 import functools
 import importlib.util
+import inspect
 import pathlib
 import re
 import types
@@ -38,7 +39,6 @@ from vuepy.reactivity.ref import ref
 from vuepy.reactivity.watch import WatchOptions
 from vuepy.reactivity.watch import watch
 from vuepy.utils.common import has_changed
-
 
 logger = logging.getLogger()
 
@@ -1715,6 +1715,21 @@ class DomCompiler(HTMLParser):
 class ScriptCompiler:
     @staticmethod
     def compile_script_block(code_str, source_file_path):
+        indent_code_str = '\n'.join([f"  {line}" for line in code_str.split('\n')])
+        code = '\n'.join([
+            "def setup(props, ctx, app):",
+            indent_code_str,
+            "\n",
+            "  return locals()",
+        ])
+
+        module = types.ModuleType('tmp_module')
+        module.__dict__['__file__'] = source_file_path
+        exec(code, module.__dict__)
+        return module.setup
+
+    @staticmethod
+    def compile_script_block_bak(code_str, source_file_path):
         module = ast.parse(code_str)
         func_name = 'setup'
         func_ast = ast.FunctionDef(
@@ -2094,17 +2109,46 @@ class DefineProp:
         self._value.value = val
 
 
-class defineProps:
+class DefineProps:
+    def __init__(self, props: dict | list, init_vals: dict = None):
+        self.prop_names = props
+        self.props: List[DefineProp] = [
+            DefineProp(name, init_vals.get(name)) for name in self.prop_names
+        ]
+        for prop in self.props:
+            setattr(self, prop.name, prop)
+
+
+def get_caller_args(frame):
+    if not frame:
+        return []
+
+    caller_name = frame.f_code.co_name
+    caller_func = frame.f_globals.get(caller_name)
+    if not caller_func:
+        logger.warn(f"can't get caller_func<{caller_name}>")
+        return []
+
+    argspec = inspect.getfullargspec(caller_func)
+    if not argspec.args:
+        logger.warn(f"get caller_func<{caller_name}> args is None")
+        return []
+
+    return [frame.f_locals.get(arg_name) for arg_name in argspec.args]
+
+
+def defineProps(props: dict | list):
     """
     props = defineProps('p1')
     props.p1.value
     """
+    frame = inspect.currentframe().f_back
+    caller_args = get_caller_args(frame)
+    init_props = caller_args[0] if caller_args else {}
+    init_attrs = caller_args[1].get('attrs', {}) if len(caller_args) >= 2 else {}
+    init_vals = {**init_props, **init_attrs}
 
-    def __init__(self, props: dict | list):
-        self.prop_names = props
-        self.props: List[DefineProp] = [DefineProp(name) for name in self.prop_names]
-        for prop in self.props:
-            setattr(self, prop.name, prop)
+    return DefineProps(props, init_vals)
 
 
 class defineEmits:
@@ -2261,8 +2305,8 @@ class SFC(VueComponent):
         return emits, _on_fn
 
     @property
-    def define_props(self) -> (str, defineProps):
-        ret = self._get_define_x(defineProps, limit=1)
+    def define_props(self) -> (str, DefineProps):
+        ret = self._get_define_x(DefineProps, limit=1)
         return ret[0] if ret else []
 
     @property
@@ -2310,7 +2354,7 @@ class SFC(VueComponent):
 
 @dataclasses.dataclass
 class SFCFactory:
-    # (props: dict, context: SetupContext, vm: App) -> dict | Callable[[], h]:
+    # (props: dict, context: SetupContext, app: App) -> dict | Callable[[], h]:
     setup: Callable[[dict, SetupContext | dict, 'App'], dict | Callable] = None
     template: str = ''
     # (self, ctx, props, setup_returned) -> VNode:
