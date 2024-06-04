@@ -5,8 +5,8 @@ from pathlib import Path
 from IPython.core.magic import register_line_magic
 
 from ipywui import wui
+from vuepy import SFCFile
 from vuepy import create_app
-from vuepy import get_script_src_from_sfc
 from vuepy import import_sfc
 from vuepy import log
 
@@ -41,24 +41,21 @@ def vuepy_demo(vue_sfc):
     :param vue_sfc:
     :return:
     """
-    sfc_file = vue_sfc.strip()
-    sfc_file = Path(sfc_file)
-    with open(sfc_file) as f:
-        sfc_content = f.read()
+    sfc_file_path = Path(vue_sfc.strip())
+    sfc_file = SFCFile.load(sfc_file_path)
 
     script_content = 0
-    script_src = get_script_src_from_sfc(sfc_file)
-    if script_src:
-        script_file = sfc_file.parent.joinpath(script_src)
-        with open(script_file) as f:
-            script_content = f.read()
+    if sfc_file.script_src:
+        _script_file = sfc_file.file.parent.joinpath(sfc_file.script_src)
+        with open(_script_file) as f:
+            _script_content = f.read()
 
     print(json.dumps({
-        'vue': sfc_content,
+        'vue': sfc_file.content,
         'setup': script_content,
     }))
 
-    App = import_sfc(sfc_file)
+    App = import_sfc(sfc_file_path)
     app = create_app(App).use(wui)
     return app.mount()
 

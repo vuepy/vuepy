@@ -43,37 +43,37 @@ from vuepy.utils.common import has_changed
 logger = logging.getLogger()
 
 
-def get_block_content_from_sfc(sfc_file, block):
-    with open(sfc_file) as f:
-        blocks = re.findall(f'<{block}>(.*)</{block}>', f.read(), flags=re.S | re.I)
-    return blocks
-
-
-def get_script_py_block_content_from_sfc(sfc_file):
-    with open(sfc_file) as f:
-        match = re.search(
-            fr'<script\s+lang=(["\'])py\1\s*>(?P<content>.*)?</script>',
-            f.read(),
-            flags=re.S | re.I
-        )
-
-    if not match:
-        logger.debug("can't find <script lang=py>")
-        return None
-
-    return match.group('content')
-
-
-def get_template_from_sfc(sfc_file):
-    return get_block_content_from_sfc(sfc_file, 'template')[0]
-
-
-def get_script_src_from_sfc(sfc_file):
-    with open(sfc_file) as f:
-        match = re.search(r"<script (.*?)src=(['\"])(?P<src>.*?)\2></script>", f.read())
-        if not match:
-            return None
-        return match.group('src')
+# def get_block_content_from_sfc(sfc_file, block):
+#     with open(sfc_file) as f:
+#         blocks = re.findall(f'<{block}>(.*)</{block}>', f.read(), flags=re.S | re.I)
+#     return blocks
+#
+#
+# def get_script_py_block_content_from_sfc(sfc_file):
+#     with open(sfc_file) as f:
+#         match = re.search(
+#             fr'<script\s+lang=(["\'])py\1\s*>(?P<content>.*)?</script>',
+#             f.read(),
+#             flags=re.S | re.I
+#         )
+#
+#     if not match:
+#         logger.debug("can't find <script lang=py>")
+#         return None
+#
+#     return match.group('content')
+#
+#
+# def get_template_from_sfc(sfc_file):
+#     return get_block_content_from_sfc(sfc_file, 'template')[0]
+#
+#
+# def get_script_src_from_sfc(sfc_file):
+#     with open(sfc_file) as f:
+#         match = re.search(r"<script (.*?)src=(['\"])(?P<src>.*?)\2></script>", f.read())
+#         if not match:
+#             return None
+#         return match.group('src')
 
 
 # class WatcherBase(metaclass=abc.ABCMeta):
@@ -1290,6 +1290,64 @@ class VueHtmlCompCodeGen:
         return widget
 
 
+@dataclasses.dataclass
+class SFCFile:
+    file: pathlib.Path
+    content: str
+    template: str
+    script_src: str
+    script_py: str
+
+    @property
+    def setup_fn(self):
+        if self.script_src:
+            return ScriptCompiler.compile_script_src(self.file.parent, self.script_src)
+        elif self.script_py:
+            return ScriptCompiler.compile_script_block(
+                self.script_py, str(self.file.absolute()))
+        else:
+            return lambda *args: {}
+
+    @classmethod
+    def load(cls, sfc_file):
+        sfc_file = pathlib.Path(sfc_file)
+        with open(sfc_file) as f:
+            raw_content = f.read()
+
+        content = re.sub(r'<!--(.*?)-->', '\n', raw_content, re.S)
+        return cls(
+            file=sfc_file,
+            content=raw_content,
+            template=cls.get_block_content('template', content)[0],
+            script_src=cls.get_script_src(content),
+            script_py=cls.get_script_py(content),
+        )
+
+    @staticmethod
+    def get_block_content(tag, content):
+        blocks = re.findall(f'<{tag}>(.*)</{tag}>', content, flags=re.S | re.I)
+        return blocks
+
+    @staticmethod
+    def get_script_src(content):
+        match = re.search(r"<script (.*?)src=(['\"])(?P<src>.*?)\2></script>", content)
+        return match.group('src') if match else None
+
+    @staticmethod
+    def get_script_py(content):
+        match = re.search(
+            fr'<script\s+lang=(["\'])py\1\s*>(?P<content>.*)?</script>',
+            content,
+            flags=re.S | re.I
+        )
+
+        if not match:
+            logger.debug("can't find <script lang=py>")
+            return None
+
+        return match.group('content')
+
+
 class DomCompiler(HTMLParser):
     """
     @vue/compiler-dom
@@ -1570,6 +1628,9 @@ class DomCompiler(HTMLParser):
         if not self.parent_node_stack:
             return
 
+        if not data.strip():
+            return
+
         tag = self._tag
 
         def _gen_text(node: NodeAst, should_render: bool):
@@ -1772,18 +1833,18 @@ class ScriptCompiler:
         _spec.loader.exec_module(_module)
         return getattr(_module, 'setup')
 
-    @classmethod
-    def compile(cls, sfc_file):
-        sfc_file = pathlib.Path(sfc_file)
-        script_src = get_script_src_from_sfc(sfc_file)
-        if script_src:
-            return cls.compile_script_src(sfc_file.parent, script_src)
-
-        script_block = get_script_py_block_content_from_sfc(sfc_file)
-        if not script_block:
-            return lambda *args: {}
-
-        return cls.compile_script_block(script_block, str(sfc_file.absolute()))
+    # @classmethod
+    # def compile(cls, sfc_file):
+    #     sfc_file = pathlib.Path(sfc_file)
+    #     script_src = get_script_src_from_sfc(sfc_file)
+    #     if script_src:
+    #         return cls.compile_script_src(sfc_file.parent, script_src)
+    #
+    #     script_block = get_script_py_block_content_from_sfc(sfc_file)
+    #     if not script_block:
+    #         return lambda *args: {}
+    #
+    #     return cls.compile_script_block(script_block, str(sfc_file.absolute()))
 
 
 class Dom(widgets.VBox):
@@ -2371,13 +2432,12 @@ VueOptions = SFCFactory
 
 
 def import_sfc(sfc_file):
-    sfc_file = pathlib.Path(sfc_file)
-    setup = ScriptCompiler.compile(sfc_file)
+    sfc_file = SFCFile.load(sfc_file)
 
     return SFCFactory(**{
-        'setup': setup,
-        'template': get_template_from_sfc(sfc_file),
-        '_file': sfc_file,
+        'setup': sfc_file.setup_fn,
+        'template': sfc_file.template,
+        '_file': sfc_file.file,
     })
 
 
