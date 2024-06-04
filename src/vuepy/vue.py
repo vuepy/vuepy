@@ -1315,13 +1315,19 @@ class SFCFile:
             raw_content = f.read()
 
         content = re.sub(r'<!--(.*?)-->', '\n', raw_content, re.S)
-        return cls(
+        instance = cls(
             file=sfc_file,
             content=raw_content,
             template=cls.get_block_content('template', content)[0],
             script_src=cls.get_script_src(content),
             script_py=cls.get_script_py(content),
         )
+        if instance.script_py and instance.script_src:
+            raise ValueError(
+                "Syntax error: script lang and script src cannot exist at the same time"
+            )
+
+        return instance
 
     @staticmethod
     def get_block_content(tag, content):
