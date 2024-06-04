@@ -1714,7 +1714,7 @@ class DomCompiler(HTMLParser):
 
 class ScriptCompiler:
     @staticmethod
-    def compile_script_block(code_str, source_file_path):
+    def compile_script_block_bak(code_str, source_file_path):
         indent_code_str = '\n'.join([f"  {line}" for line in code_str.split('\n')])
         code = '\n'.join([
             "def setup(props, ctx, app):",
@@ -1729,7 +1729,7 @@ class ScriptCompiler:
         return module.setup
 
     @staticmethod
-    def compile_script_block_bak(code_str, source_file_path):
+    def compile_script_block(code_str, source_file_path):
         module = ast.parse(code_str)
         func_name = 'setup'
         func_ast = ast.FunctionDef(
@@ -1756,9 +1756,10 @@ class ScriptCompiler:
         ast.fix_missing_locations(module)
         code = compile(module, filename='<ast>', mode='exec')
 
-        local_vars = {}
-        exec(code, {'__file__': source_file_path}, local_vars)
-        return local_vars[func_name]
+        pymodule = types.ModuleType('tmp_module')
+        pymodule.__dict__['__file__'] = source_file_path
+        exec(code, pymodule.__dict__)
+        return pymodule.setup
 
     @staticmethod
     def compile_script_src(dir_path, src):
