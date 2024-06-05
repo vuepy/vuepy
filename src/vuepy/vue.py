@@ -1806,7 +1806,7 @@ class ScriptCompiler:
                 args=[
                     ast.arg(arg='props', annotation=None),
                     ast.arg(arg='ctx', annotation=None),
-                    ast.arg(arg='vm', annotation=None)
+                    ast.arg(arg='app', annotation=None)
                 ],
                 vararg=None,
                 kwonlyargs=[],
