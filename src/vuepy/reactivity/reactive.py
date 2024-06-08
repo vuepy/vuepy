@@ -399,6 +399,9 @@ def is_reactive(value) -> bool:
     return isinstance(value, ReactiveProxy)
 
 
+isReactive = is_reactive
+
+
 def shallow_reactive(target):
     pass
 
