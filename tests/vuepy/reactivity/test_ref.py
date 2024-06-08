@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+from vuepy import WatchOptions
 from vuepy.reactivity.computed import computed
 from vuepy.reactivity.effect import IgnoreTracking
 from vuepy.reactivity.effect import ReactiveEffectOptions
@@ -8,6 +9,8 @@ from vuepy.reactivity.effect import targetMap
 from vuepy.reactivity.reactive import reactive
 from vuepy.reactivity.reactive import reactiveMap
 from vuepy.reactivity.ref import ref
+from vuepy.reactivity.ref import shallowRef
+from vuepy.reactivity.ref import triggerRef
 from vuepy.reactivity.watch import watch
 from vuepy.reactivity.watch import watchEffect
 
@@ -79,6 +82,79 @@ class TestRef(BaseTestCase):
         self.assertEqual(dummy, 100)
 
         a.value.l2 = 200
+        self.assertEqual(calls, 2)
+        self.assertEqual(dummy, 100)
+
+
+class TestShallowRef(BaseTestCase):
+    def test_shallow_ref_should_be_reactive(self):
+        a = shallowRef(1)
+        dummy = 0
+        calls = 0
+
+        @effect
+        def f():
+            nonlocal dummy, calls
+            calls += 1
+            dummy = a.value
+
+        self.assertEqual(calls, 1)
+        self.assertEqual(dummy, 1)
+
+        a.value = 2
+        self.assertEqual(calls, 2)
+        self.assertEqual(dummy, 2)
+        # same value should not trigger
+        a.value = 2
+        self.assertEqual(calls, 2)
+        self.assertEqual(dummy, 2)
+
+    def test_shallow_ref_should_not_reactive_when_value_dict(self):
+        raw = {'count': 10}
+        a = shallowRef(raw)
+        dummy = 0
+        calls = 0
+
+        @effect
+        def f():
+            nonlocal dummy, calls
+            calls += 1
+            dummy = a.value['count']
+
+        self.assertEqual(calls, 1)
+        self.assertEqual(dummy, 10)
+
+        # trigger
+        a.value = {'count': 20}
+        self.assertEqual(calls, 2)
+        self.assertEqual(dummy, 20)
+
+        # not trigger
+        a.value['count'] = 100
+        self.assertEqual(calls, 2)
+        self.assertEqual(dummy, 20)
+
+    def test_shallow_ref_should_reactive_when_active_trigger(self):
+        shallow = shallowRef({'greet': 10})
+        dummy = 0
+        calls = 0
+
+        @watchEffect
+        def f(on_cleanup):
+            nonlocal dummy, calls
+            calls += 1
+            dummy = shallow.value['greet']
+
+        self.assertEqual(calls, 1)
+        self.assertEqual(dummy, 10)
+
+        # not trigger
+        shallow.value['greet'] = 100
+        self.assertEqual(calls, 1)
+        self.assertEqual(dummy, 10)
+
+        # active trigger
+        triggerRef(shallow)
         self.assertEqual(calls, 2)
         self.assertEqual(dummy, 100)
 
@@ -527,7 +603,13 @@ class TestWatch(BaseTestCase):
         state.count = 2
         self.assertEqual((watch_call, getter_call, curr_count, prev_count), (1, 2, 2, 0))
 
+    def test_watch_should_reactive_when_src_is_getter_function_deep(self):
         # todo deep = true
+        state = reactive({'count': 0})
+
+        @watch(state, WatchOptions(deep=True))
+        def handle(new_val, old_val, on_cleanup):
+            self.assertTrue(new_val is old_val)
 
     def test_watch_should_reactive_when_src_is_list(self):
         # todo

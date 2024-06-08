@@ -21,7 +21,7 @@ def vuepy_import(vue_sfc):
     from vuepy import create_app
     from vuepy.utils import magic
 
-    App=%vue_import test.vue
+    App=%vuepy_import test.vue
     app = create_app(App)
     app.use(wui)
     app.mount()

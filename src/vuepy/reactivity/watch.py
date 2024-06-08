@@ -17,7 +17,7 @@ from vuepy.reactivity.reactive import ReactiveFlags
 from vuepy.reactivity.reactive import isShallow
 from vuepy.reactivity.reactive import is_reactive
 from vuepy.reactivity.ref import RefImpl
-from vuepy.reactivity.ref import is_ref
+from vuepy.reactivity.ref import isRef
 from vuepy.utils.common import Nil
 from vuepy.utils.common import gen_hash_key
 from vuepy.utils.common import has_changed
@@ -25,7 +25,7 @@ from vuepy.utils.common import has_changed
 OnCleanUp = Callable[[Callable[[], None]], None]  # (cleanupFn: () => void) => void
 WatchEffect = Callable[[OnCleanUp], None]  # (onCleanup: OnCleanup) => void
 WatchSource = Union[RefImpl, ComputedRefImpl, Callable[[], Any], ReactiveProxy]
-# (val: V, oldVal: OV, onCleanup: OnCleanup) => any
+# (val: Any, oldVal: Any, onCleanup: OnCleanup) => any
 WatchCallback = Callable[[Any, Any, OnCleanUp], Any]
 MultiWatchSources = List[WatchSource]
 WatchStopHandle = Callable[[], None]  # () => void
@@ -48,7 +48,10 @@ class WatchOptions(WatchOptionsBase):
     deep: bool = False
 
 
-def watchEffect(effect_or_options=None, debuggerOptions=None):
+def watchEffect(
+        effect_or_options: WatchEffect | WatchOptions = None,
+        debuggerOptions: DebuggerOptions = None
+) -> WatchStopHandle:
     is_decorator_no_arg = (effect_or_options, debuggerOptions) == (None, None)
     is_decorator_with_arg = isinstance(effect_or_options, DebuggerOptions)
     # @watchEffect() or @watchEffect(debuggerOptions)
@@ -62,7 +65,7 @@ def watchEffect(effect_or_options=None, debuggerOptions=None):
         return watchEffect_impl(effect_or_options, debuggerOptions)
 
 
-def watchEffect_impl(watch_effect: WatchEffect, options: WatchOptionsBase = None):
+def watchEffect_impl(watch_effect: WatchEffect, options: WatchOptionsBase = None) -> WatchStopHandle:
     options = options or WatchOptionsBase()
     flush = options.flush
     onTrack = options.onTrack
@@ -127,7 +130,7 @@ def watch(
         source: WatchSource | MultiWatchSources,
         cb_or_options: WatchCallback | WatchOptions = None,
         options: WatchOptions = None
-):
+) -> WatchStopHandle:
     is_decorator_src = (cb_or_options, options) == (None, None)
     is_decorator_src_options = isinstance(cb_or_options, WatchOptions)
     # @watch(src) or @watch(src, options)
@@ -159,7 +162,7 @@ def doWatch(
     forceTrigger = False
     isMultiSource = False
 
-    if is_ref(source):
+    if isRef(source):
         getter = lambda: source.value
         forceTrigger = isShallow(source)
     elif is_reactive(source):
@@ -172,7 +175,7 @@ def doWatch(
         def getter():
             _ret = []
             for s in source:
-                if is_ref(s):
+                if isRef(s):
                     _ret.append(s.value)
                 elif is_reactive(s):
                     _ret.append(traverse(s))
@@ -284,7 +287,7 @@ def traverse(value, seen: set = None):
         return value
 
     seen.add(value_hash)
-    if is_ref(value):
+    if isRef(value):
         traverse(value.value, seen)
     elif isinstance(value, list):
         for val in value:

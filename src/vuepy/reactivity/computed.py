@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from typing import Any
+from typing import Callable
+
 from vuepy.reactivity import config
 from vuepy.reactivity.dep import Dep
 from vuepy.reactivity.effect import DebuggerOptions
@@ -9,8 +12,11 @@ from vuepy.reactivity.ref import trackRefValue
 from vuepy.reactivity.ref import triggerRefValue
 
 
+ComputedGetter = Callable[[], Any]
+
+
 class ComputedRefImpl(RefImpl):
-    def __init__(self, getter, setter=None):
+    def __init__(self, getter: ComputedGetter, setter=None):
         self._dirty = True
         self.dep: Dep = None
 
@@ -19,6 +25,7 @@ class ComputedRefImpl(RefImpl):
         self._setter = setter
         self.is_readonly = setter is None
         self._value = None
+        self.debug_msg = 'computed'
 
     def scheduler(self):
         if not self._dirty:
@@ -44,10 +51,10 @@ class ComputedRefImpl(RefImpl):
 
 
 class WritableComputedOptions:
-    def get(self):
+    def get(self) -> Any:
         pass
 
-    def set(self):
+    def set(self, val: Any) -> None:
         pass
 
 
@@ -65,7 +72,7 @@ def computed(getter_or_options_or_debugger_options=None, debugger_options=None):
         return computed_impl(getter_or_options_or_debugger_options, debugger_options)
 
 
-def computed_impl(getter_or_options, debugger_options: DebuggerOptions = None):
+def computed_impl(getter_or_options, debugger_options: DebuggerOptions = None) -> ComputedRefImpl:
     if isinstance(getter_or_options, WritableComputedOptions):
         getter = getter_or_options.get
         setter = getter_or_options.set

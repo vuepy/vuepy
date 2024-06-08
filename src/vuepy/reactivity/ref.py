@@ -8,6 +8,8 @@ from vuepy.reactivity.effect import TrackOpTypes
 from vuepy.reactivity.effect import TriggerOpTypes
 from vuepy.reactivity.effect import trackEffects
 from vuepy.reactivity.effect import triggerEffects
+from vuepy.reactivity.reactive import DictProxy
+from vuepy.reactivity.reactive import ListProxy
 from vuepy.reactivity.reactive import isReadonly
 from vuepy.reactivity.reactive import isShallow
 from vuepy.reactivity.reactive import toReactive
@@ -23,15 +25,15 @@ def ref(value, debug_msg='') -> "RefImpl":
     return createRef(value, False, debug_msg=debug_msg)
 
 
-def shallow_ref(value) -> "ShallowRef":
+def shallowRef(value) -> "ShallowRef":
     return createRef(value, True)
 
 
 def createRef(raw_value, shallow: bool, debug_msg=''):
-    if is_ref(raw_value):
+    if isRef(raw_value):
         return raw_value
 
-    return RefImpl(raw_value, shallow, debug_msg=debug_msg)
+    return ShallowRef(raw_value, debug_msg) if shallow else Ref(raw_value, debug_msg)
 
 
 class RefImpl:
@@ -60,6 +62,16 @@ class RefImpl:
         return f"RefImpl:{self.debug_msg} at {id(self)}"
 
 
+class Ref(RefImpl):
+    def __init__(self, value, debug_msg=''):
+        super().__init__(value, False, debug_msg)
+
+
+class ShallowRef(RefImpl):
+    def __init__(self, value, debug_msg=''):
+        super().__init__(value, True, debug_msg)
+
+
 def trackRefValue(ref):
     if effect.shouldTrack and effect.activeEffect:
         dep = g_DEP_STORE.get_or_create(ref)
@@ -85,21 +97,75 @@ def triggerRefValue(ref, new_val=None):
     triggerEffects(dep, debugger_event)
 
 
-def is_ref(r) -> bool:
-    return isinstance(r, RefImpl)
+def triggerRef(ref_obj: ShallowRef):
+    triggerRefValue(ref_obj, ref_obj.value if config.__DEV__ else None)
 
 
-def unref(ref):
-    return ref.value if is_ref(ref) else ref
+# todo add Readonly
+class GetterRefImpl(Ref):
+    def __init__(self, _getter):
+        self._getter = _getter
+        self.debug_msg = 'GetterRefImpl'
+
+    @property
+    def value(self):
+        return self._getter()
 
 
-def to_ref(value):
-    pass
+class ObjectRefImpl(Ref):
+    def __init__(self, _object, _key, _default_val):
+        self._object = _object
+        self._key = _key
+        self._default_val = _default_val
+
+    @property
+    def value(self):
+        return self._object.get(self._key, self._default_val)
+
+    @value.setter
+    def value(self, new_val):
+        self._object[self._key] = new_val
 
 
-def to_value(source):
-    pass
+def isRef(val) -> bool:
+    return isinstance(val, RefImpl)
 
 
-def to_refs(obj):
-    pass
+def unref(ref_obj):
+    return ref_obj.value if isRef(ref_obj) else ref_obj
+
+
+def toRef(source, key: str = '', default_val=None) -> Ref:
+    if isRef(source):
+        return source
+    elif callable(source):
+        return GetterRefImpl(source)
+    elif hasattr(source, key):
+        return propertyToRef(source, key, default_val)
+    else:
+        return ref(source)
+
+
+def propertyToRef(source, key, default_val=None):
+    val = source[key]
+    return val if isRef(val) else ObjectRefImpl(source, key, default_val)
+
+
+def toValue(source):
+    return source() if callable(source) else unref(source)
+
+
+def toRefs(obj):
+    if isinstance(obj, ListProxy):
+        ret = []
+        for i in range(len(obj)):
+            ret.append(propertyToRef(obj, i))
+        return ret
+    elif isinstance(obj, DictProxy):
+        ret = {}
+        for key in obj:
+            ret[key] = propertyToRef(obj, key)
+        return ret
+    else:
+        logger.warn(f"toRefs() expects a reactive object but received a plain one.")
+        return {}

@@ -28,7 +28,11 @@ class EffectScope:
             activeEffectScope.scopes.append(self)
 
     def run(self, fn: Callable[[], Any]) -> Any:  # (fn: () => T): T
-        pass
+        if self.active:
+            with self:
+                return fn()
+        elif config.__DEV__:
+            logger.warn('cannot run an inactive effect scope.')
 
     def on(self):
         """
@@ -96,7 +100,7 @@ class EffectScope:
         self.active = False
 
 
-def effectScope(detached=False):
+def effectScope(detached=False) -> EffectScope:
     return EffectScope(detached)
 
 
@@ -109,7 +113,7 @@ def getCurrentScope():
     return activeEffectScope
 
 
-def onScopeDispose(fn: Callable[[], None]):
+def onScopeDispose(fn: Callable[[], None]) -> None:
     if activeEffectScope:
         activeEffectScope.cleanups.append(fn)
     elif config.__DEV__:

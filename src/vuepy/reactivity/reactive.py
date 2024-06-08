@@ -98,7 +98,7 @@ class ReactiveProxy:
     )
     DICT_ATTRS = ('__class__',)
 
-    def __init__(self, target, track_target, shallow):
+    def __init__(self, target, track_target, shallow: bool):
         self._vp_target_ = target
         self._vp_shallow_ = track_target
         self._vp_track_target_ = shallow
@@ -390,6 +390,9 @@ def to_raw(proxy):
         return proxy._vp_target_
 
     return proxy
+
+
+toRaw = to_raw
 
 
 def is_reactive(value) -> bool:

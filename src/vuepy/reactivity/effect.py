@@ -22,7 +22,7 @@ logger = log.getLogger()
 class DepStore:
     def __init__(self):
         # self._store = weakref.WeakKeyDictionary()
-        self._store = {}
+        self._store: dict[str, Dep] = {}  # { target_id: Dep }
 
     def get_or_create(self, target) -> Dep:
         key = gen_hash_key(target)
