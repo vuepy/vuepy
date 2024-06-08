@@ -768,6 +768,8 @@ def vue_comp_expr_eval(expr_ast: VueCompExprAst, ns: "VueCompNamespace", local_v
 
 class VueCompAst:
     V_IF = 'v-if'
+    V_ELSE_IF = 'v-else-if'
+    V_ELSE = 'v-else'
     V_FOR = 'v-for'
     V_SHOW = 'v-show'
     V_SLOT = 'v-slot:'
@@ -788,6 +790,8 @@ class VueCompAst:
     def __init__(self, tag):
         self.tag = tag
         self.v_if: VueCompExprAst = None
+        self.v_else_if: VueCompExprAst = None
+        self.v_else = False
         self.v_show: VueCompExprAst = None
         # todo rename to attrs
         self.kwargs = {}
@@ -802,6 +806,14 @@ class VueCompAst:
     @classmethod
     def is_v_if(cls, attr):
         return attr == cls.V_IF
+
+    @classmethod
+    def is_v_else_if(cls, attr):
+        return attr == cls.V_ELSE_IF
+
+    @classmethod
+    def is_v_else(cls, attr):
+        return attr == cls.V_ELSE
 
     @classmethod
     def is_v_show(cls, attr):
@@ -857,6 +869,12 @@ class VueCompAst:
         for attr, value in attr_dict.items():
             if cls.is_v_if(attr):
                 comp.v_if = vue_comp_expr_parse(value)
+
+            elif cls.is_v_else_if(attr):
+                comp.v_else_if = vue_comp_expr_parse(value)
+
+            elif cls.is_v_else(attr):
+                comp.v_else = True
 
             elif cls.is_v_show(attr):
                 comp.v_show = vue_comp_expr_parse(value)
@@ -1354,6 +1372,15 @@ class SFCFile:
         return match.group('content')
 
 
+class CompilerError(Exception):
+    pass
+
+
+class CompilerSyntaxError(CompilerError):
+    def __init__(self, msg):
+        super().__init__(f"Syntax Error: {msg}.")
+
+
 class DomCompiler(HTMLParser):
     """
     @vue/compiler-dom
@@ -1367,6 +1394,7 @@ class DomCompiler(HTMLParser):
         self.widgets_by_id = {}
         self.parent_node_stack: List[NodeAst | VForNodeAst] = []
         self.v_for_stack: List[VForAst] = []
+        self.v_if_stack: List[str] = []
         self._tag = self.widgets.tag
 
     def _get_element_by_id(self, el_id):
@@ -1598,9 +1626,10 @@ class DomCompiler(HTMLParser):
         node_type = NodeType.WIDGET if self.vm.component(tag) else NodeType.RAW_HTML
         self._tag = tag
         attrs = dict(attrs)
+        self._transformer_node_attrs(attrs)
 
-        v_for = attrs.pop(VueCompAst.V_FOR, None)
-        v_for_ast = VForAst.parse(v_for)
+        v_for_expr = attrs.pop(VueCompAst.V_FOR, None)
+        v_for_ast = VForAst.parse(v_for_expr)
         for_processed = False
         if v_for_ast:
             for_processed = True
@@ -1612,7 +1641,8 @@ class DomCompiler(HTMLParser):
                 functools.partial(_gen_node_ast, tag, attrs, for_processed),
                 self.vm._data
             )
-            node = VForNodeAst(tag, children=nodes, for_processed=for_processed, type=node_type)
+            node = VForNodeAst(tag, attrs, children=nodes, for_processed=for_processed,
+                               type=node_type)
         else:
             node = _gen_node_ast(tag, attrs, for_processed)
         self.parent_node_stack.append(node)
@@ -1629,6 +1659,35 @@ class DomCompiler(HTMLParser):
         # else:
         #     node = self._gen_ast_node(tag, attrs)
         # self.parent_node_stack.append(node)
+
+    def _transformer_node_attrs(self, attrs: dict) -> None:
+        prev_v_if_expr = self.v_if_stack.pop() if self.v_if_stack else ''
+
+        _v_if_expr = attrs.get(VueCompAst.V_IF)
+        if _v_if_expr:
+            return
+
+        v_else_if_expr = attrs.pop(VueCompAst.V_ELSE_IF, '')
+        if v_else_if_expr:
+            if not prev_v_if_expr:
+                _err_msg = f"v-else-if={v_else_if_expr} error, there is no corresponding v-if"
+                raise CompilerSyntaxError(_err_msg)
+
+            v_else_if_expr = f"(not ({prev_v_if_expr})) and ({v_else_if_expr})"
+            attrs[VueCompAst.V_IF] = v_else_if_expr
+            # self.v_if_stack.append(v_else_if_expr)
+            return
+
+        v_else_expr = attrs.pop(VueCompAst.V_ELSE, Nil)
+        if v_else_expr is not Nil:
+            if not prev_v_if_expr:
+                _err_msg = f"v-else error, there is no corresponding v-if"
+                raise CompilerSyntaxError(_err_msg)
+
+            # if_expr = self.v_if_stack.pop()
+            v_else_expr = f"not ({prev_v_if_expr})"
+            attrs[VueCompAst.V_IF] = v_else_expr
+            return
 
     def handle_data(self, data: str) -> None:
         if not self.parent_node_stack:
@@ -1770,6 +1829,10 @@ class DomCompiler(HTMLParser):
         _gen_element(node)
         if node.for_processed:
             self.v_for_stack.pop()
+
+        v_if_expr = node.attrs.get(VueCompAst.V_IF)
+        if v_if_expr:
+            self.v_if_stack.append(v_if_expr)
 
     def compile(self, html):
         self.html_lines = [line for line in html.splitlines()]
