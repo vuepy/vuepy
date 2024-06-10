@@ -5,7 +5,7 @@ from ipywui.widgets import WidgetCssStyle
 from ipywui.widgets.custom.message import MessageService
 from vuepy import App
 from vuepy import VueComponent
-from vuepy import VuePlugin
+from vuepy.runtime.core.api_create_app import VuePlugin
 from vuepy.utils.factory import FactoryMeta
 
 

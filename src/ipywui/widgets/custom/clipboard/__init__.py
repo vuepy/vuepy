@@ -4,7 +4,7 @@ import anywidget
 import traitlets
 import ipywidgets as widgets
 
-from vuepy import defineEmits
+from vuepy.runtime.core.api_setup_helpers import defineEmits
 
 
 class ClipboardWidget(anywidget.AnyWidget):

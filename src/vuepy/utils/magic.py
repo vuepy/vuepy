@@ -5,10 +5,10 @@ from pathlib import Path
 from IPython.core.magic import register_line_magic
 
 from ipywui import wui
-from vuepy import SFCFile
-from vuepy import create_app
-from vuepy import import_sfc
 from vuepy import log
+from vuepy.compiler_sfc.compile import SFCFile
+from vuepy.runtime.core.api_create_app import create_app
+from vuepy.runtime.core.import_sfc import import_sfc
 
 
 @register_line_magic

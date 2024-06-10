@@ -1,4 +1,5 @@
 # coding: utf-8
+from vuepy.compiler_sfc.codegen import VueComponent
 from vuepy.reactivity.computed import computed
 from vuepy.reactivity.effect_scope import effectScope
 from vuepy.reactivity.effect_scope import getCurrentScope
@@ -15,11 +16,17 @@ from vuepy.reactivity.ref import toRefs
 from vuepy.reactivity.ref import toValue
 from vuepy.reactivity.ref import triggerRef
 from vuepy.reactivity.ref import unref
+from vuepy.reactivity.watch import watch
 from vuepy.reactivity.watch import watchEffect
+from vuepy.runtime.core.api_create_app import App
+from vuepy.runtime.core.api_create_app import VuePlugin
+from vuepy.runtime.core.api_create_app import create_app
 from vuepy.runtime.core.api_lifecycle import onBeforeMount
 from vuepy.runtime.core.api_lifecycle import onMounted
-from vuepy.vue import *
-
+from vuepy.runtime.core.api_setup_helpers import defineEmits
+from vuepy.runtime.core.api_setup_helpers import defineModel
+from vuepy.runtime.core.api_setup_helpers import defineProps
+from vuepy.runtime.core.import_sfc import import_sfc
 
 __version__ = App.version
 

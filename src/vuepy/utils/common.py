@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-
-class Nil:
-    pass
+import dataclasses
 
 
 def has_changed(value, old) -> bool:
@@ -18,3 +16,13 @@ def gen_hash_key(target):
     except Exception:
         return f"id(target)={id(target)})"
     return target
+
+
+class Nil:
+    pass
+
+
+@dataclasses.dataclass
+class Record:
+    def to_ns(self):
+        return self.__dict__
