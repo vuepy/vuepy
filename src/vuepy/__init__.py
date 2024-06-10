@@ -16,6 +16,8 @@ from vuepy.reactivity.ref import toValue
 from vuepy.reactivity.ref import triggerRef
 from vuepy.reactivity.ref import unref
 from vuepy.reactivity.watch import watchEffect
+from vuepy.runtime.core.api_lifecycle import onBeforeMount
+from vuepy.runtime.core.api_lifecycle import onMounted
 from vuepy.vue import *
 
 
@@ -48,4 +50,6 @@ __all__ = [
     'defineEmits',
     'defineModel',
     'defineProps',
+    'onBeforeMount',
+    'onMounted',
 ]
