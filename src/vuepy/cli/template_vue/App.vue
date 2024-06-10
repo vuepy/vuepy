@@ -1,5 +1,5 @@
 <template>
-  <Box>Hello world</Box>
+  <Box>Hello Vue.py!</Box>
 </template>
 
 <script src="./app.py"></script>
