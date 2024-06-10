@@ -38,6 +38,8 @@ from vuepy.reactivity.ref import RefImpl
 from vuepy.reactivity.ref import ref
 from vuepy.reactivity.watch import WatchOptions
 from vuepy.reactivity.watch import watch
+from vuepy.runtime.core.api_lifecycle import OnBeforeMount
+from vuepy.runtime.core.api_lifecycle import OnMounted
 from vuepy.utils.common import has_changed
 
 logger = logging.getLogger()
@@ -2343,7 +2345,12 @@ class defineModel:
 
 
 class SFCWidgetContainer(Dom):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.on_mounted_dispatcher = CallbackDispatcher()
+        self.on_before_mount_dispatcher = CallbackDispatcher()
+        self.on_unmounted_dispatcher = CallbackDispatcher()
+        self.on_before_unmount_dispatcher = CallbackDispatcher()
 
 
 class SFC(VueComponent):
@@ -2385,8 +2392,9 @@ class SFC(VueComponent):
             self.ADD_EVENT_LISTENER_FN: _on_fn,
             self.EMIT_FN: _emits,
         })
-        self.root = _sfc_container()
+        self.root: SFCWidgetContainer = _sfc_container()
         self._init_static_props(context.get('attrs', {}))
+        self._register_lifecycle_cb(self.root)
 
     def _init_static_props(self, attrs):
         if not self.define_props:
@@ -2398,6 +2406,13 @@ class SFC(VueComponent):
             if val is Nil:
                 continue
             setattr(self.root, prop_name, val)
+
+    def _register_lifecycle_cb(self, container: SFCWidgetContainer):
+        for _, cb in self._get_var_by_type(OnBeforeMount):
+            container.on_before_mount_dispatcher.register_callback(cb.callback)
+
+        for _, cb in self._get_var_by_type(OnMounted):
+            container.on_mounted_dispatcher.register_callback(cb.callback)
 
     def setup(self, props: dict = None, ctx=None, vm: App = None):
         return self._data
@@ -2437,26 +2452,26 @@ class SFC(VueComponent):
 
     @property
     def define_props(self) -> (str, DefineProps):
-        ret = self._get_define_x(DefineProps, limit=1)
+        ret = self._get_var_by_type(DefineProps, limit=1)
         return ret[0] if ret else []
 
     @property
     def define_emits(self) -> (str, defineEmits):
-        ret = self._get_define_x(defineEmits, limit=1)
+        ret = self._get_var_by_type(defineEmits, limit=1)
         return ret[0] if ret else []
 
     @property
     def define_models(self) -> List[(str, defineModel)]:
-        return self._get_define_x(defineModel)
+        return self._get_var_by_type(defineModel)
 
-    def _get_define_x(self, define_type, limit: int = float('inf')):
+    def _get_var_by_type(self, define_type, limit: int = float('inf')) -> List[Tuple[str, Any]]:
         ret = []
         count = 0
         for var_name, var in self.setup_returned.items():
             if count >= limit:
                 break
             if isinstance(var, define_type):
-                ret.append([var_name, var])
+                ret.append((var_name, var))
                 count += 1
         return ret
 
@@ -2472,6 +2487,10 @@ class SFC(VueComponent):
         logger.info(f"🔥 Rerender {self}")
         self.scope.clear()
 
+        # beforeMount
+        self.root.on_before_mount_dispatcher()
+
+        # compile and render
         with self.scope:
             if self._render:
                 dom = self._render(self._context, self._props, self.setup_returned)
@@ -2479,6 +2498,9 @@ class SFC(VueComponent):
                 dom = DomCompiler(self, self.app).compile(self.template)
 
         self.root.children = [dom]
+
+        # mounted
+        self.root.on_mounted_dispatcher()
 
         return self.root
 
@@ -2513,14 +2535,19 @@ def import_sfc(sfc_file):
 RootComponent = Type[Union[Type[VueComponent], SFCFactory, dict]]
 
 
-def create_app(root_component: RootComponent, **root_props) -> App:
+def create_app(root_component: RootComponent, use_wui=True, **root_props) -> App:
     """创建一个应用实例
     app = create_app(App)
     app = create_app({})
 
+    :param use_wui:
     :param root_component:
     :param root_props:
     :return:
     """
     debug = root_props.get('debug', False)
-    return App(root_component, debug)
+    app = App(root_component, debug)
+    if use_wui:
+        from ipywui import wui
+        app.use(wui)
+    return app
