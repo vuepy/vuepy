@@ -264,14 +264,6 @@ class Dropdown(widgets.Dropdown, WidgetCssStyle):
         kwargs['description'] = kwargs.pop("label", kwargs.pop('description', ''))
         super().__init__(**kwargs)
 
-    @property
-    def label(self):
-        return self.description
-
-    @label.setter
-    def label(self, val):
-        self.description = val
-
 
 class DisplayViewer(widgets.Output, WidgetCssStyle):
     def __init__(self, obj='', **kwargs):
@@ -332,11 +324,11 @@ class FloatProgress(widgets.FloatProgress, WidgetCssStyle):
 
     @property
     def type(self):
-        return self.button_style
+        return self.bar_style
 
     @type.setter
     def type(self, val):
-        self.button_style = val
+        self.bar_style = val
 
 
 class GridspecLayout(widgets.GridspecLayout, WidgetCssStyle):
