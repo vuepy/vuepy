@@ -12,7 +12,6 @@ async function copyToClipboardAsync(textToCopy) {
   let textArea = document.createElement("textarea");
   textArea.value = textToCopy;
   let styles = {
-    display: 'none',
     position: 'absolute',
     opacity: 0,
     top: '-999999px',
