@@ -17,13 +17,11 @@ def vuepy_import(vue_sfc):
     import vue sfc file
 
     ```python
-    from ipywui import wui
     from vuepy import create_app
     from vuepy.utils import magic
 
     App=%vuepy_import test.vue
     app = create_app(App)
-    app.use(wui)
     app.mount()
     ```
 
