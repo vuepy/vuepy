@@ -1,5 +1,7 @@
 <template>
-  <Input label="Disabled" disabled></Input>
+  <Input placeholder="Disabled" disabled></Input>
+  <Input placeholder="disabled=True" :disabled="True"></Input>
+  <Input placeholder="disabled=False" :disabled="False"></Input>
 </template>
 
 <script setup>

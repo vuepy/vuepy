@@ -261,7 +261,6 @@ class DateTimePicker(widgets.DatetimePicker, WidgetCssStyle):
 
 class Dropdown(widgets.Dropdown, WidgetCssStyle):
     def __init__(self, **kwargs):
-        kwargs['description'] = kwargs.pop("label", kwargs.pop('description', ''))
         super().__init__(**kwargs)
 
 
