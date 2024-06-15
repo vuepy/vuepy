@@ -44,7 +44,7 @@ f()
 '''
 
 
-def setup(props, ctx, vm):
+def setup(props, ctx, app):
     models = ['llama', 'llama2', 'llama2-chat']
     model = ref('llama')
     attr_options = attr_chain_list
@@ -95,13 +95,13 @@ def setup(props, ctx, vm):
 
     def handle_on_submit():
         df.value = pd.concat([df.value, df.value])
-        with vm.options.el:
+        with app.options.el:
             clear_output()
-            display(vm.dom)
-            pprint(vm._data)
+            display(app.dom)
+            pprint(app._data)
 
     def send_msg():
-        vm.message.success({'message': 'hello world!', 'duration': 0, 'show_close': True})
+        app.message.success({'message': 'hello world!', 'duration': 0, 'show_close': True})
 
     def switch_dialog():
         show_dialog.value = not show_dialog.value

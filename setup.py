@@ -16,7 +16,7 @@ with open(os.path.join(HERE, "README.md")) as fid:
 # This call to setup() does all the work
 setup(
     name="vuepy",
-    version="1.0.0",
+    version="0.1.0",
     description="Vue.py is a Python framework for building UI on Jupyter.",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -29,6 +29,7 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3.7",
     ],
+    python_requires='>=3.7',
     packages=find_packages('src', exclude=('*widgets*', 'vuepy2')),
     package_dir={'': 'src'},
     include_package_data=True,
