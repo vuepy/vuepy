@@ -14,7 +14,7 @@
       <Box v-for="(i, msg) in messages.value">
         <HBox>
           <Button width='60px' v-model="msg.role" @click="handle_change_role"></Button>
-          <Input v-else width='450px' v-model="msg.content" type="textarea"></Input>
+          <Input width='450px' v-model="msg.content" type="textarea"></Input>
           <Button width='40px' icon="edit" @click="handle_edit_msg" button_style='info'></Button>
           <Button width='40px' icon="minus-circle" @click="handle_del_msg(i)" button_style='danger'></Button>
         </HBox>
@@ -34,7 +34,7 @@
         <Button description="message" button_style="info" @click="send_msg()"></Button>
         <Button description="dialog" button_style="info" @click="switch_dialog()"></Button>
       </HBox>
-      <p style="background: #ffaa00" v-for="msg in messages.value">
+      <p style="background: #ffaa00" v-for="(i, msg) in messages.value">
         <span>model: {{ model.value }}, top_p: {{ top_p.value }} {{ msg.role }}</span>
       </p>
 <!--      <Display :obj="df.value"></Display>-->
