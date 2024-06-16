@@ -47,7 +47,6 @@ class AppContext:
 
 
 class App:
-    version = '0.0.1'
     components = {}
 
     def __init__(self, root_component: RootComponent, debug=False):
@@ -78,6 +77,11 @@ class App:
         self.dom = None
 
         self._proxy_methods()
+
+    @property
+    def version(self):
+        import vuepy
+        return vuepy.__version__
 
     def _call_if_callable(self, func):
         if callable(func):

@@ -4,6 +4,7 @@ include src/vuepy/cli/*.py
 include src/vuepy/cli/template_vue/*
 
 include src/ipywui/components/*.vue
+include src/ipywui/widgets/*.py
 include src/ipywui/widgets/assets/css/*.css
 include src/ipywui/widgets/custom/clipboard/*
 include src/ipywui/widgets/custom/dialog/*
