@@ -217,8 +217,11 @@ def doWatch(
             return
 
         newValue = effect.run()
-        had_change = any(has_changed(n, o) for (n, o) in zip(newValue, oldValue)) \
-            if isMultiSource else has_changed(newValue, oldValue)
+        if isMultiSource:
+            had_change = any(has_changed(n, o) for (n, o) in zip(newValue, oldValue))
+        else:
+            had_change = has_changed(newValue, oldValue)
+
         if deep or forceTrigger or had_change:
             cleanup and cleanup()
 

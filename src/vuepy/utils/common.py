@@ -2,11 +2,16 @@ from __future__ import annotations
 
 import dataclasses
 
+from vuepy.log import getLogger
+
+logger = getLogger()
+
 
 def has_changed(value, old) -> bool:
     try:
-        return value != old
-    except:
+        return bool(value != old)
+    except Exception as e:
+        logger.warn(f"Run has_changed failed, {e}")
         return True
 
 
