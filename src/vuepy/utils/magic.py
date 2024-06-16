@@ -1,5 +1,6 @@
 # coding: utf-8
 import json
+import logging
 from pathlib import Path
 
 from IPython.core.magic import register_line_magic
@@ -9,6 +10,19 @@ from vuepy import log
 from vuepy.compiler_sfc.compile import SFCFile
 from vuepy.runtime.core.api_create_app import create_app
 from vuepy.runtime.core.import_sfc import import_sfc
+
+
+class LogLevelScope:
+    def __init__(self, logger: logging.Logger, level=logging.ERROR):
+        self.logger = logger
+        self.org_level = logger.level
+        self.level = level
+
+    def __enter__(self):
+        self.logger.setLevel(self.level)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.logger.setLevel(self.org_level)
 
 
 @register_line_magic
@@ -44,18 +58,21 @@ def vuepy_demo(vue_sfc):
 
     script_content = 0
     if sfc_file.script_src:
-        _script_file = sfc_file.file.parent.joinpath(sfc_file.script_src)
+        _script_file = sfc_file.file.parent / sfc_file.script_src
         with open(_script_file) as f:
-            _script_content = f.read()
+            _comment = f'# {sfc_file.script_src}\n\n'
+            script_content = _comment + f.read()
 
+    sfc_file_comment = f'<!-- {sfc_file_path} -->\n'
     print(json.dumps({
-        'vue': sfc_file.content,
+        'vue': sfc_file_comment + sfc_file.content,
         'setup': script_content,
     }))
 
-    App = import_sfc(sfc_file_path)
-    app = create_app(App).use(wui)
-    return app.mount()
+    with LogLevelScope(log.getLogger()):
+        App = import_sfc(sfc_file_path)
+        app = create_app(App).use(wui)
+        return app.mount()
 
 
 @register_line_magic
