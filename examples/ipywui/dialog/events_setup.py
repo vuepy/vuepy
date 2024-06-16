@@ -2,14 +2,14 @@ from vuepy import ref
 
 
 def setup(props, ctx, vm):
-    is_show = ref(False)
+    is_show = ref(True)
 
     state = ref("-")
 
-    def show_dialog():
+    def show():
         is_show.value = True
 
-    def close_dialog():
+    def close():
         is_show.value = False
 
     def handle_open():

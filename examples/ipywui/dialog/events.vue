@@ -1,17 +1,17 @@
 <template>
-  <Button label="show dialog" type='info' @click="show_dialog()"></Button>
+  <Button label="show dialog" type='info' @click="show()"></Button>
   <Label :value="state.value" style="height: 200px"></Label>
-  <Dialog title="Shipping address" v-model="is_show.value" width="45%"
+  <Dialog title="Shipping address" v-model="is_show.value" width="55%"
           @close="handle_close()"
           @open="handle_open()"
   >
     <template>
-      <Input label="name"></Input>
+      <Input placeholder="name"></Input>
     </template>
     <template v-slot:footer>
       <HBox>
-        <Button label="Cancel" type="warning" @click="close_dialog()"></Button>
-        <Button label="Ok" type="info" @click="close_dialog()"></Button>
+        <Button label="Cancel" type="warning" @click="close()"></Button>
+        <Button label="Ok" type="info" @click="close()"></Button>
       </HBox>
     </template>
   </Dialog>

@@ -2,7 +2,7 @@ from vuepy import ref
 
 
 def setup(props, ctx, vm):
-    default = ref(None)
+    default = ref(0)
     init_val = ref(5)
     float_val = ref(10.1)
     selection_val = ref('a')
