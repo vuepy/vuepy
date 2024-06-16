@@ -34,13 +34,13 @@ export async function render(view) {
   modalDialog.appendChild(modalBody);
   modalDialog.appendChild(modalFooter);
 
-  let model_ids = model.get("body"); // ["IPY_MODEL_<model_id>", ...]
+  let model_ids = model.get("body");  /* ["IPY_MODEL_{model_id>}", ...] */
   let body_models = await unpack_models(model_ids, model.widget_manager);
   for (let model of body_models) {
     let child_view = await model.widget_manager.create_view(model);
     modalBody.appendChild(child_view.el);
   }
-  model_ids = model.get("footer"); // ["IPY_MODEL_<model_id>", ...]
+  model_ids = model.get("footer");  /* ["IPY_MODEL_{model_id>}", ...] */
   let footer_models = await unpack_models(model_ids, model.widget_manager);
   for (let model of footer_models) {
     let child_view = await model.widget_manager.create_view(model);

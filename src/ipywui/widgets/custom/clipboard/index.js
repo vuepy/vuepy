@@ -34,8 +34,7 @@ export async function render(view) {
 
   const tag = model.get('tag');
   const copyWrap = document.createElement(tag);
-
-  let model_ids = model.get("children"); // ["IPY_MODEL_<model_id>", ...]
+  let model_ids = model.get("children"); /* ["IPY_MODEL_{model_id>}", ...] */
   let children_models = await unpack_models(model_ids, model.widget_manager);
   for (let model of children_models) {
     let child_view = await model.widget_manager.create_view(model);
