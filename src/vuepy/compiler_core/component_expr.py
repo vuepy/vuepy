@@ -38,15 +38,6 @@ class VueCompExpr:
         return eval(code_obj, {"__builtin__": None}, ns.to_py_eval_ns(local_vars))
 
 
-# class VueCompExprParser:
-#     @staticmethod
-#     def parse(expr_str) -> ast.Expression:
-#         expr_ast = ast.parse(expr_str, mode='eval')
-#         comp_expr_ast = VueCompExprTransformer().transformer(expr_ast)
-#         comp_expr_ast.exp_str = expr_str
-#         return comp_expr_ast
-
-
 class VueCompExprTransformer(ast.NodeTransformer):
     def __init__(self):
         self.vars = []

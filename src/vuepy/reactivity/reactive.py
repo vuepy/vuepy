@@ -142,7 +142,7 @@ class DictProxy(ReactiveProxy):
                 old_value = to_raw(old_value)
                 value = to_raw(value)
 
-            # # reactive中不自动解 value
+            # # reactive unpack value
             # if is_ref(old_value) and not is_ref(value):
             #     old_value.value = value
             #     return
@@ -206,10 +206,6 @@ class DictProxy(ReactiveProxy):
         track(self._vp_track_target_, TrackOpTypes.ITER, IterateKey.DICT, msg="copy")
         return self._vp_target_.copy()
 
-    # @classmethod
-    # def fromkeys(cls, iterable, value=None):
-    #     return dict.fromkeys(iterable, value)
-
     def get(self, key, default=None):
         track(self._vp_track_target_, TrackOpTypes.GET, key, msg="get")
         res = self._vp_target_.get(key, default)
@@ -267,7 +263,8 @@ class ListProxy(ReactiveProxy):
 
         target[index] = value
         if has_changed(value, old_value):
-            trigger(self._vp_track_target_, TriggerOpTypes.SET, index, value, old_value, msg="__setitem__ by set")
+            trigger(self._vp_track_target_, TriggerOpTypes.SET, index, value, old_value,
+                    msg="__setitem__ by set")
             targetMap.delete(old_value)
             reactiveMap.delete(old_value)
 
@@ -301,7 +298,8 @@ class ListProxy(ReactiveProxy):
 
     def append(self, item):
         ret = self._vp_target_.append(item)
-        trigger(self._vp_track_target_, TriggerOpTypes.ADD, len(self._vp_target_), item, msg="append")
+        trigger(self._vp_track_target_, TriggerOpTypes.ADD, len(self._vp_target_), item,
+                msg="append")
         return ret
 
     def clear(self):

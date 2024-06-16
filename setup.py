@@ -1,5 +1,5 @@
 # coding: utf-8
-"""Setup script for vue.py"""
+"""Setup script for vuepy"""
 
 import os.path
 

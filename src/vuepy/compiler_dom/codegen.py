@@ -147,9 +147,6 @@ class VueHtmlTemplateRender:
             expr_str = match.group(1)
             expr_ast = VueCompExpr.parse(expr_str)
             # TODO html可以设置value，按需更新
-            # watcher = WatcherForRerender(vm, f'html {for_idx} {{{{ {exp} }}}}')
-            # with ActivateEffect(watcher):
-            #     _value = exp_ast.eval(ns)
             _value = expr_ast.eval(ns)
             return str(_value)
 
@@ -184,7 +181,6 @@ class VueHtmlCompCodeGen:
 
             # innerHtml
             inner = []
-            # for child in node['body']:
             for child in node.children:
                 if callable(child):
                     inner.append(child())

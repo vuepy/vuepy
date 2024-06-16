@@ -21,8 +21,6 @@ from vuepy.reactivity.reactive import to_raw
 from vuepy.reactivity.ref import RefImpl
 from vuepy.reactivity.watch import WatchOptions
 from vuepy.reactivity.watch import watch
-# todo circle import
-# from vuepy.runtime.core.api_create_app import App
 from vuepy.runtime.core.api_lifecycle import OnBeforeMount
 from vuepy.runtime.core.api_lifecycle import OnMounted
 from vuepy.runtime.core.api_setup_helpers import DefineProp
@@ -107,9 +105,6 @@ class VueComponent(metaclass=abc.ABCMeta):
             pass
 
         comp = self.app.component(name)
-        # if comp is None:
-        #     logger.warn(f"component({name}) not found in Component `{self.name()}`.")
-
         return comp
 
     def to_ns(self):
@@ -264,15 +259,10 @@ class SFC(VueComponent):
                 count += 1
         return ret
 
-    # def clear_property_subs(self):
-    #     for item in self._data.values():
-    #         if isinstance(item, Reactive):
-    #             item.reset_deps()
     def __repr__(self):
         return f"{self.__class__.__name__}<{pathlib.Path(self.file).name}> at {id(self)}"
 
     def render(self, ctx: SetupContext = None, props: dict = None, setup_returned: dict = None) -> VNode:
-        # self.clear_property_subs()
         logger.info(f"🔥 Rerender {self}")
         self.scope.clear()
 
@@ -314,16 +304,6 @@ class VueCompCodeGen:
     h()
     """
 
-    # @staticmethod
-    # def handle_value_change_vm_to_view(widget, attr):
-    #     def warp(val, old_val):
-    #         try:
-    #             if val == old_val:
-    #                 return
-    #         except Exception as e:
-    #             pass
-    #         setattr(widget, attr, val)
-    #     return warp
     @classmethod
     def gen(
             cls,
@@ -344,7 +324,6 @@ class VueCompCodeGen:
             def _change_v_if_widget(cond, old, on_cleanup):
                 dummy.children = (cls._gen(comp_ast, node.children, vm, ns, app),) if cond else ()
 
-            # dummy.children = (cls._gen(comp_ast, children, vm, ns, app),) if _if_cond() else ()
             return dummy
         # v-show
         elif comp_ast.v_show:
@@ -358,7 +337,6 @@ class VueCompCodeGen:
             def _show_widget(curr_show, old, on_cleanup):
                 dummy.children = (w,) if curr_show else ()
 
-            # dummy.children = (w,) if _if_show() else ()
             return dummy
         else:
             return cls._gen(comp_ast, node.children, vm, ns, app)
@@ -373,24 +351,6 @@ class VueCompCodeGen:
             app: "App"
     ):
         component_cls: Type[VueComponent] = vm.component(comp_ast.tag)
-        # # v-if
-        # if comp_ast.v_if:
-        #     # @computed
-        #     def should_render():
-        #         return comp_ast.v_if.eval(ns)
-        #
-        #     @watch(should_render)
-        #     def rerender(*args):
-        #         vm.render()
-        #
-        #     if not should_render():
-        #         return widgets.HTML("")
-
-        # watcher = WatcherForRerender(vm, f'v_if {comp_ast.v_if}')
-        # with ActivateEffect(watcher):
-        #     if not comp_ast.v_if.eval(ns):
-        #         return widgets.HTML("")
-
         slots = {'default': []}
         for child in children or []:
             slot_name = getattr(child, 'v_slot', 'default')
@@ -408,10 +368,6 @@ class VueCompCodeGen:
             widget_attr: exp_ast.eval(ns)
             for widget_attr, exp_ast in comp_ast.v_binds.items()
         }
-        # if comp_ast.v_model:
-        #     props.update({
-        #         _model_key: ns.getattr(_bind) for _model_key, _bind in comp_ast.v_model
-        #     })
 
         if isinstance(component_cls, SFCFactory):
             component = component_cls.gen(props, ctx, app)
@@ -431,12 +387,6 @@ class VueCompCodeGen:
 
         # v-bind:
         for widget_attr, exp_ast in comp_ast.v_binds.items():
-            # update_vm_to_view = cls.handle_value_change_vm_to_view(widget, widget_attr)
-            # watcher = WatcherForAttrUpdate(ns, exp_ast, update_vm_to_view)
-            # with ActivateEffect(watcher):
-            #     _value = exp_ast.eval(ns)
-            # update_vm_to_view(_value, None)
-
             if widget_attr == 'style' and hasattr(widget, 'css_style'):
                 widget_attr = 'css_style'
 
@@ -450,15 +400,6 @@ class VueCompCodeGen:
                 if has_changed(curr, _old_val):
                     setattr(widget, _widget_attr, curr)
 
-            # setattr(widget, widget_attr, _get_v_bind_value())
-
-            # @watchEffect
-            # def update_vm_to_view(on_cleanup, _widget_attr=widget_attr):
-            #     _old_val = getattr(widget, _widget_attr, Nil)
-            #     _new_val = exp_ast.eval(ns)
-            #     if has_changed(_old_val, _new_val):
-            #         setattr(widget, _widget_attr, to_raw(_new_val))
-
         # v-model:define-model=bind
         for _model_key, attr_chain in comp_ast.v_model:
             # :bind, parent to child
@@ -466,12 +407,6 @@ class VueCompCodeGen:
             widget_attr = _model_key
             if _model_key == defineModel.DEFAULT_KEY and hasattr(component_cls, 'v_model_default'):
                 widget_attr = getattr(component_cls, 'v_model_default')
-
-            # update_vm_to_view = cls.handle_value_change_vm_to_view(widget, widget_attr)
-            # watcher = WatcherForAttrUpdate(ns, lambda: ns.getattr(attr_chain), update_vm_to_view)
-            # with ActivateEffect(watcher):
-            #     _value = ns.getattr(attr_chain)
-            # update_vm_to_view(_value, None)
 
             def _get_v_model_value(_attr_chain=attr_chain):
                 return to_raw(ns.getattr(_attr_chain))
@@ -482,15 +417,6 @@ class VueCompCodeGen:
                 curr = to_raw(curr)
                 if has_changed(curr, _old_val):
                     setattr(widget, _widget_attr, curr)
-
-            # setattr(widget, widget_attr, _get_v_model_value())
-
-            # @watchEffect
-            # def update_vm_to_view(on_cleanup, _widget_attr=widget_attr, _attr_chain=attr_chain):
-            #     _old_val = getattr(widget, _widget_attr, Nil)
-            #     _new_val = ns.getattr(_attr_chain)
-            #     if has_changed(_old_val, _new_val):
-            #         setattr(widget, _widget_attr, to_raw(_new_val))
 
             # v-on, child to parent
             def listener(_vm, _obj, _attr):

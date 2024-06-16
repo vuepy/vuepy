@@ -64,16 +64,3 @@ class ScriptCompiler:
         _module = importlib.util.module_from_spec(_spec)
         _spec.loader.exec_module(_module)
         return getattr(_module, 'setup')
-
-    # @classmethod
-    # def compile(cls, sfc_file):
-    #     sfc_file = pathlib.Path(sfc_file)
-    #     script_src = get_script_src_from_sfc(sfc_file)
-    #     if script_src:
-    #         return cls.compile_script_src(sfc_file.parent, script_src)
-    #
-    #     script_block = get_script_py_block_content_from_sfc(sfc_file)
-    #     if not script_block:
-    #         return lambda *args: {}
-    #
-    #     return cls.compile_script_block(script_block, str(sfc_file.absolute()))
