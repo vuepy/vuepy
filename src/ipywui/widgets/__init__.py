@@ -417,18 +417,23 @@ class SelectionSlider(widgets.SelectionSlider, WidgetCssStyle):
 class Stack(widgets.Stack, WidgetCssStyle):
     def __init__(self, **kwargs):
         self.labels: List[str] = kwargs.pop('labels', [])
+        selected_label = kwargs.pop('label', self.labels[0])
+        kwargs['selected_index'] = self.calc_selected_index_by_label(selected_label)
         super().__init__(**kwargs)
 
     @property
     def selected_label(self):
-        return self.labels[self.selected_index]
+        return self.labels[self.selected_index or 0]
 
     @selected_label.setter
-    def selected_label(self, val):
+    def selected_label(self, label):
         try:
-            self.selected_index = self.labels.index(val)
-        except Exception:
-            pass
+            self.selected_index = self.calc_selected_index_by_label(label)
+        except Exception as e:
+            logger.error(f"Set Stack selected_label({label}) failed, {e}")
+
+    def calc_selected_index_by_label(self, label):
+        return self.labels.index(label)
 
 
 class Tab(widgets.Tab, WidgetCssStyle):
