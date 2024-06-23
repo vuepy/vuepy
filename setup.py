@@ -15,14 +15,14 @@ with open(os.path.join(HERE, "README.md")) as fid:
 
 # This call to setup() does all the work
 setup(
-    name="vuepy",
+    name="vue-py",
     version="0.1.0",
     description="Vue.py is a Python framework for building UI on Jupyter.",
     long_description=README,
     long_description_content_type="text/markdown",
-    url="https://github.com/vue-py/vuepy",
+    url="https://github.com/vuepy/vuepy",
     keywords=["vue", "Web UI", "MVVM"],
-    author="Vue.py",
+    author="vuepy.org",
     author_email="leilux.dev@gmail.com",
     license="MIT",
     classifiers=[

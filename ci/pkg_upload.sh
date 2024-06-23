@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-DIST_PATH=src/dist/*
+DIST_PATH=dist/*
 
 
 twine check $DIST_PATH

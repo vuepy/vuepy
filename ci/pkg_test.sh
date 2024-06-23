@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-pip remove url2io-client
+pip uninstall vue-py
 
 # test pypi package
-pip install url2io-client -i https://pypi.org/simple
+pip install vue-py -i https://pypi.org/simple
 
 # test local package
-pip install src/dist/url2io-client-*.tar.gz
+pip install src/dist/vue-py-*.tar.gz
