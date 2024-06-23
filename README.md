@@ -52,7 +52,7 @@ app = create_app({
 app.mount()
 ```
 
-
+![](https://github.com/vuepy/vuepy/blob/master/docs/assets/readme-demo.gif?raw=true)
 
 
 Read [the documentation](https://www.vuepy.org/guide/quick-start.html) to learn
