@@ -10,6 +10,6 @@ if [ x"$1" = x'pypi' ]; then
 else
     test_pypi="https://test.pypi.org/legacy/"
     echo "upload to $test_pypi"
-    twine upload --repository-url $test_pypi $DIST_PATH
+    twine upload --repository-url $test_pypi $DIST_PATH --verbose
 fi
 

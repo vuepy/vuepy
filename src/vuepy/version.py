@@ -7,7 +7,7 @@ except ImportError:
     )
 
 try:
-    VERSION = version("vue-py")
+    VERSION = version("org.vuepy.core")
 except PackageNotFoundError:
     VERSION = "uninstalled"
 
