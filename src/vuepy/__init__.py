@@ -19,6 +19,7 @@ from vuepy.reactivity.ref import unref
 from vuepy.reactivity.watch import watch
 from vuepy.reactivity.watch import watchEffect
 from vuepy.runtime.core.api_create_app import App
+from vuepy.runtime.core.api_create_app import VueOptions
 from vuepy.runtime.core.api_create_app import VuePlugin
 from vuepy.runtime.core.api_create_app import create_app
 from vuepy.runtime.core.api_lifecycle import onBeforeMount
@@ -37,6 +38,7 @@ __all__ = [
     'import_sfc',
     'VueComponent',
     'VuePlugin',
+    'VueOptions',
     'ref',
     'computed',
     'reactive',
