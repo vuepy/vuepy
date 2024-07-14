@@ -15,7 +15,7 @@
 		}
 		]]></style>
 	</defs>
-	<g transform="translate(120, 390) scale(1, 1)">
+	<g transform="translate(180, 170) scale(1, 1)">
 		<polygon points="0,0 400,0 200,200"  class="line"/>
 		<!-- | -->
 		<line x1="200" y1="0" x2="200" y2="200" class="line"/>

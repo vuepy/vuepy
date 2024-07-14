@@ -1,12 +1,14 @@
 <h1>
-  <p align="center">
-    <img src="https://github.com/vuepy/vuepy/blob/master/docs/assets/vuepy-logo.svg?raw=true" alt="vue.py logo." width="100">Vue.py
+  <p align="center" style="color: #16b8f3">
+    <!--<img src="./docs/assets/vuepy-logo.svg" -->
+    <img src="https://github.com/vuepy/vuepy/blob/master/docs/assets/vuepy-logo.svg?raw=true"
+         alt="vue.py logo." width="120" style="vertical-align: middle"
+    >Vue.py
   </p>
 </h1>
 <samp>
   <p align="center">
     <span>a progressive, incrementally-adoptable Python framework <br>for building UI on the IPython Notebook.</span>
-      <br>
       <br>
       <a href="#installation">installation</a> .
       <a href="https://www.vuepy.org/guide/introduction.html">docs</a> .
