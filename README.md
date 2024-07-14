@@ -1,6 +1,7 @@
 <h1>
-<p align="center">
-  Vue.py
+  <p align="center">
+    <img src="https://github.com/vuepy/vuepy/blob/master/docs/assets/vuepy-logo.svg?raw=true" alt="vue.py logo." width="100">Vue.py
+  </p>
 </h1>
 <samp>
   <p align="center">
@@ -13,7 +14,6 @@
       <a href="https://www.vuepy.org/guide/quick-start.html">learn</a>
   </p>
 </samp>
-</p>
 
 ## About
 
