@@ -1,8 +1,8 @@
 <h1>
   <p align="center" style="color: #16b8f3">
-    <img width="150" src="https://github.com/vuepy/vuepy/blob/master/docs/assets/vuepy-logo.svg?raw=true">
+    <img src="./docs/assets/vuepy-logo.svg" width="180">
     <!--
-    <img src="./docs/assets/vuepy-logo.svg" width="150">
+    <img width="180" src="https://github.com/vuepy/vuepy/blob/master/docs/assets/vuepy-logo.svg?raw=true">
     <img src="https://github.com/vuepy/vuepy/blob/master/docs/assets/vuepy-logo.svg?raw=true"
          alt="vue.py logo." width="120" style="vertical-align: middle"
     >Vue.py
