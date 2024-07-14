@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg"
     style="background-color: transparent;"
-     viewBox="0 0 600 600"
+     viewBox="0 0 900 400"
 >
 	<defs>
 		<style><![CDATA[
@@ -13,9 +13,13 @@
 			stroke-opacity: 1;
 			stroke-width: 12;
 		}
+		.logo-text {
+			fill: #16b8f3;
+			text-anchor: "middle";
+		}
 		]]></style>
 	</defs>
-	<g transform="translate(180, 170) scale(1, 1)">
+	<g transform="translate(15, 170) scale(1, 1)">
 		<polygon points="0,0 400,0 200,200"  class="line"/>
 		<!-- | -->
 		<line x1="200" y1="0" x2="200" y2="200" class="line"/>
@@ -28,4 +32,8 @@
 		<line x1="100" y1="0" x2="50" y2="50" class="line"/>
 		<line x1="150" y1="50" x2="100" y2="100" class="line"/>
 	</g>
+	<text x="410" y="330" class="logo-text"
+	      font-size="130"
+		  font-weight="bolder"
+	>Vue.py</text>
 </svg>
