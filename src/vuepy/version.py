@@ -6,15 +6,27 @@ except ImportError:
         version,
     )
 
+UNINSTALLED = "uninstalled"
+
 try:
     VERSION = version("org.vuepy.core")
 except PackageNotFoundError:
-    VERSION = "uninstalled"
+    VERSION = UNINSTALLED
 
 
-def get_semver_version(version: str) -> str:
-    split = version.split(".", maxsplit=2)
-    is_pre_release = "a" in split[2] or "b" in split[2]
+def get_semver_version(_version: str) -> str:
+    """
+    https://semver.org/
+
+    :param version:
+    :return:
+    """
+    if _version == UNINSTALLED:
+        return _version
+
+    split = _version.split(".", maxsplit=2)
+    patch = split[2] if len(split) == 3 else ''
+    is_pre_release = "a" in patch or "b" in patch
     if is_pre_release:
         return ".".join(split)
 

@@ -16,6 +16,7 @@ from vuepy import log
 from vuepy.compiler_core.ast import NodeAst
 from vuepy.compiler_core.ast import VueCompAst
 from vuepy.compiler_core.utils import VueCompNamespace
+from vuepy.compiler_dom.codegen import VueHtmlCompCodeGen
 from vuepy.reactivity.effect_scope import EffectScope
 from vuepy.reactivity.reactive import to_raw
 from vuepy.reactivity.ref import RefImpl
@@ -354,6 +355,7 @@ class VueCompCodeGen:
         slots = {'default': []}
         for child in children or []:
             slot_name = getattr(child, 'v_slot', 'default')
+            child = VueHtmlCompCodeGen.gen_from_fn(child) if callable(child) else child
             if slot_name == 'default':
                 slots[slot_name].append(child)
             else:

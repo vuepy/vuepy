@@ -16,7 +16,7 @@ with open(os.path.join(HERE, "README.md")) as fid:
 # This call to setup() does all the work
 setup(
     name="org.vuepy.core",
-    version="0.1.3",
+    version="0.1.4",
     description="Vue.py is a progressive, incrementally-adoptable Python framework for building UI on the IPython Notebook.",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -36,6 +36,7 @@ setup(
     install_requires=[
         "ipywidgets",
         "markdown",
+        "anywidget",
     ],
     entry_points={"console_scripts": ["vuepy=vuepy.__main__:main"]},
 )

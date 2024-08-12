@@ -270,9 +270,8 @@ class DisplayViewer(widgets.Output, WidgetCssStyle):
         self.render(obj)
 
     def render(self, obj):
-        with self:
-            clear_output()
-            display(obj)
+        self.clear_output()
+        self.append_display_data(obj)
 
     def __setattr__(self, key, value):
         if key == 'obj':
