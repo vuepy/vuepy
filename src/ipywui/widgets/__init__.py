@@ -10,6 +10,7 @@ from ipywui.widgets.custom.clipboard import ClipboardWidget
 from ipywui.widgets.custom.dialog import DialogWidget
 from ipywui.widgets.custom.message import Message
 from vuepy.log import getLogger
+from vuepy.utils.common import has_changed
 
 logger = getLogger()
 
@@ -267,6 +268,7 @@ class Dropdown(widgets.Dropdown, WidgetCssStyle):
 class DisplayViewer(widgets.Output, WidgetCssStyle):
     def __init__(self, obj='', **kwargs):
         super().__init__(**kwargs)
+        super().__setattr__('obj', obj)
         self.render(obj)
 
     def render(self, obj):
@@ -274,7 +276,7 @@ class DisplayViewer(widgets.Output, WidgetCssStyle):
         self.append_display_data(obj)
 
     def __setattr__(self, key, value):
-        if key == 'obj':
+        if key == 'obj' and has_changed(value, self.obj):
             self.render(value)
 
         super().__setattr__(key, value)

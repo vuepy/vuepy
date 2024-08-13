@@ -111,6 +111,19 @@ class DomCompiler(HTMLParser):
             for_processed = True
             self.v_for_stack.append(v_for_ast)
 
+            ns = VueCompNamespace(self.vm.to_ns(), self.vm.to_ns())
+            attr_chain = v_for_ast.iter
+
+            def __track_list_change():
+                # track list replacements
+                obj_iter = ns.getattr(attr_chain)
+                # track changes in the list itself, such as append, pop...
+                return id(obj_iter), [id(item) for item in obj_iter]
+
+            @watch(__track_list_change)
+            def __track_list_change_rerender(new, old, on_cleanup):
+                self.vm.render()
+
         if self.v_for_stack:
             nodes = v_for_stack_to_iter(
                 self.v_for_stack,
@@ -203,20 +216,6 @@ class DomCompiler(HTMLParser):
             elif _node.for_processed:
                 widget = VueHtmlCompCodeGen.gen_from_fn(widget) if callable(widget) else widget
                 _node.parent.add_child(widget)
-
-                # todo 加到v-for的解析处
-                ns = VueCompNamespace(self.vm.to_ns(), self.vm.to_ns())
-                attr_chain = _node.v_for.iter
-
-                def __track_list_change():
-                    # track list replacements
-                    obj_iter = ns.getattr(attr_chain)
-                    # track changes in the list itself, such as append, pop...
-                    return id(obj_iter), [id(item) for item in obj_iter]
-
-                @watch(__track_list_change)
-                def __track_list_change_rerender(new, old, on_cleanup):
-                    self.vm.render()
             # v-for in process
             else:
                 _node.parent.add_child(widget)
