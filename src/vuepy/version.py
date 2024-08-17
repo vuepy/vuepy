@@ -17,6 +17,7 @@ except PackageNotFoundError:
 def get_semver_version(_version: str) -> str:
     """
     https://semver.org/
+    1.0.0-alpha < 1.0.0-alpha.1 < 1.0.0-alpha.beta < 1.0.0-beta < 1.0.0-beta.2 < 1.0.0-beta.11 < 1.0.0-rc.1 < 1.0.0
 
     :param version:
     :return:

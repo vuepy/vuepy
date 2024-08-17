@@ -115,6 +115,7 @@ class Combobox(IPywidgetsComponent):
 
     PARAMS_STORE_TRUE = [
         ('disabled', False),
+        ("continuous_update", False),
     ]
 
     def _render(self, ctx, attrs, props, params, setup_returned):

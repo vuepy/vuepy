@@ -59,7 +59,7 @@ class WidgetCssStyle:
         :param css_style:
         :return: {'style': {...}, 'layout': {...}}
         """
-        attrs_str = (kv.strip().split(':') for kv in css_style.rstrip(';').split(';'))
+        attrs_str = (kv.strip().split(':') for kv in css_style.rstrip('; ').split(';'))
         attrs = ((k.strip().replace('-', '_'), v.strip()) for k, v in attrs_str)
         ret = {
             cls.WIDGET_STYLE_ATTR: {},

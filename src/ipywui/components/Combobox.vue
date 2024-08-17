@@ -22,6 +22,14 @@ export default {
       type: Array,
       default: () => []
     },
+    ensure_option: {
+      type: Boolean,
+      default: false,
+    },
+    continuous_update: {
+      type: Boolean,
+      default: false,
+    },
     disabled: {
       type: Boolean,
       default: false
