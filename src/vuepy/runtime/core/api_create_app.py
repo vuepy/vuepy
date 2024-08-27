@@ -29,7 +29,7 @@ class AppConfig:
     # warn_handler: WarningHandler
     # option_merge_strategies: dict[str, OptionMergeFunction] = {}
     globalProperties: Record = field(default_factory=Record)
-    compilerOptions: CompilerOptions = CompilerOptions()
+    compilerOptions: CompilerOptions = field(default_factory=CompilerOptions)
     performance: bool = False
 
 
