@@ -3,8 +3,6 @@ from typing import List
 
 import ipywidgets as widgets
 import markdown
-from IPython.core.display_functions import clear_output
-from IPython.core.display_functions import display
 
 from ipywui.widgets.custom.clipboard import ClipboardWidget
 from ipywui.widgets.custom.dialog import DialogWidget

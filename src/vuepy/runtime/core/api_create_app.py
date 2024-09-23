@@ -8,8 +8,8 @@ from typing import Type
 from typing import Union
 
 import ipywidgets as widgets
-from IPython.core.display_functions import clear_output
-from IPython.core.display_functions import display
+from IPython.display import clear_output
+from IPython.display import display
 
 from vuepy import log
 from vuepy.compiler_core.options import CompilerOptions
@@ -116,10 +116,11 @@ class App:
         # self.dom = self.options.render({}, self._props, self._data)
         self.dom = self.root_component.render()
         # with self.options.el:
-        with self._container:
-            clear_output(True)
-            display(self.dom)
+        # with self._container:
+        #     clear_output(True)
+        #     display(self.dom)
         logger.info('App render end.')
+        return self.dom
 
     def component(self, name: str, comp: 'VueComponent' = None) -> App:
         """
@@ -168,8 +169,13 @@ class App:
         # self._call_if_callable(self.options.before_mount)
         self.render()
         # self._call_if_callable(self.options.mounted)
-        self.document.body.appendChild(self._container)
-        return self.document
+
+        self.document.body.appendChild(self.dom)
+        with self._container:
+            clear_output(True)
+            display(self.document)
+
+        return self._container
 
 
 class VuePlugin:

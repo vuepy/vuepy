@@ -1,7 +1,7 @@
 import logging
 
 import ipywidgets as widgets
-from IPython.core.display_functions import display
+from IPython.display import display
 
 from vuepy.reactivity import config
 
@@ -49,6 +49,7 @@ def init():
     logger = getLogger(LOGGER_NAME)
     logger.addHandler(handler)
     logger.setLevel(config.LOG_LEVEL)
+    logger.propagate = False
 
 
 init()
