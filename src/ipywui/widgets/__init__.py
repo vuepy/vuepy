@@ -13,6 +13,66 @@ from vuepy.utils.common import has_changed
 logger = getLogger()
 
 
+class WidgetNotSupported:
+    def __init__(self, *args, **kwargs):
+        raise NotImplementedError(f"widget {self.__class__.__name__} not supported")
+
+
+try:
+    from ipywidgets import Password as _Password
+except Exception as e:
+    logger.warn("ipywidgets.Password import failed, fallback to Text.")
+    _Password = widgets.Text
+
+try:
+    from ipywidgets import TimePicker as _TimePicker
+except Exception as e:
+    logger.warn(f"ipywidgets.TimePicker import failed, fallback to {WidgetNotSupported.__name__}.")
+
+    class _TimePicker(WidgetNotSupported):
+        pass
+
+try:
+    from ipywidgets import DatetimePicker as _DatetimePicker
+except Exception as e:
+    logger.warn(f"ipywidgets.DatetimePicker import failed, fallback to {WidgetNotSupported.__name__}.")
+
+    class _DatetimePicker(WidgetNotSupported):
+        pass
+
+try:
+    from ipywidgets import TagsInput as _TagsInput
+except Exception as e:
+    logger.warn(f"ipywidgets.TagsInput import failed, fallback to {WidgetNotSupported.__name__}.")
+
+    class _TagsInput(WidgetNotSupported):
+        pass
+
+try:
+    from ipywidgets import FloatsInput as _FloatsInput
+except Exception as e:
+    logger.warn(f"ipywidgets.FloatsInput import failed, fallback to {WidgetNotSupported.__name__}.")
+
+    class _FloatsInput(WidgetNotSupported):
+        pass
+
+try:
+    from ipywidgets import IntsInput as _IntsInput
+except Exception as e:
+    logger.warn(f"ipywidgets.IntsInput import failed, fallback to {WidgetNotSupported.__name__}.")
+
+    class _IntsInput(WidgetNotSupported):
+        pass
+
+try:
+    from ipywidgets import ColorsInput as _ColorsInput
+except Exception as e:
+    logger.warn(f"ipywidgets.ColorsInput import failed, fallback to {WidgetNotSupported.__name__}.")
+
+    class _ColorsInput(WidgetNotSupported):
+        pass
+
+
 class WidgetCssStyle:
     WIDGET_STYLE_ATTR = 'style'
     WIDGET_LAYOUT_ATTR = 'layout'
@@ -198,7 +258,7 @@ class ColorPicker(widgets.ColorPicker, WidgetCssStyle):
         self.description = val
 
 
-class ColorsInput(widgets.ColorsInput, WidgetCssStyle):
+class ColorsInput(_ColorsInput, WidgetCssStyle):
     def __init__(self, **kwargs):
         kwargs['allow_duplicates'] = not kwargs.pop("unique", not kwargs.pop('allow_duplicates', True))
         super().__init__(**kwargs)
@@ -244,7 +304,7 @@ class DatePicker(widgets.DatePicker, WidgetCssStyle):
         self.description = val
 
 
-class DateTimePicker(widgets.DatetimePicker, WidgetCssStyle):
+class DateTimePicker(_DatetimePicker, WidgetCssStyle):
     def __init__(self, **kwargs):
         kwargs['description'] = kwargs.pop("label", kwargs.pop('description', ''))
         super().__init__(**kwargs)
@@ -280,7 +340,7 @@ class DisplayViewer(widgets.Output, WidgetCssStyle):
         super().__setattr__(key, value)
 
 
-class FloatsInput(widgets.FloatsInput, WidgetCssStyle):
+class FloatsInput(_FloatsInput, WidgetCssStyle):
     def __init__(self, **kwargs):
         kwargs['tag_style'] = kwargs.pop("type", kwargs.pop('tag_style', ''))
         super().__init__(**kwargs)
@@ -359,13 +419,13 @@ class IntRangeSlider(widgets.IntRangeSlider, WidgetCssStyle):
     pass
 
 
-class IntsInput(widgets.IntsInput, WidgetCssStyle):
+class IntsInput(_IntsInput, WidgetCssStyle):
     def __init__(self, **kwargs):
         kwargs['tag_style'] = kwargs.pop("type", kwargs.pop('tag_style', ''))
         super().__init__(**kwargs)
 
 
-class Password(widgets.Password, WidgetCssStyle):
+class Password(_Password, WidgetCssStyle):
     def __init__(self, **kwargs):
         kwargs['description'] = kwargs.pop("label", kwargs.pop('description', ''))
         super().__init__(**kwargs)
@@ -439,7 +499,7 @@ class Tab(widgets.Tab, WidgetCssStyle):
     pass
 
 
-class TagsInput(widgets.TagsInput, WidgetCssStyle):
+class TagsInput(_TagsInput, WidgetCssStyle):
     def __init__(self, **kwargs):
         kwargs['allow_duplicates'] = not kwargs.pop("unique", not kwargs.pop('allow_duplicates', True))
         super().__init__(**kwargs)
@@ -481,7 +541,7 @@ class Textarea(widgets.Textarea, WidgetCssStyle):
         self.description = val
 
 
-class TimePicker(widgets.TimePicker, WidgetCssStyle):
+class TimePicker(_TimePicker, WidgetCssStyle):
     def __init__(self, **kwargs):
         kwargs['description'] = kwargs.pop("label", kwargs.pop('description', ''))
         super().__init__(**kwargs)

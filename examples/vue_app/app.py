@@ -3,8 +3,8 @@ import time
 from pprint import pprint
 import enum
 import pandas as pd
-from IPython.core.display_functions import clear_output
-from IPython.core.display_functions import display
+from IPython.display import clear_output
+from IPython.display import display
 
 from vuepy import reactive
 from vuepy import ref
