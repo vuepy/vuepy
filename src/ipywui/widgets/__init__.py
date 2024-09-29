@@ -72,6 +72,15 @@ except Exception as e:
     class _ColorsInput(WidgetNotSupported):
         pass
 
+try:
+    from ipywidgets import Stack as _Stack
+except Exception as e:
+    logger.warn(f"ipywidgets.Stack import failed, fallback to {WidgetNotSupported.__name__}.")
+
+
+    class _Stack(WidgetNotSupported):
+        pass
+
 
 class WidgetCssStyle:
     WIDGET_STYLE_ATTR = 'style'
@@ -473,7 +482,7 @@ class SelectionSlider(widgets.SelectionSlider, WidgetCssStyle):
     pass
 
 
-class Stack(widgets.Stack, WidgetCssStyle):
+class Stack(_Stack, WidgetCssStyle):
     def __init__(self, **kwargs):
         self.labels: List[str] = kwargs.pop('labels', [])
         selected_label = kwargs.pop('label', self.labels[0])
