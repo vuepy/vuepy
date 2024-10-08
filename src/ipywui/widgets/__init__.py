@@ -77,7 +77,6 @@ try:
 except Exception as e:
     logger.warn(f"ipywidgets.Stack import failed, fallback to {WidgetNotSupported.__name__}.")
 
-
     class _Stack(WidgetNotSupported):
         pass
 
