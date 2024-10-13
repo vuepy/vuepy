@@ -12,7 +12,7 @@ import numpy as np
 from IPython.display import Video
 from IPython.display import Audio
 
-video_src = "https://llava-vl.github.io/blog/assets/videos/sora/xU25MMA2N4aVtYay.mp4"
+video_src = "https://github.com/vuepy/vuepy/raw/refs/heads/master/examples/ipywui/display/sora.mp4"
 video = Video(video_src, width=350)
 
 # gen sound
