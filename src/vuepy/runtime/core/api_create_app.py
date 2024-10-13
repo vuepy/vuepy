@@ -175,7 +175,7 @@ class App:
             clear_output(True)
             display(self.document)
 
-        return self._container
+        return self.document
 
 
 class VuePlugin:
