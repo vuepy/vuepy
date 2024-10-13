@@ -1,8 +1,21 @@
+import base64
 import pathlib
 from typing import List
 
+from IPython import InteractiveShell
+
+from vuepy.utils.image_processer import convert_pil_image_to_bin
+
+try:
+    from PIL.ImageFile import ImageFile as PILImageFile
+    from PIL.Image import Image as PILImage
+    PIL_IMAGE_TYPES = (PILImageFile, PILImage)
+except Exception as e:
+    PIL_IMAGE_TYPES = tuple()
+
 import ipywidgets as widgets
 import markdown
+from IPython.display import display
 
 from ipywui.widgets.custom.clipboard import ClipboardWidget
 from ipywui.widgets.custom.dialog import DialogWidget
@@ -333,19 +346,53 @@ class Dropdown(widgets.Dropdown, WidgetCssStyle):
 
 class DisplayViewer(widgets.Output, WidgetCssStyle):
     def __init__(self, obj='', **kwargs):
+        self.multi_thread = kwargs.pop('multi_thread', False)
         super().__init__(**kwargs)
-        super().__setattr__('obj', obj)
-        self.render(obj)
-
-    def render(self, obj):
-        self.clear_output()
-        self.append_display_data(obj)
+        self.obj = obj
 
     def __setattr__(self, key, value):
-        if key == 'obj' and has_changed(value, self.obj):
+        if key == 'obj' and has_changed(value, getattr(self, 'obj', None)):
             self.render(value)
 
         super().__setattr__(key, value)
+
+    def render(self, obj):
+        if not self.multi_thread:
+            self.clear_output()
+            with self:
+                display(obj)
+        else:
+            self.outputs = tuple()
+            self.append_display_data(obj)
+
+    def _fix_data(self, data, metadata):
+        mime_images = ['image/png', 'image/jpeg']
+        for mime_image in mime_images:
+            if mime_image in data and isinstance(data[mime_image], bytes):
+                data[mime_image] = base64.b64encode(data[mime_image]).decode('ascii')
+                break
+
+    def append_display_data(self, display_object):
+        """Append a display object as an output.
+
+        Parameters
+        ----------
+        display_object : IPython.core.display.DisplayObject
+            The object to display (e.g., an instance of
+            `IPython.display.Markdown` or `IPython.display.Image`).
+        """
+        fmt = InteractiveShell.instance().display_formatter.format
+        data, metadata = fmt(display_object)
+
+        self._fix_data(data, metadata)
+
+        self.outputs += (
+            {
+                'output_type': 'display_data',
+                'data': data,
+                'metadata': metadata
+            },
+        )
 
 
 class FloatsInput(_FloatsInput, WidgetCssStyle):
@@ -412,7 +459,21 @@ class HTMLMath(widgets.HTMLMath, WidgetCssStyle):
 
 
 class Image(widgets.Image, WidgetCssStyle):
-    pass
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    @staticmethod
+    def _convert_to_bin_img(data):
+        if isinstance(data, PIL_IMAGE_TYPES):
+            return convert_pil_image_to_bin(data)
+        else:
+            return data
+
+    def __setattr__(self, key, value):
+        if key == 'value':
+            value = self._convert_to_bin_img(value)
+
+        super().__setattr__(key, value)
 
 
 class IntText(widgets.IntText, WidgetCssStyle):

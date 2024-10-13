@@ -200,6 +200,10 @@ class Dialog(IPywidgetsComponent):
 
 @wui.register()
 class Display(IPywidgetsComponent):
+    PARAMS_STORE_TRUE = [
+        ("multi_thread", False),
+    ]
+
     def render(self, ctx, props, setup_returned):
         attrs = ctx.get('attrs', {})
         obj = props.pop('obj', '-')

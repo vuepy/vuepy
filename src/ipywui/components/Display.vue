@@ -7,6 +7,10 @@ export default {
   name: "Display",
   props: {
     obj: Object,
+    multi_thread: {
+      type: Boolean,
+      default: false,
+    },
   }
 }
 </script>
