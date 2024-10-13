@@ -251,26 +251,31 @@ class ListProxy(ReactiveProxy):
         super().__setattr__(ReactiveProxy.ATTR_SHALLOW, shallow)
 
     def __getitem__(self, index):
+        """
+        :param index: int, slice
+        :return: ReactiveProxy or Any
+        """
         target = self._vp_target_
-        index = index if index >= 0 else len(target) + index
         res = target[index]
         track(self._vp_track_target_, TrackOpTypes.ITER, index, "list.__getitem__")
         return toReactive(res)
 
     def __setitem__(self, index, value):
         target = self._vp_target_
-        old_value = target[index] if index < len(target) else Nil
+        old_value = target[index]
+
+        if not has_changed(value, old_value):
+            return
 
         target[index] = value
-        if has_changed(value, old_value):
-            trigger(self._vp_track_target_, TriggerOpTypes.SET, index, value, old_value,
-                    msg="__setitem__ by set")
-            targetMap.delete(old_value)
-            reactiveMap.delete(old_value)
+        trigger(self._vp_track_target_, TriggerOpTypes.SET, index, value, old_value,
+                msg="__setitem__ by set")
+        targetMap.delete(old_value)
+        reactiveMap.delete(old_value)
 
     def __delitem__(self, index):
         target = self._vp_target_
-        old_value = target[index] if index < len(target) else Nil
+        old_value = target[index]
         if old_value is Nil:
             return
         del target[index]

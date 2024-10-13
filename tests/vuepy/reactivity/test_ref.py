@@ -1,6 +1,6 @@
+from copy import deepcopy
 from unittest import TestCase
 
-from vuepy import WatchOptions
 from vuepy.reactivity.computed import computed
 from vuepy.reactivity.effect import IgnoreTracking
 from vuepy.reactivity.effect import ReactiveEffectOptions
@@ -11,6 +11,7 @@ from vuepy.reactivity.reactive import reactiveMap
 from vuepy.reactivity.ref import ref
 from vuepy.reactivity.ref import shallowRef
 from vuepy.reactivity.ref import triggerRef
+from vuepy.reactivity.watch import WatchOptions
 from vuepy.reactivity.watch import watch
 from vuepy.reactivity.watch import watchEffect
 
@@ -297,10 +298,11 @@ class TestReactive(BaseTestCase):
         self.assertEqual(dummy, value)
 
     def test_reactive_list_should_reactive_when_item_dict(self):
-        a = reactive([
+        gt = [
             {'l1': 10},
             {'l2': 100},
-        ])
+        ]
+        a = reactive(deepcopy(gt))
         dummy = 0
         calls = 0
 
@@ -313,20 +315,28 @@ class TestReactive(BaseTestCase):
         self.assertEqual(calls, 1)
         self.assertEqual(dummy, 10)
 
+        gt[0]['l1'] = 20
         a[0].l1 = 20
+        self.assertListEqual(a._vp_target_, gt)
         self.assertEqual(calls, 2)
         self.assertEqual(dummy, 20)
+
         # same value should not trigger
+        gt[0]['l1'] = 20
         a[0].l1 = 20
+        self.assertListEqual(a._vp_target_, gt)
         self.assertEqual(calls, 2)
         self.assertEqual(dummy, 20)
 
+        gt[1]['l2'] = 3
         a[1].l2 = 3
+        self.assertListEqual(a._vp_target_, gt)
         self.assertEqual(calls, 2)
         self.assertEqual(dummy, 20)
 
-    def test_reactive_list_should_reactive_when_set(self):
-        a = reactive([1, 2])
+    def test_reactive_list_should_reactive_when_setitem(self):
+        gt = [1, 2, 3, 4]
+        a = reactive([*gt])
         dummy = 0
         calls = 0
 
@@ -340,19 +350,35 @@ class TestReactive(BaseTestCase):
         self.assertEqual(dummy, 1)
 
         a[0] = 2
-        self.assertEqual(calls, 2)
-        self.assertEqual(dummy, 2)
-        # same value should not trigger
-        a[0] = 2
+        gt[0] = 2
+        self.assertListEqual(a._vp_target_, gt)
         self.assertEqual(calls, 2)
         self.assertEqual(dummy, 2)
 
-        a[1] = 3
+        # same value should not trigger
+        a[0] = 2
+        gt[0] = 2
+        self.assertListEqual(a._vp_target_, gt)
+        self.assertEqual(calls, 2)
+        self.assertEqual(dummy, 2)
+
+        # negative index
+        a[-1] = 3
+        gt[-1] = 3
+        self.assertListEqual(a._vp_target_, gt)
         self.assertEqual(calls, 3)
         self.assertEqual(dummy, 2)
 
+        # slice index
+        a[1:3] = [0, 1]
+        gt[1:3] = [0, 1]
+        self.assertListEqual(a._vp_target_, gt)
+        self.assertEqual(calls, 4)
+        self.assertEqual(dummy, 2)
+
     def test_reactive_list_should_reactive_when_append(self):
-        a = reactive([1])
+        gt = [2, 1]
+        a = reactive(deepcopy(gt))
         dummy = 0
         calls = 0
 
@@ -365,9 +391,34 @@ class TestReactive(BaseTestCase):
         self.assertEqual(calls, 1)
         self.assertEqual(dummy, 1)
 
+        gt.append(2)
         a.append(2)
+        self.assertListEqual(a._vp_target_, gt)
         self.assertEqual(calls, 2)
         self.assertEqual(dummy, 2)
+
+    def test_reactive_list_should_reactive_when_slice_index(self):
+        gt = [1, 2, 3, 4]
+        a = reactive(deepcopy(gt))
+        dummy = 0
+        calls = 0
+        index = slice(1, 1+2)
+
+        @effect(self.reactive_effect_options)
+        def f():
+            nonlocal dummy, calls
+            calls += 1
+            # slice index
+            dummy = a[index]
+
+        self.assertEqual(calls, 1)
+        self.assertListEqual(list(dummy), gt[index])
+
+        gt.append(2)
+        a.append(2)
+        self.assertListEqual(a._vp_target_, gt)
+        self.assertEqual(calls, 2)
+        self.assertListEqual(list(dummy), gt[index])
 
 
 class TestComputed(BaseTestCase):
