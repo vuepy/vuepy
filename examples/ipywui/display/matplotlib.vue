@@ -3,7 +3,7 @@
     <Display :obj="plt1.value"></Display>
     <Display :obj="plt2.value"></Display>
   </HBox>
-  <Display :obj="plt3.value"></Display>
+  <Display :obj="plt3.value" multi_thread></Display>
 </template>
 
 <script src="./matplotlib_setup.py"></script>

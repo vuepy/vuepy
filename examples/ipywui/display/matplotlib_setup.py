@@ -5,6 +5,9 @@ from vuepy import ref
 
 
 def plt_to_img(title, xlabel, ylabel):
+    """
+    plt to matplotlib.figure.Figure
+    """
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.title(title)
