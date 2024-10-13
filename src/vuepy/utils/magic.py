@@ -3,6 +3,7 @@ import json
 import logging
 from pathlib import Path
 
+import IPython
 from IPython.core.magic import register_line_magic
 
 from ipywui import wui
@@ -10,6 +11,14 @@ from vuepy import log
 from vuepy.compiler_sfc.compile import SFCFile
 from vuepy.runtime.core.api_create_app import create_app
 from vuepy.runtime.core.import_sfc import import_sfc
+
+
+def get_curr_ipynb_dir():
+    ipy = IPython.get_ipython()
+    if '__vsc_ipynb_file__' in ipy.user_ns:
+        return Path(ipy.user_ns['__vsc_ipynb_file__']).parent
+    else:
+        return Path().absolute()
 
 
 class LogLevelScope:
@@ -53,6 +62,12 @@ def vuepy_demo(vue_sfc):
     :param vue_sfc:
     :return:
     """
+    args = vue_sfc.strip().split()
+    if len(args) == 2:
+        vue_sfc, return_app = args
+    else:
+        return_app = 'no'
+
     sfc_file_path = Path(vue_sfc.strip())
     sfc_file = SFCFile.load(sfc_file_path)
 
@@ -72,7 +87,10 @@ def vuepy_demo(vue_sfc):
     with LogLevelScope(log.getLogger()):
         App = import_sfc(sfc_file_path)
         app = create_app(App).use(wui)
-        return app.mount()
+        if return_app != 'no':
+            return app
+        else:
+            return app.mount()
 
 
 @register_line_magic
