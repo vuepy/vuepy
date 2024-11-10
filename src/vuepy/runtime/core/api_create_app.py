@@ -54,7 +54,6 @@ class App:
 
         self._installed_plugins = []
         self._props: dict = {}
-        self._container = None
         self._context: AppContext = AppContext(self, self.config, {}, {})
         self._instance: VueComponent = None
 
@@ -165,15 +164,11 @@ class App:
         return self
 
     def mount(self, el=None):
-        self._container = el or widgets.Output()
         # self._call_if_callable(self.options.before_mount)
         self.render()
         # self._call_if_callable(self.options.mounted)
 
         self.document.body.appendChild(self.dom)
-        with self._container:
-            clear_output(True)
-            display(self.document)
 
         return self.document
 
