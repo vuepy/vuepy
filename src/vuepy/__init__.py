@@ -1,4 +1,7 @@
 # coding: utf-8
+# ---------------------------------------------------------
+# Copyright (c) vuepy.org. All rights reserved.
+# ---------------------------------------------------------
 from vuepy.compiler_sfc.codegen import VueComponent
 from vuepy.reactivity.computed import computed
 from vuepy.reactivity.effect_scope import effectScope

@@ -1,3 +1,6 @@
+# ---------------------------------------------------------
+# Copyright (c) vuepy.org. All rights reserved.
+# ---------------------------------------------------------
 from __future__ import annotations
 
 import functools

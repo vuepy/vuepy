@@ -1,4 +1,7 @@
 #!coding: utf-8
+# ---------------------------------------------------------
+# Copyright (c) vuepy.org. All rights reserved.
+# ---------------------------------------------------------
 import ipywui
 from ipywui.core import IPywidgetsComponent
 from ipywui.core import is_float

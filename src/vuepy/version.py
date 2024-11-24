@@ -1,3 +1,6 @@
+# ---------------------------------------------------------
+# Copyright (c) vuepy.org. All rights reserved.
+# ---------------------------------------------------------
 try:
     from importlib.metadata import PackageNotFoundError, version
 except ImportError:

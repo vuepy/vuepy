@@ -1,3 +1,6 @@
+# ---------------------------------------------------------
+# Copyright (c) vuepy.org. All rights reserved.
+# ---------------------------------------------------------
 from typing import List
 from typing import Tuple
 

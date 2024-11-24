@@ -1,4 +1,7 @@
 # coding: utf-8
+# ---------------------------------------------------------
+# Copyright (c) vuepy.org. All rights reserved.
+# ---------------------------------------------------------
 
 class FactoryMeta(type):
     def __init__(cls, name, bases, attrs):

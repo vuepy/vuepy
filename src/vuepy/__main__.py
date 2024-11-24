@@ -1,4 +1,7 @@
 # coding: utf-8
+# ---------------------------------------------------------
+# Copyright (c) vuepy.org. All rights reserved.
+# ---------------------------------------------------------
 import argparse
 
 from vuepy.cli.create_vue import add_arg_parser

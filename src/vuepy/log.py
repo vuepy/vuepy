@@ -1,3 +1,6 @@
+# ---------------------------------------------------------
+# Copyright (c) vuepy.org. All rights reserved.
+# ---------------------------------------------------------
 import logging
 
 import ipywidgets as widgets
