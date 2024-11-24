@@ -11,7 +11,7 @@
 </h1>
 <samp>
   <p align="center">
-    <span>a progressive, incrementally-adoptable Python framework <br>for building UI on the IPython Notebook.</span>
+    <span>a progressive, incrementally-adoptable Python framework <br>for building UI on the Jupyter Notebook.</span>
       <br>
       <a href="#installation">installation</a> .
       <a href="https://www.vuepy.org/guide/introduction.html">docs</a> .
