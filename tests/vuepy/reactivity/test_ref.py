@@ -663,8 +663,25 @@ class TestWatch(BaseTestCase):
             self.assertTrue(new_val is old_val)
 
     def test_watch_should_reactive_when_src_is_list(self):
-        # todo
-        pass
+        a_ref = ref(1)
+        b_ref = ref(2)
+        curr = [a_ref.value, b_ref.value]
+        watch_call = 0
+
+        @watch([a_ref, b_ref])
+        def handle(_curr, _, __):
+            nonlocal watch_call, curr
+            watch_call += 1
+            curr = _curr
+
+        self.assertEqual((watch_call, curr), (0, [1, 2]))
+
+        a_ref.value = 2
+        self.assertEqual((watch_call, curr), (1, [2, 2]))
+        b_ref.value = 3
+        self.assertEqual((watch_call, curr), (2, [2, 3]))
+        a_ref.value = 2
+        self.assertEqual((watch_call, curr), (2, [2, 3]))
 
     def test_watch_should_reactive_when_src_is_reactive(self):
         state = reactive({
