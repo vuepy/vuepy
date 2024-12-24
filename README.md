@@ -59,9 +59,16 @@ app.mount()
 
 ![](https://github.com/vuepy/vuepy/blob/master/docs/assets/readme-demo.gif?raw=true)
 
+Read [the documentation](https://www.vuepy.org/guide/quick-start.html) to learn more.
 
-Read [the documentation](https://www.vuepy.org/guide/quick-start.html) to learn
+## Examples
+
+### Interacting with plotly
+
+Read [the documentation](https://www.vuepy.org/ipywui/display.html#%E9%9B%86%E6%88%90-plotly-%E7%BB%98%E5%9B%BE%E7%BB%84%E4%BB%B6) to learn
 more.
+![](https://github.com/vuepy/vuepy/blob/master/docs/assets/plotly.gif?raw=true)
+
 
 ## Support
 
