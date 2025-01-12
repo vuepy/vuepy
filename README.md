@@ -24,6 +24,15 @@
 
 Vue.py (pronounced /vjuːpaɪ/, like "view py") is a Python framework for building user interfaces. It is built upon standard HTML, CSS, and Python, offering a declarative and component-based programming model that aids in the efficient development of user interfaces. Vue.py is capable of handling both simple and complex interfaces.
 
+* 🛠️ create custom Jupyter UI using pure Python
+* 🤖 prototype within .ipynb or .py files
+* 🪄 reactive: update the data, vuepy will reactively update all dependent view components
+* 🚀 batteries-included: built-in IPywUI includes 37+ commonly used UI components
+* 🧩 extensible: can easily integrate third-party libraries such as plotly, pandas, etc
+* 🖐️ interactive: bind sliders, buttons, plots, and more to Python — no callbacks required
+* 🚀 run in Jupyter, JupyterLab, VSCode, Google Colab and more
+<!--* ✨ generate UI interface with one click through AI-driven conversation interface-->
+
 ## Installation
 
 **Vue.py** is available on [PyPI](https://pypi.org/project/org.vuepy.core/):
@@ -61,13 +70,32 @@ app.mount()
 
 Read [the documentation](https://www.vuepy.org/guide/quick-start.html) to learn more.
 
-## Examples
+## Learn more
 
-### Interacting with plotly
+vuepy is easy to get started with, with lots of room for powers users.
 
-Read [the documentation](https://www.vuepy.org/ipywui/display.html#%E9%9B%86%E6%88%90-plotly-%E7%BB%98%E5%9B%BE%E7%BB%84%E4%BB%B6) to learn
-more.
-![](https://github.com/vuepy/vuepy/blob/master/docs/assets/plotly.gif?raw=true)
+Check out our [docs](https://www.vuepy.org/guide/introduction.html), the `examples/` folder, and our gallery to learn more.
+
+<table>
+  <tr>
+    <th></th> <th>Desc</th> <th>Link</th>
+  </tr>
+  <tr>
+    <td><img src="https://github.com/vuepy/vuepy/blob/master/docs/assets/readme-demo.gif?raw=true" with='389px'></td>
+    <td>Reactivity</td>
+    <td><a target="_blank" href="https://www.vuepy.org/guide/essentials/reactivity-fundamentals.html">Read more</a> </td>
+  </tr>
+  <tr>
+    <td><img src='https://github.com/vuepy/vuepy/blob/master/docs/assets/plotly.gif?raw=true' with='389px'></td>
+    <td>Interacting with <a target="_blank" href="https://plotly.com/python/">plotly</a></td>
+    <td><a target="_blank" href="https://www.vuepy.org/ipywui/display.html#%E9%9B%86%E6%88%90-plotly-%E7%BB%98%E5%9B%BE%E7%BB%84%E4%BB%B6">Read more</a> </td>
+  </tr>
+  <tr>
+    <td><img src='https://github.com/vuepy/vuepy/blob/master/docs/assets/run-in-vscode.gif?raw=true' with='389px'></td>
+    <td>Run in VSCode</td>
+    <td><a target="_blank" href="https://www.vuepy.org">Read more</a> </td>
+  </tr>
+</table>
 
 
 ## Support
@@ -83,6 +111,48 @@ a [Discussion](https://github.com/vuepy/vuepy/issues/new).
 
 Join us on [Discord](https://discord.gg/) to meet other maintainers.
 We'll help you get your first contribution in no time!
+-->
+
+<!--
+## Citation
+
+If you use **vuepy** in your work, please consider citing the following
+publications:
+
+Our [JOSS paper](https://joss.theoj.org/papers/10.21105/joss.06939) describing
+the overall project and vision:
+
+```bibtex
+@article{manz2024anywidget,
+  title = {anywidget: reusable widgets for interactive analysis and visualization in computational notebooks},
+  volume = {9},
+  url = {https://doi.org/10.21105/joss.06939},
+  doi = {10.21105/joss.06939},
+  number = {102},
+  journal = {Journal of Open Source Software},
+  author = {Manz, Trevor and Abdennur, Nezar and Gehlenborg, Nils},
+  year = {2024},
+  note = {Publisher: The Open Journal},
+  pages = {6939},
+}
+```
+
+Our [SciPy paper](https://proceedings.scipy.org/articles/NRPV2311), detailing
+the motivation and approach behind Jupyter Widget ecosystem compatability:
+
+```bibtex
+@inproceedings{manz2024notebooks,
+  title = {Any notebook served: authoring and sharing reusable interactive widgets},
+  copyright = {https://creativecommons.org/licenses/by/4.0/},
+  url = {https://doi.curvenote.com/10.25080/NRPV2311},
+  doi = {10.25080/NRPV2311},
+  urldate = {2024-10-07},
+  booktitle = {Proceedings of the 23rd {Python} in {Science} {Conference}},
+  author = {Manz, Trevor and Gehlenborg, Nils and Abdennur, Nezar},
+  month = jul,
+  year = {2024},
+}
+```
 -->
 
 ## License
