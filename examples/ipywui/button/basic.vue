@@ -1,6 +1,6 @@
 <template>
   <HBox>
-    <Button label="Default"></Button>
+    <Button label="Default" @click="on_click()"></Button>
     <Button label="Info" type="info"></Button>
     <Button label="Success" type="success"></Button>
     <Button label="Warning" type="warning"></Button>
