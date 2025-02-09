@@ -37,7 +37,7 @@ class SFCFile:
         with open(sfc_file) as f:
             raw_content = f.read()
 
-        content = re.sub(r'<!--(.*?)-->', '\n', raw_content, re.S)
+        content = re.sub(r'<!--([\s\S]*?)-->', '\n', raw_content, re.S)
         instance = cls(
             file=sfc_file,
             content=raw_content,
