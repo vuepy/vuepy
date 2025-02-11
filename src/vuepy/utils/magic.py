@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 
 import IPython
+from IPython.core.magic import register_line_cell_magic
 from IPython.core.magic import register_line_magic
 
 from ipywui import wui
@@ -34,10 +35,12 @@ class LogLevelScope:
         self.logger.setLevel(self.org_level)
 
 
-@register_line_magic
-def vuepy_import(vue_sfc):
+@register_line_cell_magic
+def vuepy_import(vue_sfc, cell=''):
     """
-    import vue sfc file
+    import Component from sfc_file or raw_content of sfc
+
+    usage:
 
     ```python
     from vuepy import create_app
@@ -48,10 +51,27 @@ def vuepy_import(vue_sfc):
     app.mount()
     ```
 
+    usage:
+    ```
+    %%vuepy_import Component1
+    <template>
+      <Button description="add"
+              button_style="info"
+      ></Button>
+    </template>
+    ```
+
     :param vue_sfc:
+    :param cell:
     :return: App
     """
-    return import_sfc(vue_sfc)
+    if cell:
+        component_var_name = vue_sfc.strip()
+        ipython = IPython.get_ipython()
+        ipython.user_ns[component_var_name] = import_sfc(cell, raw_content=True)
+        print(f"import Component {component_var_name} success.")
+    else:
+        return import_sfc(vue_sfc)
 
 
 @register_line_magic
@@ -104,3 +124,62 @@ def vuepy_log(cmd):
     if cmd == 'clear':
         log.logout.clear_output()
     return log.logout
+
+
+@register_line_cell_magic
+def vuepy_run(vue_file, cell=''):
+    """
+    run Vue app from vue_file or raw_content of vue file or Component
+
+    usage:
+    cell magic: from raw_content of vue file
+    ```
+    ------------------
+    %%vuepy_run
+    <template>
+      <Button description="add"
+              button_style="info"
+      ></Button>
+    </template>
+    ------------------
+    ```
+
+    line magic: from vue_file
+    ```
+    ------------------
+    %vuepy_run app.vue
+    ------------------
+    ```
+
+    line magic: from Component
+    ```
+    ------------------
+    %%vuepy_import Component1
+    <template>
+      <Button description="add"
+              button_style="info"
+      ></Button>
+    </template>
+
+    ------------------
+    %vuepy_run $$Component1
+
+    ------------------
+    ```
+
+    :param vue_file: vue_file | Component
+    :param cell: raw_content of vue file | None
+    :return:
+    """
+    if cell:
+        App = import_sfc(cell, raw_content=True)
+    else:
+        vue_file = vue_file.strip()
+        if vue_file.startswith('$'):
+            ipython = IPython.get_ipython()
+            App = ipython.user_ns[vue_file[1:]]
+        else:
+            App = import_sfc(vue_file)
+
+    app = create_app(App)
+    return app.mount()

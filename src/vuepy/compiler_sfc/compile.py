@@ -37,10 +37,14 @@ class SFCFile:
         with open(sfc_file) as f:
             raw_content = f.read()
 
-        content = re.sub(r'<!--([\s\S]*?)-->', '\n', raw_content, re.S)
+        return cls.loads(raw_content, sfc_file)
+
+    @classmethod
+    def loads(cls, sfc_content, file_path='') -> SFCFile:
+        content = re.sub(r'<!--([\s\S]*?)-->', '\n', sfc_content, re.S)
         instance = cls(
-            file=sfc_file,
-            content=raw_content,
+            file=file_path,
+            content=sfc_content,
             template=cls.get_block_content('template', content)[0],
             script_src=cls.get_script_src(content),
             script_py=cls.get_script_py(content),
