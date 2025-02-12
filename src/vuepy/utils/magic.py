@@ -129,7 +129,7 @@ def vuepy_log(cmd):
 @register_line_cell_magic
 def vuepy_run(vue_file, cell=''):
     """
-    run Vue app from vue_file or raw_content of vue file or Component
+    run Vuepy app from vue_file or raw_content of vue file or Component
 
     usage:
     cell magic: from raw_content of vue file
@@ -162,6 +162,7 @@ def vuepy_run(vue_file, cell=''):
     </template>
 
     ------------------
+    # Equivalent to create_app(Component1).mount()
     %vuepy_run $$Component1
 
     ------------------
@@ -183,3 +184,13 @@ def vuepy_run(vue_file, cell=''):
 
     app = create_app(App)
     return app.mount()
+
+
+def load_ipython_extension(ipython):
+    def vuepy_run_complete(self, event):
+        return ['install', 'update', 'remove']
+
+    ipython.set_hook('complete_command', vuepy_run_complete, re_key='%vuepy_run')
+
+
+load_ipython_extension(IPython.get_ipython())
