@@ -40,10 +40,10 @@ class SFCFile:
         return cls.loads(raw_content, sfc_file)
 
     @classmethod
-    def loads(cls, sfc_content, file_path='') -> SFCFile:
+    def loads(cls, sfc_content, file_path='__tmp_for_str.vue') -> SFCFile:
         content = re.sub(r'<!--([\s\S]*?)-->', '\n', sfc_content, re.S)
         instance = cls(
-            file=file_path,
+            file=pathlib.Path(file_path),
             content=sfc_content,
             template=cls.get_block_content('template', content)[0],
             script_src=cls.get_script_src(content),
