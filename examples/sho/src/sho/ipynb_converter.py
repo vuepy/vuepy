@@ -8,8 +8,11 @@ def ipynb_demo_to_markdown_prompt(nb_content: str) -> str:
     for cell in nb.get('cells', []):
         cell_type = cell.get('cell_type')
         if cell_type == 'markdown':
-            out.append('\n'.join(cell.get('source', [])))
+            out.append(''.join(cell.get('source', [])))
         elif cell_type == 'code':
+            code_source = '\n'.join(cell.get('source', []))
+            if code_source.startswith('##ignore'):
+                continue
             try:
                 prompt = ''
                 code_out, widget_out = cell.get('outputs', ['', ''])
