@@ -144,7 +144,7 @@ class SFCFile:
             elif tag.name == 'script':
                 if 'src' in tag.attrs:
                     script_src_tag_attrs = tag.attrs
-                elif 'lang' in tag.attrs:
+                elif tag.attrs.get('lang', '').lower() == 'py':
                     script_py_tag = tag
 
         if template_tag is None:
