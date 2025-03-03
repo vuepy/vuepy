@@ -31,12 +31,14 @@ from vuepy.runtime.core.api_setup_helpers import defineEmits
 from vuepy.runtime.core.api_setup_helpers import defineModel
 from vuepy.runtime.core.api_setup_helpers import defineProps
 from vuepy.runtime.core.import_sfc import import_sfc
+from vuepy.utils.appstore import VuepyAppStore
 from vuepy.version import VERSION
 
 __version__ = VERSION
 
 __all__ = [
     'App',
+    'VuepyAppStore',
     'create_app',
     'import_sfc',
     'VueComponent',
