@@ -190,7 +190,7 @@ class Accordion(widgets.Accordion, WidgetCssStyle):
     pass
 
 
-class MarkdownViewerWidget(widgets.HTML, WidgetCssStyle):
+class MarkdownViewerWidget(widgets.HTMLMath, WidgetCssStyle):
     code_highlight = pathlib.Path(__file__).parent / 'assets' / 'css' / 'md_code_highlight.css'
     with open(code_highlight) as f:
         css_style = ''.join(f.read())
