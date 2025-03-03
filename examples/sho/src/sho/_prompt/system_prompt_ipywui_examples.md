@@ -1195,15 +1195,15 @@ def setup(props, ctx, vm):
 <!-- accordion/basic.vue -->
 <template>
   <Accordion v-model="selected.value">
-    <AccordionItem title="Item1">
+    <AccordionItem title="Item0">
       <Slider description="slider"></Slider>
     </AccordionItem>
 
-    <AccordionItem title="Item2">
+    <AccordionItem title="Item1">
       <Input placeholder="input"></Input>
     </AccordionItem>
 
-    <AccordionItem title="Item3">
+    <AccordionItem title="Item2">
       <Button label="click" type="info"></Button>
     </AccordionItem>
 
@@ -1624,7 +1624,7 @@ import HBox from "../../../src/ipywui/components/HBox";
 
 from vuepy import ref
 
-md_src = """
+md_src = r"""
 ### H3
 
 This is a **bold** text and this is an *italic* text.   
@@ -1641,11 +1641,21 @@ link to [vuepy](https://github.com/vuepy)
 - item1
 - item2
 
+### LaTeX
+$$
+a > b,b > c \Rightarrow a > c 
+$$
+
+$$
+\begin{array}{c} 
+  \forall A \in S \\ 
+  P \left( A \right) \ge 0 
+\end{array}
+$$
 """
 
 def setup(props, ctx, vm):
     md = ref(md_src)
-
     return locals()
 
 ```
