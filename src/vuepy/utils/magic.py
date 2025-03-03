@@ -12,6 +12,7 @@ from vuepy import log
 from vuepy.compiler_sfc.compile import SFCFile
 from vuepy.runtime.core.api_create_app import create_app
 from vuepy.runtime.core.import_sfc import import_sfc
+from vuepy.utils.appstore import VuepyAppStore
 
 
 def get_curr_ipynb_dir():
@@ -179,6 +180,8 @@ def vuepy_run(vue_file, cell=''):
         if vue_file.startswith('$'):
             ipython = IPython.get_ipython()
             App = ipython.user_ns[vue_file[1:]]
+        elif vue_file in VuepyAppStore.get_all_registry():
+            App = VuepyAppStore.get(vue_file)
         else:
             App = import_sfc(vue_file)
 
@@ -188,7 +191,7 @@ def vuepy_run(vue_file, cell=''):
 
 def load_ipython_extension(ipython):
     def vuepy_run_complete(self, event):
-        return ['install', 'update', 'remove']
+        return VuepyAppStore.get_all_registry().keys()
 
     ipython.set_hook('complete_command', vuepy_run_complete, re_key='%vuepy_run')
 
