@@ -649,6 +649,8 @@ import InputNumber from "../../../src/ipywui/components/InputNumber";
 ```
 
 ### Component, RadioButtons
+
+`v-model` 或初始值必须是 options 中的值或者为`None`。
 ```vue
 <!-- radio_buttons/basic.vue -->
 <template>
@@ -1038,6 +1040,8 @@ def setup(props, ctx, vm):
 ```
 
 ### Component, ToggleButton
+
+表示两种相互对立的状态间的切换，多用于触发「开/关」
 ```vue
 <!-- toggle_button/basic.vue -->
 <template>
@@ -1082,6 +1086,8 @@ def setup(props, ctx, vm):
 ```
 
 ### Component, ToggleButtons
+
+在一组备选项中进行单选
 ```vue
 <!-- toggle_buttons/basic.vue -->
 <template>
@@ -1815,6 +1821,8 @@ import Valid from "../../../src/ipywui/components/Valid";
 ```
 
 ### Component, Dropdown
+
+v-model 或初始值必须是 options 中的值或者为`None`
 ```vue
 <!-- dropdown/basic.vue -->
 <template>

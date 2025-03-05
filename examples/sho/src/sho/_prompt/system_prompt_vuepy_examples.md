@@ -4,6 +4,13 @@ vuep.py是一个用于构建用户界面的python框架。它基于标准html、
 核心功能：
 * 声明式渲染：Vue.py 基于标准 HTML 拓展了一套模板语法，使得我们可以声明式地描述最终输出的 HTML 和 Python 状态之间的关系。
 * 响应性：Vue.py 会自动跟踪 Python 状态并在其发生变化时响应式地更新 DOM。
+
+## 安装vuepy
+
+```
+pip install org.vuepy.core
+```
+
 ## 单文件组件 SFC
 
 语法和vue.js一致，不同点在与使用`<script lang='py'></script>`来包裹实现组件逻辑的python代码，以下为vuepy组合式API构建的SFC组件示例：

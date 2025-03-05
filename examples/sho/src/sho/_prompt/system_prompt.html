@@ -7,6 +7,13 @@ vuep.py是一个用于构建用户界面的python框架。它基于标准html、
 核心功能：
 * 声明式渲染：Vue.py 基于标准 HTML 拓展了一套模板语法，使得我们可以声明式地描述最终输出的 HTML 和 Python 状态之间的关系。
 * 响应性：Vue.py 会自动跟踪 Python 状态并在其发生变化时响应式地更新 DOM。
+
+## 安装vuepy
+
+```
+pip install org.vuepy.core
+```
+
 ## 单文件组件 SFC
 
 语法和vue.js一致，不同点在与使用`<script lang='py'></script>`来包裹实现组件逻辑的python代码，以下为vuepy组合式API构建的SFC组件示例：
@@ -1139,6 +1146,8 @@ import InputNumber from "../../../src/ipywui/components/InputNumber";
 ```
 
 ### Component, RadioButtons
+
+`v-model` 或初始值必须是 options 中的值或者为`None`。
 ```vue
 <!-- radio_buttons/basic.vue -->
 <template>
@@ -1528,6 +1537,8 @@ def setup(props, ctx, vm):
 ```
 
 ### Component, ToggleButton
+
+表示两种相互对立的状态间的切换，多用于触发「开/关」
 ```vue
 <!-- toggle_button/basic.vue -->
 <template>
@@ -1572,6 +1583,8 @@ def setup(props, ctx, vm):
 ```
 
 ### Component, ToggleButtons
+
+在一组备选项中进行单选
 ```vue
 <!-- toggle_buttons/basic.vue -->
 <template>
@@ -2305,6 +2318,8 @@ import Valid from "../../../src/ipywui/components/Valid";
 ```
 
 ### Component, Dropdown
+
+v-model 或初始值必须是 options 中的值或者为`None`
 ```vue
 <!-- dropdown/basic.vue -->
 <template>
