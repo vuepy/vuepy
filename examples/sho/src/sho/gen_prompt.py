@@ -11,14 +11,14 @@ PROMPT_OUT_DIR = HERE / '_prompt'
 
 
 def main():
-    ipynb_file = PROMPT_TPL_DIR / 'system_prompt_ipywui_examples.ipynb'
+    ipynb_file = PROMPT_TPL_DIR / 'llms-ctx-ipywui.ipynb'
     with open(ipynb_file) as f:
         ipywui_examples = ipynb_converter.ipynb_demo_to_markdown_prompt(f.read())
         md_file = PROMPT_OUT_DIR / (ipynb_file.name.rstrip('ipynb') + 'md')
         with open(md_file, 'w') as md_f:
             md_f.write(ipywui_examples)
 
-    vue_file = PROMPT_TPL_DIR / 'system_prompt_vuepy_examples.ipynb'
+    vue_file = PROMPT_TPL_DIR / 'llms-ctx-vuepy.ipynb'
     with open(vue_file) as f:
         vue_doc = ipynb_converter.ipynb_demo_to_markdown_prompt(f.read())
         md_file = PROMPT_OUT_DIR / (vue_file.name.rstrip('ipynb') + 'md')
@@ -26,13 +26,22 @@ def main():
             md_f.write(vue_doc)
 
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(PROMPT_TPL_DIR))
-    sys_prompt_tpl = env.get_template('sys_prompt.html.jinja2')
+
+    llms_ctx = env.get_template('llms-ctx.txt.jinja2')
+    out = llms_ctx.render(**{
+        'vuepy_doc': vue_doc,
+        'ipywui_examples': ipywui_examples,
+    })
+    with open(PROMPT_OUT_DIR / 'llms-ctx.txt', 'w') as f:
+        f.write(out)
+
+    sys_prompt_tpl = env.get_template('sys-prompt.html.jinja2')
     sys_prompt_out = sys_prompt_tpl.render(**{
         'vuepy_doc': vue_doc,
         'ipywui_examples': ipywui_examples,
     })
 
-    with open(PROMPT_OUT_DIR / 'system_prompt.html', 'w') as f:
+    with open(PROMPT_OUT_DIR / 'system-prompt.html', 'w') as f:
         f.write(sys_prompt_out)
 
 
