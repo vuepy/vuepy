@@ -1,14 +1,14 @@
 <template>
   <Accordion v-model="selected.value">
-    <AccordionItem title="Item1">
+    <AccordionItem title="Item0">
       <Slider description="slider"></Slider>
     </AccordionItem>
 
-    <AccordionItem title="Item2">
+    <AccordionItem title="Item1">
       <Input placeholder="input"></Input>
     </AccordionItem>
 
-    <AccordionItem title="Item3">
+    <AccordionItem title="Item2">
       <Button label="click" type="info"></Button>
     </AccordionItem>
 
