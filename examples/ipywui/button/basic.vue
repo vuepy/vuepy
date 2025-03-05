@@ -1,16 +1,16 @@
 <template>
   <HBox>
-    <Button label="Default" @click="on_click()"></Button>
-    <Button label="Info" type="info"></Button>
-    <Button label="Success" type="success"></Button>
-    <Button label="Warning" type="warning"></Button>
+    <Button @click="on_click()">Default</Button>
+    <Button type="info">Info</Button>
+    <Button type="success">Success</Button>
+    <Button type="warning">Warning</Button>
     <Button label="Danger" type="danger"></Button>
   </HBox>
   <HBox>
     <Button icon="search" @click="on_click2"></Button>
     <Button type="info" icon="edit"></Button>
     <Button type="success" icon="check"></Button>
-    <Button type="warning" icon="star"></Button>
+    <Button type="warning" icon="star">{{ count.value }}</Button>
     <Button type="danger" icon="trash-alt"></Button>
   </HBox>
 </template>
@@ -20,7 +20,12 @@ import Button from "../../../src/ipywui/components/Button";
 import HBox from "../../../src/ipywui/components/HBox";
 </script>
 <script lang="py">
+from vuepy import ref
+
+count = ref(1)
+
 def on_click():
+  count.value += 1
   print("on click")
 
 def on_click2(btn):

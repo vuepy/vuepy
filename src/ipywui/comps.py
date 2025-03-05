@@ -85,7 +85,23 @@ class Button(IPywidgetsComponent):
     ]
 
     def _render(self, ctx, attrs, props, params, setup_returned):
-        return ipywui.widgets.Button(**props, **attrs, **params)
+        slots = ctx.get('slots', {}).get('default', [])
+        slot_label = slots[0] if slots else None
+        if slot_label:
+            attrs[self.v_model_default] = slot_label.value
+
+        # params > attrs > props
+        merged_props = {**props, **attrs, **params}
+        widget = ipywui.widgets.Button(**merged_props)
+
+        if slot_label:
+            def _update_html_widget_value(change):
+                val = change['new'] if isinstance(change, dict) else change
+                setattr(widget, self.v_model_default, val)
+
+            slot_label.observe(_update_html_widget_value, 'value')
+
+        return widget
 
 
 @wui.register()
@@ -310,7 +326,23 @@ class Label(IPywidgetsComponent):
     v_model_default = 'value'
 
     def _render(self, ctx, attrs, props, params, setup_returned):
-        return ipywui.widgets.Label(**props, **attrs, **params)
+        slots = ctx.get('slots', {}).get('default', [])
+        slot_label = slots[0] if slots else None
+        if slot_label:
+            attrs[self.v_model_default] = slot_label.value
+
+        # params > attrs > props
+        merged_props = {**props, **attrs, **params}
+        widget = ipywui.widgets.Label(**merged_props)
+
+        if slot_label:
+            def _update_html_widget_value(change):
+                val = change['new'] if isinstance(change, dict) else change
+                setattr(widget, self.v_model_default, val)
+
+            slot_label.observe(_update_html_widget_value, 'value')
+
+        return widget
 
 
 @wui.register()
