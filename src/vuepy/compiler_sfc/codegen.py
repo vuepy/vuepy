@@ -365,7 +365,7 @@ class VueCompCodeGen:
                 slots[slot_name] = child
 
         ctx = {
-            'attrs': comp_ast.kwargs,
+            'attrs': {**comp_ast.kwargs},
             'slots': slots,
             'emit': '',
         }

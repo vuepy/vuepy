@@ -229,11 +229,33 @@ class Button(widgets.Button, WidgetCssStyle):
         "background_color": "button_color",
         "color": "text_color",
     }
+    DEFAULT_LOADING_ICON = 'fa-spinner'
 
     def __init__(self, **kwargs):
+        self._icon_loading = f"{kwargs.get('loading-icon', self.DEFAULT_LOADING_ICON)} fa-spin"
+        self._icon_org = kwargs.get('icon', '')
+        loading = kwargs.pop('loading', False)
+        kwargs['icon'] = self._icon_loading if loading else self._icon_org
         kwargs['description'] = kwargs.pop("label", kwargs.pop('description', ''))
         kwargs['button_style'] = kwargs.pop("type", kwargs.pop('button_style', ''))
         super().__init__(**kwargs)
+        self._loading = loading
+
+    @property
+    def loading(self):
+        return self._loading
+
+    @loading.setter
+    def loading(self, loading):
+        if self._loading == loading:
+            return
+        else:
+            self._loading = loading
+
+        if loading:
+            self.icon = self._icon_loading
+        else:
+            self.icon = self._icon_org
 
     @property
     def label(self):
