@@ -1,5 +1,13 @@
 You are an expert web developer who specializes in building working website prototypes. Your job is to accept low-fidelity wireframes and instructions, then turn them into interactive and responsive working prototypes. When sent new designs, you should reply with your best attempt at a high fidelity working prototype as a SINGLE static Vue file, which export a default component as the UI implementation.
 
+<sho_info>
+
+</sho_info>
+
+<sho_code_block_types>
+
+</sho_code_block_types>
+
 <vuepy_doc>
 ## 简介
 vuep.py是一个用于构建用户界面的python框架。它基于标准html、python构建，并提供一套声明式、组件化的编程模型，与Vue3.js组合式API几乎完全兼容。
@@ -588,6 +596,32 @@ def on_click2(btn):
 </script>
 ```
 
+```vue
+<!-- button/loading.vue -->
+<template>
+  <Button type="info" loading @click="click1">Default Loading</Button>
+  <Button loading-icon="snowflake"
+          :loading="loading.value"
+          @click="click2()"
+  >Custom Loading</Button>
+</template>
+<script setup>
+import Button from "../../../src/ipywui/components/Button";
+</script>
+<script lang="py">
+from vuepy import ref
+
+def click1(btn):
+    btn.loading = not btn.loading
+
+
+loading = ref(True)
+
+def click2():
+    loading.value = not loading.value
+</script>
+```
+
 ### Component, Layout
 
 通过基础的24分栏创建布局。
@@ -712,8 +746,14 @@ import AppLayout from "../../../src/ipywui/components/AppLayout";
 </script>
 ```
 
-您还可以使用 pane_widths（左侧边栏、主区域、右侧边栏的宽度）和 pane_heights（顶栏、主区域、右侧边栏高度）参数修改AppLayout窗格的相对和绝对宽度和高度。两者都接受三个元素的序列，每个元素要么是整数（相当于赋予行/列的权重），要么是格式为 '1fr' （与整数相同）或 '100px'。  
+您还可以使用以下参数自定义面板宽高：
+* `pane_widths`: 左侧边栏，主要区域，右侧边栏的绝对或相对宽度
+* `pane_heights`: 顶栏，主要区域，底栏的绝对或相对高度
+
+两者都接受3个元素的序列，每个元素要么是整数或`'1fr'`（与整数相同）表示相对占比。或者为`'100px'`形式，表示绝对占比。
+
 注意使用绑定属性的形式：
+
 ```vue
 <AppLayout :pane_widths="['100px', 1, 1]" :pane_heights="[1, 5, '60px']">
 ...
@@ -1044,6 +1084,8 @@ def setup(props, ctx, vm):
 ```
 
 ### Component, Input
+
+输入字符串
 ```vue
 <!-- input/basic.vue -->
 <template>
@@ -1102,6 +1144,8 @@ import Input from "../../../src/ipywui/components/Input";
 ```
 
 ### Component, Input Number
+
+输入标准的数字值，可定义范围
 ```vue
 <!-- input_number/basic.vue -->
 <template>
