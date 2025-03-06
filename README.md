@@ -30,7 +30,7 @@ Vue.py (pronounced /vjuːpaɪ/, like "view py") is a Python framework for buildi
 * 🚀 batteries-included: built-in IPywUI includes 37+ commonly used UI components
 * 🧩 extensible: can easily integrate third-party libraries such as plotly, pandas, etc
 * 🖐️ interactive: bind sliders, buttons, plots, and more to Python — no callbacks required
-* 🚀 run in Jupyter, JupyterLab, VSCode, Google Colab and more
+* 🚀 run in Jupyter, JupyterLab, VSCode, Cursor, Google Colab and more
 <!--* ✨ generate UI interface with one click through AI-driven conversation interface-->
 
 ## Installation

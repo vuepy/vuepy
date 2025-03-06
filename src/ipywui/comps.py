@@ -81,6 +81,7 @@ class Button(IPywidgetsComponent):
     v_model_default = 'description'
 
     PARAMS_STORE_TRUE = [
+        ('loading', False),
         ('disabled', False),
     ]
 

@@ -22,6 +22,14 @@ export default {
       type: String,
       default: ''
     },
+    loading: {
+      type: Boolean,
+      default: false
+    },
+    'loading-icon': {
+      type: String,
+      default: 'fa-spinner'
+    },
     disabled: {
       type: Boolean,
       default: false
