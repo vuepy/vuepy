@@ -237,12 +237,124 @@ defineProps和vue.js基本相同。
 * 需要显式导入`from vuepy import defineProps`
 * 需要显示地访问value来获取值`props.title.value`
 
+在`<script lang='py'>`中的使用示例：
+
+```vue
+<!-- Hello.vue -->
+<template>
+  <p>hello {{ props.name.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import defineProps
+
+props = defineProps(['name'])
+</script>
+```
+
+```vue
+<!-- App.vue -->
+<template>
+  <Hello name="world"></Hello>
+</template>
+```
+
+在`<script src='xxx.py'>`中的使用示例：
+
+```vue
+<!-- Hello.vue -->
+<template>
+  <p>hello {{ props.name.value }}</p>
+</template>
+<script src='hello.py'></script>
+```
+
+```python
+# hello.py
+from vuepy import defineProps
+
+def setup(props, ctx, app):
+    props = defineProps(['name'])
+    return locals()
+```
+
+```vue
+<!-- App.vue -->
+<template>
+  <Hello name="world"></Hello>
+</template>
+```
 ### 监听事件
 
 defineEmits和vue.js基本相同。  
 不同点：
 * 需要显式导入`from vuepy import defineEmits`
 * 原生html标签的监听事件暂不支持
+
+在`<script lang='py'>`中的使用示例：
+
+```vue
+<!-- Hello.vue -->
+<template>
+  <p>hello</p>
+  <Button @click="submit">submit</Button>
+</template>
+<script lang='py'>
+from vuepy import defineEmits
+
+emit = defineEmits(['submit'])
+
+def submit(ev):
+    print(ev) # Button(description='submit', ...)
+    emit('submit', 1, 2, 3)
+</script>
+```
+
+```vue
+<!-- App.vue -->
+<template>
+  <Hello @submit="on_child_submit"></Hello>
+</template>
+<script lang='py'>
+def on_child_submit(a, b, c):
+    print(a, b, c) # 1 2 3
+</script>
+```
+
+在`<script src='xxx.py'>`中的使用示例：
+
+```vue
+<!-- Hello.vue -->
+<template>
+  <p>hello</p>
+  <Button @click="submit">submit</Button>
+</template>
+<script src='hello.py'></script>
+```
+
+```python
+# hello.py
+from vuepy import defineEmits
+
+def setup(props, ctx, app):
+    emit = defineEmits(['submit'])
+
+    def submit(ev):
+        print(ev) # Button(description='submit', ...)
+        emit('submit', 1, 2, 3)
+
+    return locals()
+```
+
+```vue
+<!-- App.vue -->
+<template>
+  <Hello @submit="on_child_submit"></Hello>
+</template>
+<script lang='py'>
+def on_child_submit(a, b, c):
+    print(a, b, c) # 1 2 3
+</script>
+```
 
 ### 组件 v-model
 
@@ -252,6 +364,69 @@ definModel和vue.js基本相同
 * 需要显示地访问value来获取值`xxx.value`
 * 不支持处理v-model修饰符
 
+在`<script lang='py'>`中的使用示例：
+
+```vue
+<!-- Hello.vue -->
+<template>
+  <Input v-model="model.value" placeholder="name"></Input>
+  <p>child:hello {{ model.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import defineModel
+
+model = defineModel('model_a')
+model.value = 'world'
+</script>
+```
+
+```vue
+<!-- App.vue -->
+<template>
+  <Hello v-model:model_a="m.value"></Hello>
+  <p>parent: hello {{ m.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+m = ref('world')
+</script>
+```
+
+在`<script src='xxx.py'>`中的使用示例：
+
+```vue
+<!-- Hello.vue -->
+<template>
+  <Input v-model="model.value" placeholder="name"></Input>
+  <p>child:hello {{ model.value }}</p>
+</template>
+<script src='hello.py'></script>
+```
+
+```python
+# hello.py
+from vuepy import defineModel
+
+def setup(props, ctx, app):
+    model = defineModel() # default
+    model.value = 'world'
+
+    return locals()
+```
+
+```vue
+<!-- App.vue -->
+<template>
+  <Hello v-model="m.value"></Hello>
+  <p>parent: hello {{ m.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+m = ref('world')
+</script>
+```
 ### 通过slot分配内容
 
 slot和vue.js基本相同  
@@ -272,9 +447,8 @@ slot和vue.js基本相同
 ```
 可用VBox代替
 ```vue
-<VBox><Input></Input></VBo>
+<VBox><Input></Input></VBox>
 ```
-
 ## 插件
 
 和vue.js基本相同。  
