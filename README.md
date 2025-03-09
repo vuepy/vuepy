@@ -31,7 +31,7 @@ Vue.py (pronounced /vjuːpaɪ/, like "view py") is a Python framework for buildi
 * 🧩 extensible: can easily integrate third-party libraries such as plotly, pandas, etc
 * 🖐️ interactive: bind sliders, buttons, plots, and more to Python — no callbacks required
 * 🚀 run in Jupyter, JupyterLab, VSCode, Cursor, Google Colab and more
-<!--* ✨ generate UI interface with one click through AI-driven conversation interface-->
+* ✨ generate UI interface with one click through AI-driven conversation interface. provide [llms.txt](https://www.vuepy.org/llms.txt), [llms-ctx.txt](https://www.vuepy.org/llms-ctx.txt), []()
 
 ## Installation
 
@@ -93,7 +93,12 @@ Check out our [docs](https://www.vuepy.org/guide/introduction.html), the `exampl
   <tr>
     <td><img src='https://github.com/vuepy/vuepy/blob/master/docs/assets/run-in-vscode.gif?raw=true' with='389px'></td>
     <td>Run in VSCode</td>
-    <td><a target="_blank" href="https://www.vuepy.org">Read more</a> </td>
+    <td><a target="_blank" href="https://marketplace.visualstudio.com/items?itemName=ms-toolsai.jupyter">Read more</a> </td>
+  </tr>
+  <tr>
+    <td><img src='https://github.com/vuepy/vuepy/blob/master/docs/assets/cursor_10fps.gif?raw=true' with='389px'></td>
+    <td>Building vuepy app with LLMs</td>
+    <td><a target="_blank" href="https://www.vuepy.org/guide/build-vuepy-withs-llms.html">Read more</a> </td>
   </tr>
 </table>
 
