@@ -12,7 +12,7 @@ except ImportError:
 UNINSTALLED = "uninstalled"
 
 try:
-    VERSION = version("org.vuepy.core")
+    VERSION = version("vuepy-core")
 except PackageNotFoundError:
     VERSION = UNINSTALLED
 

@@ -35,10 +35,10 @@ Vue.py (pronounced /vjuːpaɪ/, like "view py") is a Python framework for buildi
 
 ## Installation
 
-**Vue.py** is available on [PyPI](https://pypi.org/project/org.vuepy.core/):
+**Vue.py** is available on [PyPI](https://pypi.org/project/vuepy-core/):
 
 ```bash
-pip install "org.vuepy.core"
+pip install vuepy-core
 ```
 
 ## Usage

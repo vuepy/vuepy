@@ -3,10 +3,10 @@
 pip uninstall vue-py
 
 # test pypi package
-pip install org.vuepy.core -i https://pypi.org/simple
+pip install vuepy-core -i https://pypi.org/simple
 
 # test test.pypi
-pip install -i https://test.pypi.org/simple/ org.vuepy.core
+pip install -i https://test.pypi.org/simple/ vuepy-core
 
 # test local package
-pip install src/dist/org.vuepy.core-*.tar.gz
+pip install src/dist/vuepy-core-*.tar.gz
