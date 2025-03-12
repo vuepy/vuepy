@@ -119,7 +119,8 @@ class DomCompiler(HTMLParser):
 
             def __track_list_change():
                 # track list replacements
-                obj_iter = ns.getattr(attr_chain)
+                # python expr
+                obj_iter = eval(attr_chain, {}, ns.to_py_eval_ns())
                 # track changes in the list itself, such as append, pop...
                 return id(obj_iter), [id(item) for item in obj_iter]
 

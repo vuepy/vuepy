@@ -82,7 +82,8 @@ class VForBLockScope:
         self.ns = ns
         self.v_for_ast = v_for_ast
 
-        self.iter = None
+        self.iter_exp = None
+        self._iter = None
         self.target = None
         self.idx = 0
         self.vars_bak = {}
@@ -91,9 +92,10 @@ class VForBLockScope:
     def __enter__(self):
         iter_exp = self.v_for_ast.iter
         if iter_exp in self.ns:
-            self.iter = self.ns[iter_exp]
+            self.iter_exp = self.ns[iter_exp]
         else:
-            self.iter = eval(iter_exp, {}, self.ns)
+            self.iter_exp = eval(iter_exp, {}, self.ns)
+        self._iter = iter(self.iter_exp)
 
         target_var = self.v_for_ast.target
         if target_var in self.ns:
@@ -103,7 +105,7 @@ class VForBLockScope:
         if idx_var in self.ns:
             self.vars_bak[idx_var] = self.ns[idx_var]
 
-        self.for_vars[iter_exp] = self.iter
+        self.for_vars[iter_exp] = self.iter_exp
 
         return self
 
@@ -112,13 +114,9 @@ class VForBLockScope:
         return self
 
     def __next__(self):
-        if self.idx >= len(self.iter):
-            self.idx = 0
-            raise StopIteration()
-
         # set target
         target_exp = self.v_for_ast.target
-        target = self.iter[self.idx]
+        target = next(self._iter)
         self.for_vars[target_exp] = target
         self.ns[target_exp] = target
 
@@ -180,7 +178,8 @@ class VueHtmlCompCodeGen:
             # v-html
             if comp_ast.v_html:
                 attr_chain = comp_ast.v_html
-                return ns.getattr(attr_chain)
+                # python expr
+                return eval(attr_chain, {}, ns.to_py_eval_ns())
 
             # innerHtml
             inner = []
