@@ -130,11 +130,59 @@ v-if、v-else-if、v-else、v-show和vue.js的基本一致。
 
 v-for和vue.js的基本一致。  
 不同点：
-* 当有v-for有两个参数时，第一个参数index是循环索引，更符合python习惯。
+* 特别注意：当有v-for有两个参数时，第一个参数index是循环索引，更符合python习惯。
   ```vue
   <li v-for="(index, item) in items">
   ```
 * Vue.py 能够侦听响应式数组的变更方法：append ,clear ,extend ,insert ,pop ,remove ,reverse ,sort。
+
+示例：
+```vue
+<template>
+  <!-- list with index: The order is different from vue.js -->
+  <div>
+    <span v-for="(index, item) in l">
+      {{ index }}: {{ item }}
+    </span>
+  </div>
+
+  <!-- list -->
+  <div>
+    <span v-for="item in l">
+      {{ item }}
+    </span>
+  </div>
+
+  <!-- iter(dict) -->
+  <div>
+    <span v-for="key in d">
+      {{ key }}
+    </span>
+  </div>
+
+  <!-- ref dict -->
+  <div>
+    <span v-for="i, value in d_ref.value.values()">
+      {{ i }}: {{ value }}
+    </span>
+  </div>
+
+  <!-- list with func -->
+  <div>
+    <span v-for="i in filter(lambda x: x % 2 == 0, l)">
+      {{ i }}
+    </span>
+  </div>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+d = {'a': 1, 'b': 2}
+d_ref = ref(d)
+l = [1, 2, 3, 4, 5]
+</script> 
+```
+
 ## 事件处理
 
 v-on和vue.js的基本一致。  
