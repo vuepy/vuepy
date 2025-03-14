@@ -9,6 +9,8 @@ You are an expert web developer who specializes in building working website prot
 </sho_code_block_types>
 
 <vuepy_doc>
+# vuepy
+
 ## 简介
 vuep.py是一个用于构建用户界面的python框架。它基于标准html、python构建，并提供一套声明式、组件化的编程模型，与Vue3.js组合式API几乎完全兼容。
 
@@ -722,9 +724,9 @@ class Container(VueComponent):
 
 </script>
 ```
-</vuepy_doc>
 
-<ipywui_examples>
+# ipywui
+
 ## ipywui组件库
 
 IPywUI 是基于 Vue.py 和 ipywidgets 开发的 UI 组件库。当前作为 Vue.py 内置的 UI 组件库。
@@ -2973,4 +2975,8 @@ def setup(props, ctx, vm):
 
 ```
 
-</ipywui_examples>
+
+注意：
+1. vuepy中v-for的写法。
+2. html标签内不能包含自定义组件，如：`<div><Button></Button></div>`是错误的，替代方案是`<VBox><Button></Button></VBox>
+</vuepy_doc>
