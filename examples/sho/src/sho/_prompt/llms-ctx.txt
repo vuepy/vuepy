@@ -109,9 +109,29 @@ Attribute绑定
 ref、reactive和vue.js的基本一致。  
 不同点：
 * 获取ref对象的值需要显式地访问ref对象的value属性。
+
+示例
+```vue
+<template>
+  <p>{{ state.count }}</p>
+  <InputNumber v-model="state.count"></InputNumber>
+  <Button @click="add()">add</Button>
+</template>
+<script lang='py'>
+from vuepy import reactive
+
+state = reactive({'count': 0})
+
+def add():
+    state.count += 1
+</script>
+```
+
+shallowRef是ref的浅层作用形式，可以放弃深层响应性，和vue.js的基本一致。
+
 ## 计算属性
 
-ref、reactive和vue.js的基本一致。  
+computed和vue.js的基本一致。  
 不同点：
 * 可以使用装饰器声明计算属性
 ```python
@@ -128,8 +148,7 @@ def plus_one():
 v-if、v-else-if、v-else、v-show和vue.js的基本一致。
 ## 列表渲染
 
-v-for和vue.js的基本一致。  
-不同点：
+v-for指令：
 * 特别注意：当有v-for有两个参数时，第一个参数index是循环索引，更符合python习惯。
   ```vue
   <li v-for="(index, item) in items">
