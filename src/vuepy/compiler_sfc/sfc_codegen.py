@@ -173,7 +173,7 @@ class SFC(VueComponent):
             if self._render:
                 dom = self._render(self._context, self._props, self.setup_returned)
             else:
-                from vuepy.compiler_sfc.compile_template import DomCompiler
+                from vuepy.compiler_sfc.template_compiler import DomCompiler
                 dom = DomCompiler(self, self.app).compile(self.template)
 
         self.root.children = [dom]
