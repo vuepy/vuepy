@@ -3,8 +3,7 @@
 # ---------------------------------------------------------
 from __future__ import annotations
 
-from vuepy.compiler_sfc.codegen import SFCFactory
-from vuepy.compiler_sfc.compile import SFCFile
+from vuepy.compiler_sfc import sfc_compiler
 
 
 def import_sfc(sfc_file, raw_content=False):
@@ -15,10 +14,4 @@ def import_sfc(sfc_file, raw_content=False):
     :param raw_content:
     :return:
     """
-    sfc_file = SFCFile.loads(sfc_file) if raw_content else SFCFile.load(sfc_file)
-
-    return SFCFactory(**{
-        'setup': sfc_file.setup_fn,
-        'template': sfc_file.template,
-        '_file': sfc_file.file,
-    })
+    return sfc_compiler.compile(sfc_file, raw_content)

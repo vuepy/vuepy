@@ -97,14 +97,14 @@ class SFCParser(HTMLParser):
         if self.level1_tags:
             sfc_tag = self.level1_tags.pop()
             row, col = sfc_tag.start_pos
-            msg = f"tag <{sfc_tag.name}> at {sfc_tag.start_pos} not closed.\n"\
+            msg = f"tag <{sfc_tag.name}> at {sfc_tag.start_pos} not closed.\n" \
                   f"-> {row} {self.html_lines[row-1]}"
             raise ValueError(msg)
         return self.sfc_tags
 
 
 @dataclasses.dataclass
-class SFCFile:
+class SFCMetadata:
     file: pathlib.Path
     content: str
     template: str
@@ -130,7 +130,7 @@ class SFCFile:
         return cls.loads(raw_content, sfc_file)
 
     @classmethod
-    def loads(cls, sfc_content, file_path='__tmp_for_str.vue') -> SFCFile:
+    def loads(cls, sfc_content, file_path='__tmp_for_str.vue') -> SFCMetadata:
         sfc_tags = SFCParser().parse(sfc_content)
 
         script_src_tag_attrs = {}
@@ -187,3 +187,14 @@ class SFCFile:
             return None
 
         return match.group('content')
+
+
+def parse(sfc_file, raw_content=False) -> SFCMetadata:
+    """
+    Parse a sfc file.
+
+    :param sfc_file: The path to the sfc file.
+    :param raw_content: If True, the sfc file is parsed as a string.
+    :return: The parsed sfc file metadata.
+    """
+    return SFCMetadata.loads(sfc_file) if raw_content else SFCMetadata.load(sfc_file)
