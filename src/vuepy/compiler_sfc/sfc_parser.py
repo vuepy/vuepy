@@ -11,7 +11,7 @@ from typing import List
 from typing import Tuple
 
 from vuepy import log
-from vuepy.compiler_sfc.compile_script import ScriptCompiler
+from vuepy.compiler_sfc.script_compiler import ScriptCompiler
 
 logger = log.getLogger()
 

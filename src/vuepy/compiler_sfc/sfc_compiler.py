@@ -3,8 +3,8 @@
 # ---------------------------------------------------------
 from __future__ import annotations
 
+from vuepy.compiler_sfc.script_compiler import ScriptCompiler
 from vuepy.compiler_sfc.sfc_codegen import SFCType
-from vuepy.compiler_sfc.compile_script import ScriptCompiler
 from vuepy.compiler_sfc import sfc_parser
 
 
