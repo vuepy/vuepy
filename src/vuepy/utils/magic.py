@@ -9,7 +9,7 @@ from IPython.core.magic import register_line_magic
 
 from ipywui import wui
 from vuepy import log
-from vuepy.compiler_sfc.compile import SFCFile
+from vuepy.compiler_sfc.sfc_parser import SFCMetadata
 from vuepy.runtime.core.api_create_app import create_app
 from vuepy.runtime.core.import_sfc import import_sfc
 from vuepy.utils.appstore import VuepyAppStore
@@ -90,18 +90,18 @@ def vuepy_demo(vue_sfc):
         return_app = 'no'
 
     sfc_file_path = Path(vue_sfc.strip())
-    sfc_file = SFCFile.load(sfc_file_path)
+    sfc_metadata = SFCMetadata.load(sfc_file_path)
 
     script_content = 0
-    if sfc_file.script_src:
-        _script_file = sfc_file.file.parent / sfc_file.script_src
+    if sfc_metadata.script_src:
+        _script_file = sfc_metadata.file.parent / sfc_metadata.script_src
         with open(_script_file) as f:
-            _comment = f'# {sfc_file.script_src}\n\n'
+            _comment = f'# {sfc_metadata.script_src}\n\n'
             script_content = _comment + f.read()
 
     sfc_file_comment = f'<!-- {sfc_file_path} -->\n'
     print(json.dumps({
-        'vue': sfc_file_comment + sfc_file.content,
+        'vue': sfc_file_comment + sfc_metadata.content,
         'setup': script_content,
     }))
 

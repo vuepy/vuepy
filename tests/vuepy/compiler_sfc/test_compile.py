@@ -1,7 +1,7 @@
 import unittest
 
-from vuepy.compiler_sfc.compile import SFCParser
-from vuepy.compiler_sfc.compile import SFCTag
+from vuepy.compiler_sfc.sfc_parser import SFCParser
+from vuepy.compiler_sfc.sfc_parser import SFCTag
 
 
 class TestFirstLevelTagValidator(unittest.TestCase):

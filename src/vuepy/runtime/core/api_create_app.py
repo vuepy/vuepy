@@ -17,8 +17,8 @@ from IPython.display import display
 from vuepy import log
 from vuepy.compiler_core.options import CompilerOptions
 from vuepy.compiler_sfc.codegen import Dom
-from vuepy.compiler_sfc.codegen import SFC
-from vuepy.compiler_sfc.codegen import SFCFactory
+from vuepy.compiler_sfc.sfc_codegen import SFC
+from vuepy.compiler_sfc.sfc_codegen import SFCType
 from vuepy.compiler_sfc.codegen import VueComponent
 from vuepy.utils.common import Record
 
@@ -65,7 +65,7 @@ class App:
 
         props = {}
         context = {}
-        if isinstance(root_component, SFCFactory):
+        if isinstance(root_component, SFCType):
             self.root_component: SFC = root_component.gen(props, context, self)
         else:
             raise ValueError(
@@ -183,9 +183,9 @@ class VuePlugin:
         pass
 
 
-VueOptions = SFCFactory
+VueOptions = SFCType
 
-RootComponent = Type[Union[Type[VueComponent], SFCFactory, dict]]
+RootComponent = Type[Union[Type[VueComponent], SFCType, dict]]
 
 
 def create_app(root_component: RootComponent, use_wui=True, **root_props) -> App:

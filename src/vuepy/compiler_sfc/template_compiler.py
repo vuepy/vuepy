@@ -22,7 +22,7 @@ from vuepy.compiler_core.utils import VueCompNamespace
 from vuepy.compiler_dom.codegen import VueHtmlCompCodeGen
 from vuepy.compiler_dom.codegen import VueHtmlTemplateRender
 from vuepy.compiler_dom.codegen import v_for_stack_to_iter
-from vuepy.compiler_sfc.codegen import VueCompCodeGen
+from vuepy.compiler_sfc.template_codegen import VueCompCodeGen
 from vuepy.compiler_sfc.codegen import VueComponent
 from vuepy.reactivity.watch import watch
 from vuepy.runtime.core.api_create_app import App
