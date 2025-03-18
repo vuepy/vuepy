@@ -86,6 +86,7 @@ class VForNodeAst(NodeAst):
     def children_flat(self) -> List["NodeAst"]:
         ret = []
 
+        # DFS
         def _travel(children):
             if not isinstance(children, list):
                 ret.append(children)

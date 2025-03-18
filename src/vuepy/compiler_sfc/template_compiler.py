@@ -199,6 +199,7 @@ class DomCompiler(HTMLParser):
                 node.add_child(__handle_data_gen_html)
             else:
                 node.add_child(VueHtmlCompCodeGen.gen_from_fn(__handle_data_gen_html))
+        # ./_gen_text()
 
         should_render = VueHtmlTemplateRender.should_render(data)
         parent = self.parent_node_stack[-1]
@@ -212,17 +213,23 @@ class DomCompiler(HTMLParser):
                 return
 
             widget = self._gen_widget(_node, _node.v_for_scopes)
+            widget._vtag = widget.__class__.__name__
             # not v-for
             if not _node.v_for_scopes:
-                widget = VueHtmlCompCodeGen.gen_from_fn(widget) if callable(widget) else widget
-                _node.parent.add_child(widget)
+                if callable(widget):
+                    widget = VueHtmlCompCodeGen.gen_from_fn(widget)
+                    widget._vtag = tag
             # curr v-for end
             elif _node.for_processed:
-                widget = VueHtmlCompCodeGen.gen_from_fn(widget) if callable(widget) else widget
-                _node.parent.add_child(widget)
+                if callable(widget):
+                    widget = VueHtmlCompCodeGen.gen_from_fn(widget)
+                    widget._vtag = tag
+                widget._vtag = f"{widget._vtag} v-for: {_node.v_for_scopes.idxs}"
             # v-for in process
             else:
-                _node.parent.add_child(widget)
+                pass
+            _node.parent.add_child(widget)
+        # ./_gen_element
 
         node = self.parent_node_stack.pop()
         _gen_element(node)
@@ -232,10 +239,59 @@ class DomCompiler(HTMLParser):
         v_if_expr = node.attrs.get(VueCompAst.V_IF)
         if v_if_expr:
             self.v_if_stack.append(v_if_expr)
+    
+    def _compile_traceback(self):
+        s = ''
+        ident = ''
+        # already generated node
+        for node in self.widgets.children:
+            tag, attr = self._get_node_debug_tag(node)
+            s += f"{ident}<{tag}{attr}>...</{tag}>\n"
+
+        for level, _node in enumerate(self.parent_node_stack):
+            ident = '  ' * level
+            tag, attr = self._get_node_debug_tag(_node)
+            s += f"{ident}<{tag}{attr}>\n"
+            if isinstance(_node, VForNodeAst):
+                continue
+
+            pre_ident = ident
+            for child in _node.children:
+                # compile _node in process
+                if isinstance(child, NodeAst):
+                    continue
+                ident = f"  {pre_ident}"
+                tag, attr = self._get_node_debug_tag(child)
+                s += f"{ident}<{tag}{attr}>...</{tag}>\n"
+        s += f"{ident}<{self._tag}>"
+        return s
+    
+    def _get_node_debug_tag(self, node):
+        """
+
+        :param node: NodeAst or widget
+        :return:
+        """
+        if isinstance(node, NodeAst):
+            tag, attr = node.tag, ''
+        else:
+            vtag = getattr(node, '_vtag', node.__class__.__name__).split(' ', 1)
+            tag, attr = vtag if len(vtag) == 2 else (vtag[0], '')
+            attr = f" {attr}" if attr else ""
+
+        if isinstance(node, VForNodeAst):
+            attr += f' v-for'
+
+        return tag, attr
 
     def compile(self, html):
         self.html_lines = [line for line in html.splitlines()]
-        self.feed(html)
+        try:
+            self.feed(html)
+        except Exception as e:
+            print(f"{self._compile_traceback()} <----- compile failed, {e}")
+            raise e
+
         if len(self.widgets.children) == 1:
             return self.widgets.children[0]
         return widgets.VBox(self.widgets.children)
