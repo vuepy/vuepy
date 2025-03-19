@@ -202,6 +202,7 @@ class DomCompiler(HTMLParser):
                 node.add_child(__handle_data_gen_html)
             else:
                 node.add_child(VueHtmlCompCodeGen.gen_from_fn(__handle_data_gen_html))
+
         # ./_gen_text()
 
         should_render = VueHtmlTemplateRender.should_render(data)
@@ -232,6 +233,7 @@ class DomCompiler(HTMLParser):
             else:
                 pass
             _node.parent.add_child(widget)
+
         # ./_gen_element
 
         node = self.parent_node_stack.pop()
@@ -242,7 +244,7 @@ class DomCompiler(HTMLParser):
         v_if_expr = node.attrs.get(VueCompAst.V_IF)
         if v_if_expr:
             self.v_if_stack.append(v_if_expr)
-    
+
     def _compile_traceback(self, e: Exception):
         s = ''
         ident = ''
@@ -277,7 +279,7 @@ class DomCompiler(HTMLParser):
 
         s = f"{s} <----- compile failed, {e}\n"
         return s
-    
+
     def _get_node_debug_tag(self, node):
         """
 
