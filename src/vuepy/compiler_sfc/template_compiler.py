@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import functools
+import traceback
 from html.parser import HTMLParser
 from typing import List
 from typing import Tuple
@@ -46,6 +47,8 @@ class DomCompiler(HTMLParser):
         self.v_for_stack: List[VForAst] = []
         self.v_if_stack: List[str] = []
         self._tag = self.widgets.tag
+
+        self._compile_traceback_info = ''
 
     def _get_element_by_id(self, el_id):
         return self.widgets_by_id.get(el_id)
@@ -199,6 +202,7 @@ class DomCompiler(HTMLParser):
                 node.add_child(__handle_data_gen_html)
             else:
                 node.add_child(VueHtmlCompCodeGen.gen_from_fn(__handle_data_gen_html))
+
         # ./_gen_text()
 
         should_render = VueHtmlTemplateRender.should_render(data)
@@ -229,6 +233,7 @@ class DomCompiler(HTMLParser):
             else:
                 pass
             _node.parent.add_child(widget)
+
         # ./_gen_element
 
         node = self.parent_node_stack.pop()
@@ -239,8 +244,8 @@ class DomCompiler(HTMLParser):
         v_if_expr = node.attrs.get(VueCompAst.V_IF)
         if v_if_expr:
             self.v_if_stack.append(v_if_expr)
-    
-    def _compile_traceback(self):
+
+    def _compile_traceback(self, e: Exception):
         s = ''
         ident = ''
         # already generated node
@@ -263,9 +268,18 @@ class DomCompiler(HTMLParser):
                 ident = f"  {pre_ident}"
                 tag, attr = self._get_node_debug_tag(child)
                 s += f"{ident}<{tag}{attr}>...</{tag}>\n"
-        s += f"{ident}<{self._tag}>"
+
+        traceback_info = ''.join(traceback.format_tb(e.__traceback__))
+        if self.parse_starttag.__name__ in traceback_info:
+            s += f"  {ident}<{self._tag}> start"
+        elif self.parse_endtag.__name__ in traceback_info:
+            s += f"{ident}</{self._tag}> end"
+        else:
+            s += f"{ident}</{self._tag}> inner"
+
+        s = f"{s} <----- compile failed, {e}\n"
         return s
-    
+
     def _get_node_debug_tag(self, node):
         """
 
@@ -289,7 +303,7 @@ class DomCompiler(HTMLParser):
         try:
             self.feed(html)
         except Exception as e:
-            print(f"{self._compile_traceback()} <----- compile failed, {e}")
+            self._compile_traceback_info = self._compile_traceback(e)
             raise e
 
         if len(self.widgets.children) == 1:
