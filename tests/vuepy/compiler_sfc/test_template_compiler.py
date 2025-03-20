@@ -18,7 +18,7 @@ class TestCompileTraceback(unittest.TestCase):
         <VBox>
           <HBox><p>hello</p></HBox>
           <HBox>
-            <Label v-for="index, item in var_no_exist">xx</Label>
+            <Label v-for="index, item in var_not_exist">xx</Label>
           </HBox>
         </VBox>
         """
