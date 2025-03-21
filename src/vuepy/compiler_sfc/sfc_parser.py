@@ -111,16 +111,6 @@ class SFCMetadata:
     script_src: str
     script_py: str
 
-    @property
-    def setup_fn(self):
-        if self.script_src:
-            return ScriptCompiler.compile_script_src(self.file.parent, self.script_src)
-        elif self.script_py:
-            return ScriptCompiler.compile_script_block(
-                self.script_py, str(self.file.absolute()))
-        else:
-            return lambda *args: {}
-
     @classmethod
     def load(cls, sfc_file):
         sfc_file = pathlib.Path(sfc_file)
