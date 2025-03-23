@@ -1,6 +1,7 @@
 <template>
   <DateTimePicker label="Pick a time"
                   v-model="datetime.value"
+                  @change="on_change"
   ></DateTimePicker>
 </template>
 

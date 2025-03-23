@@ -174,6 +174,16 @@ class WidgetCssStyle:
             self.layout = layout
 
 
+class OnChange:
+    """
+    @change
+    """
+    ON_CHANGE_OBSERVE_NAME = 'value'
+
+    def on_change(self, callback):
+        self.observe(callback, names=self.ON_CHANGE_OBSERVE_NAME)
+
+
 class AppLayout(widgets.AppLayout, WidgetCssStyle):
     pass
 
@@ -186,8 +196,8 @@ class HBox(widgets.HBox, WidgetCssStyle):
     pass
 
 
-class Accordion(widgets.Accordion, WidgetCssStyle):
-    pass
+class Accordion(widgets.Accordion, WidgetCssStyle, OnChange):
+    ON_CHANGE_OBSERVE_NAME = 'selected_index'
 
 
 class MarkdownViewerWidget(widgets.HTMLMath, WidgetCssStyle):
@@ -216,11 +226,11 @@ class MarkdownViewerWidget(widgets.HTMLMath, WidgetCssStyle):
         super().__setattr__(key, value)
 
 
-class BoundedFloatText(widgets.BoundedFloatText, WidgetCssStyle):
+class BoundedFloatText(widgets.BoundedFloatText, WidgetCssStyle, OnChange):
     pass
 
 
-class BoundedIntText(widgets.BoundedIntText, WidgetCssStyle):
+class BoundedIntText(widgets.BoundedIntText, WidgetCssStyle, OnChange):
     pass
 
 
@@ -274,7 +284,7 @@ class Button(widgets.Button, WidgetCssStyle):
         self.button_style = val
 
 
-class Checkbox(widgets.Checkbox, WidgetCssStyle):
+class Checkbox(widgets.Checkbox, WidgetCssStyle, OnChange):
     CSS_TO_WIDGET_STYLE_MAP = {}
 
     def __init__(self, **kwargs):
@@ -290,7 +300,7 @@ class Checkbox(widgets.Checkbox, WidgetCssStyle):
         self.description = val
 
 
-class ColorPicker(widgets.ColorPicker, WidgetCssStyle):
+class ColorPicker(widgets.ColorPicker, WidgetCssStyle, OnChange):
     def __init__(self, **kwargs):
         kwargs['description'] = kwargs.pop("label", kwargs.pop('description', ''))
         super().__init__(**kwargs)
@@ -336,7 +346,7 @@ class Controller(widgets.Controller, WidgetCssStyle):
     pass
 
 
-class DatePicker(widgets.DatePicker, WidgetCssStyle):
+class DatePicker(widgets.DatePicker, WidgetCssStyle, OnChange):
     def __init__(self, **kwargs):
         kwargs['description'] = kwargs.pop("label", kwargs.pop('description', ''))
         super().__init__(**kwargs)
@@ -350,7 +360,7 @@ class DatePicker(widgets.DatePicker, WidgetCssStyle):
         self.description = val
 
 
-class DateTimePicker(_DatetimePicker, WidgetCssStyle):
+class DateTimePicker(_DatetimePicker, WidgetCssStyle, OnChange):
     def __init__(self, **kwargs):
         kwargs['description'] = kwargs.pop("label", kwargs.pop('description', ''))
         super().__init__(**kwargs)
@@ -364,7 +374,7 @@ class DateTimePicker(_DatetimePicker, WidgetCssStyle):
         self.description = val
 
 
-class Dropdown(widgets.Dropdown, WidgetCssStyle):
+class Dropdown(widgets.Dropdown, WidgetCssStyle, OnChange):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -420,7 +430,7 @@ class DisplayViewer(widgets.Output, WidgetCssStyle):
         )
 
 
-class FloatsInput(_FloatsInput, WidgetCssStyle):
+class FloatsInput(_FloatsInput, WidgetCssStyle, OnChange):
     def __init__(self, **kwargs):
         kwargs['tag_style'] = kwargs.pop("type", kwargs.pop('tag_style', ''))
         super().__init__(**kwargs)
@@ -430,15 +440,15 @@ class FileUpload(widgets.FileUpload, WidgetCssStyle):
     pass
 
 
-class FloatText(widgets.FloatText, WidgetCssStyle):
+class FloatText(widgets.FloatText, WidgetCssStyle, OnChange):
     pass
 
 
-class FloatSlider(widgets.FloatSlider, WidgetCssStyle):
+class FloatSlider(widgets.FloatSlider, WidgetCssStyle, OnChange):
     pass
 
 
-class FloatRangeSlider(widgets.FloatRangeSlider, WidgetCssStyle):
+class FloatRangeSlider(widgets.FloatRangeSlider, WidgetCssStyle, OnChange):
     pass
 
 
@@ -501,25 +511,25 @@ class Image(widgets.Image, WidgetCssStyle):
         super().__setattr__(key, value)
 
 
-class IntText(widgets.IntText, WidgetCssStyle):
+class IntText(widgets.IntText, WidgetCssStyle, OnChange):
     pass
 
 
-class IntSlider(widgets.IntSlider, WidgetCssStyle):
+class IntSlider(widgets.IntSlider, WidgetCssStyle, OnChange):
     pass
 
 
-class IntRangeSlider(widgets.IntRangeSlider, WidgetCssStyle):
+class IntRangeSlider(widgets.IntRangeSlider, WidgetCssStyle, OnChange):
     pass
 
 
-class IntsInput(_IntsInput, WidgetCssStyle):
+class IntsInput(_IntsInput, WidgetCssStyle, OnChange):
     def __init__(self, **kwargs):
         kwargs['tag_style'] = kwargs.pop("type", kwargs.pop('tag_style', ''))
         super().__init__(**kwargs)
 
 
-class Password(_Password, WidgetCssStyle):
+class Password(_Password, WidgetCssStyle, OnChange):
     def __init__(self, **kwargs):
         kwargs['description'] = kwargs.pop("label", kwargs.pop('description', ''))
         super().__init__(**kwargs)
@@ -547,27 +557,29 @@ class Play(widgets.Play, WidgetCssStyle):
         self.description = val
 
 
-class RadioButtons(widgets.RadioButtons, WidgetCssStyle):
+class RadioButtons(widgets.RadioButtons, WidgetCssStyle, OnChange):
     pass
 
 
-class Select(widgets.Select, WidgetCssStyle):
+class Select(widgets.Select, WidgetCssStyle, OnChange):
     pass
 
 
-class SelectMultiple(widgets.SelectMultiple, WidgetCssStyle):
+class SelectMultiple(widgets.SelectMultiple, WidgetCssStyle, OnChange):
     pass
 
 
-class SelectionRangeSlider(widgets.SelectionRangeSlider, WidgetCssStyle):
+class SelectionRangeSlider(widgets.SelectionRangeSlider, WidgetCssStyle, OnChange):
     pass
 
 
-class SelectionSlider(widgets.SelectionSlider, WidgetCssStyle):
+class SelectionSlider(widgets.SelectionSlider, WidgetCssStyle, OnChange):
     pass
 
 
-class Stack(_Stack, WidgetCssStyle):
+class Stack(_Stack, WidgetCssStyle, OnChange):
+    ON_CHANGE_OBSERVE_NAME = 'selected_index'
+
     def __init__(self, **kwargs):
         self.labels: List[str] = kwargs.pop('labels', [])
         selected_label = kwargs.pop('label', self.labels[0])
@@ -589,11 +601,11 @@ class Stack(_Stack, WidgetCssStyle):
         return self.labels.index(label)
 
 
-class Tab(widgets.Tab, WidgetCssStyle):
-    pass
+class Tab(widgets.Tab, WidgetCssStyle, OnChange):
+    ON_CHANGE_OBSERVE_NAME = 'selected_index'
 
 
-class TagsInput(_TagsInput, WidgetCssStyle):
+class TagsInput(_TagsInput, WidgetCssStyle, OnChange):
     def __init__(self, **kwargs):
         kwargs['allow_duplicates'] = not kwargs.pop("unique", not kwargs.pop('allow_duplicates', True))
         super().__init__(**kwargs)
@@ -607,7 +619,7 @@ class TagsInput(_TagsInput, WidgetCssStyle):
         self.allow_duplicates = not val
 
 
-class Text(widgets.Text, WidgetCssStyle):
+class Text(widgets.Text, WidgetCssStyle, OnChange):
     def __init__(self, **kwargs):
         kwargs['description'] = kwargs.pop("label", kwargs.pop('description', ''))
         super().__init__(**kwargs)
@@ -621,7 +633,7 @@ class Text(widgets.Text, WidgetCssStyle):
         self.description = val
 
 
-class Textarea(widgets.Textarea, WidgetCssStyle):
+class Textarea(widgets.Textarea, WidgetCssStyle, OnChange):
     def __init__(self, **kwargs):
         kwargs['description'] = kwargs.pop("label", kwargs.pop('description', ''))
         super().__init__(**kwargs)
@@ -635,7 +647,7 @@ class Textarea(widgets.Textarea, WidgetCssStyle):
         self.description = val
 
 
-class TimePicker(_TimePicker, WidgetCssStyle):
+class TimePicker(_TimePicker, WidgetCssStyle, OnChange):
     def __init__(self, **kwargs):
         kwargs['description'] = kwargs.pop("label", kwargs.pop('description', ''))
         super().__init__(**kwargs)
@@ -649,7 +661,7 @@ class TimePicker(_TimePicker, WidgetCssStyle):
         self.description = val
 
 
-class ToggleButton(widgets.ToggleButton, WidgetCssStyle):
+class ToggleButton(widgets.ToggleButton, WidgetCssStyle, OnChange):
     def __init__(self, **kwargs):
         kwargs['description'] = kwargs.pop("label", kwargs.pop('description', ''))
         kwargs['button_style'] = kwargs.pop("type", kwargs.pop('button_style', ''))
@@ -672,7 +684,7 @@ class ToggleButton(widgets.ToggleButton, WidgetCssStyle):
         self.button_style = val
 
 
-class ToggleButtons(widgets.ToggleButtons, WidgetCssStyle):
+class ToggleButtons(widgets.ToggleButtons, WidgetCssStyle, OnChange):
     def __init__(self, **kwargs):
         kwargs['button_style'] = kwargs.pop("type", kwargs.pop('button_style', ''))
         super().__init__(**kwargs)

@@ -3,11 +3,13 @@
     <Dropdown description="dropdown1"
               v-model="choice1.value"
               :options="dropdown_items1"
+              @change="on_change"
     ></Dropdown>
 
     <Dropdown description="dropdown2"
               v-model="choice2.value"
               :options="dropdown_items2"
+              @change="on_change2"
     ></Dropdown>
   </VBox>
 </template>

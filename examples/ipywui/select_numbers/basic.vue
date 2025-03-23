@@ -1,14 +1,25 @@
 <template>
-  <SelectNumbers v-model="nums.value"></SelectNumbers>
-  <Input label="float nums" :value="str(nums.value)"></Input>
+  <SelectNumbers v-model="nums.value"
+                 @change="on_change"
+  ></SelectNumbers>
+  <p>float nums: {{ nums.value }}</p>
 
   <SelectNumbers v-model="int_nums.value"
-                 data_type="int"></SelectNumbers>
-  <Input label="int nums" :value="str(int_nums.value)"></Input>
+                 data_type="int"
+  ></SelectNumbers>
+  <p>int nums: {{ int_nums.value }}</p>
 </template>
-
-<script src="./basic_setup.py"></script>
 <script setup>
 import SelectNumbers from "../../../src/ipywui/components/SelectNumbers";
-import Input from "../../../src/ipywui/components/Input";
+</script>
+<script lang="py">
+from vuepy import ref
+
+nums = ref([1, 2, 3])
+int_nums = ref([1, 2, 3])
+
+# called when enter key is pressed or the input is blurred
+def on_change(value):
+    print(value) # {'new': [1, 2], 'old': [1, 2, 3], 'owner': FloatsInput(...)}
+
 </script>

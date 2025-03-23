@@ -2,7 +2,7 @@
   <Input value="use format '$,d'"></Input>
   <Slider description="Float"
           :value="3"
-          :min="0"
+          :min="0.0"
           :max="30"
           readout_format="$,d"
   ></Slider>

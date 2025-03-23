@@ -300,24 +300,34 @@ class InputNumber(IPywidgetsComponent):
     PARAMS_STORE_TRUE = [
         ("disabled", False),
     ]
+    CAN_DEFAULT = 0
+    CAN_FLOAT = 1
+    CAN_BOUNDED = 2
+    # key CAN_FLOAT | CAN_BOUNDED -> cls
+    IMPLS = {
+        CAN_FLOAT | CAN_BOUNDED: ipywui.widgets.BoundedFloatText,
+        CAN_BOUNDED: ipywui.widgets.BoundedIntText,
+        CAN_FLOAT: ipywui.widgets.FloatText,
+        CAN_DEFAULT: ipywui.widgets.IntText,
+    }
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         attrs = ctx.get('attrs', {})
-        value = props.get(self.v_model_default)
-        step = props.get('step')
-        min_ = props.get('min')
-        max_ = props.get('max')
 
-        if is_float(value) or is_float(step):
-            if is_float(min_) or is_float(max_):
-                cls = ipywui.widgets.BoundedFloatText
-            else:
-                cls = ipywui.widgets.FloatText
-        else:
-            if min_ is None and max_ is None:
-                cls = ipywui.widgets.IntText
-            else:
-                cls = ipywui.widgets.BoundedIntText
+        _value = props.get(self.v_model_default)
+        _step = props.get('step')
+        _min = props.get('min')
+        _max = props.get('max')
+        is_float_value = any(is_float(v) for v in (_value, _step, _min, _max))
+        is_bounded_value = any(val is not None for val in (_min, _max))
+
+        can_float = self.CAN_FLOAT if is_float_value else self.CAN_DEFAULT
+        can_bounded = self.CAN_BOUNDED if is_bounded_value else self.CAN_DEFAULT
+
+        cls = self.IMPLS.get(can_float | can_bounded, None)
+        if cls is None:
+            msg = f"Invalid input number type: CAN_FLOAT | CAN_BOUNDED = {can_float} | {can_bounded}"
+            raise ValueError(msg)
 
         return cls(**props, **attrs, **params)
 
@@ -493,26 +503,43 @@ class Slider(IPywidgetsComponent):
         ('range', False),
     ]
 
+    CAN_DEFAULT = 0
+    CAN_RANGE = 1
+    CAN_SELECTION = 2
+    CAN_FLOAT = 4
+    # key CAN_RANGE | CAN_SELECTION | CAN_FLOAT -> cls
+    IMPLS = {
+        CAN_RANGE | CAN_SELECTION: ipywui.widgets.SelectionRangeSlider,
+        CAN_RANGE | CAN_FLOAT: ipywui.widgets.FloatRangeSlider,
+        CAN_RANGE: ipywui.widgets.IntRangeSlider,
+        CAN_SELECTION: ipywui.widgets.SelectionSlider,
+        CAN_FLOAT: ipywui.widgets.FloatSlider,
+        CAN_DEFAULT: ipywui.widgets.IntSlider,
+    }
+
     def _render(self, ctx, attrs, props, params, setup_returned):
         params["orientation"] = 'vertical' if params.get("vertical") else 'horizontal'
         attrs = ctx.get('attrs', {})
-        value = props.get(self.v_model_default)
-        step = props.get('step')
-        select_options = props.get('options', attrs.get('options', None))
-        if params.pop('range', False):
-            if select_options:
-                cls = ipywui.widgets.SelectionRangeSlider
-            elif (value and is_float(value[0])) or is_float(step):
-                cls = ipywui.widgets.FloatRangeSlider
-            else:
-                cls = ipywui.widgets.IntRangeSlider
+
+        is_range = params.pop('range', False)
+        is_selection = props.get('options', attrs.get('options', None)) is not None
+        if is_range:
+            _values = props.get(self.v_model_default, [])
         else:
-            if select_options:
-                cls = ipywui.widgets.SelectionSlider
-            elif is_float(value) or is_float(step):
-                cls = ipywui.widgets.FloatSlider
-            else:
-                cls = ipywui.widgets.IntSlider
+            _values = [props.get(self.v_model_default)]
+        _min = props.get('min')
+        _max = props.get('max')
+        _step = props.get('step')
+        is_float_value = any(is_float(v) for v in (*_values, _min, _max, _step))
+
+        can_range = self.CAN_RANGE if is_range else self.CAN_DEFAULT
+        can_selection = self.CAN_SELECTION if is_selection else self.CAN_DEFAULT
+        can_float = self.CAN_FLOAT if is_float_value else self.CAN_DEFAULT
+
+        cls = self.IMPLS.get(can_range | can_selection | can_float, None)
+        if cls is None:
+            msg = f"Invalid slider type: CAN_RANGE | CAN_SELECTION | CAN_FLOAT = {can_range} | {can_selection} | {can_float}"
+            raise ValueError(msg)
 
         return cls(**props, **attrs, **params)
 

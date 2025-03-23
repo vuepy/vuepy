@@ -1,6 +1,6 @@
 <template>
   <HBox>
-    <ToggleButton label="on" :value="True"></ToggleButton>
+    <ToggleButton label="on" :value="True" @change="on_change"></ToggleButton>
     <ToggleButton label="off" :value="False"></ToggleButton>
   </HBox>
   <HBox>
@@ -21,8 +21,16 @@
   </HBox>
 </template>
 
-<script src="./basic_setup.py"></script>
 <script setup>
 import ToggleButton from "../../../src/ipywui/components/ToggleButton";
 import HBox from "../../../src/ipywui/components/HBox";
+</script>
+<script lang="py">
+from vuepy import ref
+
+val1 = ref(True)
+
+def on_change(event):
+    print(event) # {'new': False, 'old': True, 'owner': ToggleButton(...)}
+
 </script>
