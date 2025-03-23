@@ -2,7 +2,7 @@
   <HBox>
     <Slider description="Float"
             :value="3"
-            :min="0"
+            :min="0.0"
             :max="30"
             vertical
     ></Slider>

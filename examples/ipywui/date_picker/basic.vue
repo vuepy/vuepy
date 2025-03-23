@@ -1,5 +1,5 @@
 <template>
-  <DatePicker label="Pick a day" v-model="date.value"></DatePicker>
+  <DatePicker label="Pick a day" v-model="date.value" @change="on_change"></DatePicker>
 </template>
 
 <script src="./basic_setup.py"></script>

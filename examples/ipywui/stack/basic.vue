@@ -5,7 +5,7 @@
     <Button label="s3" style="width: auto" @click="to('s3')"></Button>
   </HBox>
 
-  <Stack v-model="selected.value">
+  <Stack v-model="selected.value" @change="on_change">
     <StackItem label="s1">
       <Slider description="s1 slider"></Slider>
     </StackItem>
@@ -21,7 +21,6 @@
   </Stack>
 </template>
 
-<script src="./basic_setup.py"></script>
 <script setup>
 import Stack from "../../../src/ipywui/components/Stack";
 import StackItem from "../../../src/ipywui/components/StackItem";
@@ -29,4 +28,17 @@ import Slider from "../../../src/ipywui/components/Slider";
 import Input from "../../../src/ipywui/components/Input";
 import Button from "../../../src/ipywui/components/Button";
 import HBox from "../../../src/ipywui/components/HBox";
+</script>
+<script lang="py">
+from vuepy import ref
+
+selected = ref('s1')
+
+def to(label):
+    selected.value = label
+
+def on_change(event):
+    # get selected index
+    print(event) # {'new': 1, 'old': 0, 'owner': Stack(...)}
+
 </script>
