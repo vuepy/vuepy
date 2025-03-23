@@ -22,13 +22,13 @@
 
 ## About
 
-Vue.py (pronounced /vjuːpaɪ/, like "view py") is a Python framework for building user interfaces. It is built upon standard HTML, CSS, and Python, offering a declarative and component-based programming model that aids in the efficient development of user interfaces. Vue.py is capable of handling both simple and complex interfaces.
+Vue.py (pronounced /vjuːpaɪ/, like "view py") is a reactive Python framework for building web interface in Jupyter. It is built upon standard HTML, CSS, and Python, offering a declarative and component-based programming model that aids in the efficient development of user interfaces. Vue.py is capable of handling both simple and complex interfaces.
 
-* 🛠️ create custom Jupyter UI using pure Python
+* 🛠️ create custom web interface using pure Python in Jupyter
 * 🤖 prototype within .ipynb or .py files
 * 🪄 reactive: update the data, vuepy will reactively update all dependent view components
 * 🚀 batteries-included: built-in IPywUI includes 37+ commonly used UI components
-* 🧩 extensible: can easily integrate third-party libraries such as plotly, pandas, etc
+* 🧩 extensible: can easily integrate third-party python libraries such as plotly, pandas, etc
 * 🖐️ interactive: bind sliders, buttons, plots, and more to Python — no callbacks required
 * 🚀 run in Jupyter, JupyterLab, VSCode, Cursor, Google Colab and more
 * ✨ generate UI interface with one click through AI-driven conversation interface. provide [llms.txt](https://www.vuepy.org/llms.txt), [llms-ctx.txt](https://www.vuepy.org/llms-ctx.txt)
