@@ -92,10 +92,21 @@ class VueCompCodeGen:
             'slots': slots,
             'emit': '',
         }
+        # get v-bind init value
         props = {
             widget_attr: exp_ast.eval(ns)
             for widget_attr, exp_ast in comp_ast.v_binds.items()
         }
+        # get v-model init value
+        for _model_key, _attr_chain in comp_ast.v_model:
+            # :bind, parent to child
+            # widget_attr = component_cls.v_model_default  # VueCompTag.v_model(comp_ast.tag)
+            if _model_key == defineModel.DEFAULT_KEY and hasattr(component_cls, 'v_model_default'):
+                _widget_attr = getattr(component_cls, 'v_model_default')
+            else:
+                _widget_attr = _model_key
+
+            props[_widget_attr] = to_raw(ns.getattr(_attr_chain))
 
         if isinstance(component_cls, SFCType):
             component = component_cls.gen(props, ctx, app)
