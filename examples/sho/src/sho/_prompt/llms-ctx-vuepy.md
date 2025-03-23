@@ -62,7 +62,7 @@ def setup(props, context, app):
 
 `<script setup>`：只作为IDE的自动补全提示使用，对实际运行没有影响。
 
-`<style>`：暂不支持。
+`<style>`：暂不支持，可以在template中直接编写。
 
 ## 创建Vue.py应用
 
