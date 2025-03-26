@@ -208,6 +208,32 @@ v-on和vue.js的基本一致。
 不同点：
 * 只支持自定义组件(如 Button等)，暂不支持原生 html 元素（如 span等）
 * 只实现了最基础的功能
+
+支持函数和`async def`的异步函数
+```vue
+<template>
+  <Button button_style="info" @click="async_click()">btn1</Button>
+  <Button button_style="info" @click="click()">btn2</Button>
+</template>
+
+<script lang="py">
+import asyncio
+
+async def async_click():
+    print('async_click: start')
+    await asyncio.sleep(2)
+    print('async_click: end')
+
+def click():
+    print('sync_click: click')
+</script>
+```
+先点击btn1，马上再点击btn2，打印的结果如下：
+```
+async_click: start
+sync_click: click
+async_click: end
+```
 ## 表单输入绑定
 
 v-model和vue.js的基本一致。  
