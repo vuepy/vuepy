@@ -67,6 +67,8 @@ class App:
         context = {}
         if isinstance(root_component, SFCType):
             self.root_component: SFC = root_component.gen(props, context, self)
+        elif issubclass(root_component, VueComponent):
+            self.root_component = root_component(props, context, self)
         else:
             raise ValueError(
                 f"root_component only support {RootComponent}, {type(root_component)} found."
@@ -112,11 +114,11 @@ class App:
 
     def render(self):
         logger.info('App render start.')
-        if not isinstance(self.root_component, SFC):
+        if not isinstance(self.root_component, VueComponent):
             raise ValueError(f"render failed, root_component type {type(self.root_component)}.")
 
         # self.dom = self.options.render({}, self._props, self._data)
-        self.dom = self.root_component.render()
+        self.dom = self.root_component.render({}, {}, {})
         # with self.options.el:
         # with self._container:
         #     clear_output(True)
@@ -185,7 +187,7 @@ class VuePlugin:
 
 VueOptions = SFCType
 
-RootComponent = Type[Union[Type[VueComponent], SFCType, dict]]
+RootComponent = Union[Type[VueComponent], SFCType, dict]
 
 
 def create_app(root_component: RootComponent, use_wui=True, **root_props) -> App:
