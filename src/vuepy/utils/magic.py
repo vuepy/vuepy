@@ -1,7 +1,9 @@
 # coding: utf-8
+import argparse
 import json
 import logging
 from pathlib import Path
+import shlex
 
 import IPython
 from IPython.core.magic import register_line_cell_magic
@@ -132,10 +134,9 @@ def vuepy_run(vue_file, cell=''):
     """
     run Vuepy app from vue_file or raw_content of vue file or Component
 
-    usage:
-    cell magic: from raw_content of vue file
+    Usage 1: cell magic: from raw_content of vue file
     ```
-    ------------------
+    ------cell--------
     %%vuepy_run
     <template>
       <Button description="add"
@@ -145,27 +146,50 @@ def vuepy_run(vue_file, cell=''):
     ------------------
     ```
 
-    line magic: from vue_file
+    Usage 2: cell magic: with plugins and app_var
     ```
+    ------cell--------
+    [1] from ipywui import wui
+    ------cell--------
+    %%vuepy_run --plugins wui --app app
+    <template><p>hello</p></template>
+    ------cell--------
+    [2] app
+    App at 0x100000000
     ------------------
+    ```
+
+    Usage 3: line magic: from vue_file
+    ```
+    ------cell--------
     %vuepy_run app.vue
     ------------------
     ```
 
-    line magic: from Component
+    Usage 4: line magic: from Component
     ```
-    ------------------
+    ------cell--------
     %%vuepy_import Component1
     <template>
       <Button description="add"
               button_style="info"
       ></Button>
     </template>
-
-    ------------------
+    ------cell--------
     # Equivalent to create_app(Component1).mount()
     %vuepy_run $$Component1
+    ------------------
+    ```
 
+    Usage 5: line magic: with plugins and app_var
+    ```
+    ------cell--------
+    [1] from ipywui import wui
+    ------cell--------
+    [2] %vuepy_run test.vue --plugins wui --app app
+    ------cell--------
+    [3] app
+    App at 0x100000000
     ------------------
     ```
 
@@ -173,12 +197,42 @@ def vuepy_run(vue_file, cell=''):
     :param cell: raw_content of vue file | None
     :return:
     """
+    def add_vue_file_params(parser: argparse.ArgumentParser):
+        parser.add_argument('vue_file', 
+                            type=str, 
+                            help='Vue file to run') 
+        return parser
+
+    def add_plugins_params(parser: argparse.ArgumentParser):
+        parser.add_argument('--plugins', 
+                            required=False,
+                            nargs='+', 
+                            default=[],
+                            type=lambda v: [i.strip() for i in v.split(',')],
+                            help='List of plugins (comma-separated or space-separated)')
+        return parser
+
+    def add_app_var_params(parser: argparse.ArgumentParser):
+        parser.add_argument('--app', 
+                            required=False,
+                            type=str, 
+                            help='Name of the variable to store the app instance')
+        return parser
+
+    parser = argparse.ArgumentParser()
+    ipython = IPython.get_ipython()
     if cell:
+        add_plugins_params(parser)
+        add_app_var_params(parser)
+        args, _ = parser.parse_known_args(shlex.split(vue_file))
         App = import_sfc(cell, raw_content=True)
     else:
-        vue_file = vue_file.strip()
+        add_vue_file_params(parser)
+        add_plugins_params(parser)
+        add_app_var_params(parser)
+        args, _ = parser.parse_known_args(shlex.split(vue_file))
+        vue_file = args.vue_file
         if vue_file.startswith('$'):
-            ipython = IPython.get_ipython()
             App = ipython.user_ns[vue_file[1:]]
         elif vue_file in VuepyAppStore.get_all_registry():
             App = VuepyAppStore.get(vue_file)
@@ -186,6 +240,19 @@ def vuepy_run(vue_file, cell=''):
             App = import_sfc(vue_file)
 
     app = create_app(App)
+    plugins = []
+    for _p in args.plugins:
+        plugins.extend(_p) if isinstance(_p, list) else plugins.append(_p)
+
+    for plugin in plugins:
+        if plugin not in ipython.user_ns:
+            raise ValueError(f"Plugin {plugin} not found in user namespace")
+        app.use(ipython.user_ns[plugin])
+
+    if args.app:
+        ipython = IPython.get_ipython()
+        ipython.user_ns[args.app] = app 
+
     return app.mount()
 
 

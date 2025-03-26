@@ -3,6 +3,8 @@
 # ---------------------------------------------------------
 from __future__ import annotations
 
+import asyncio
+from collections.abc import Coroutine
 from typing import Type
 
 import ipywidgets as widgets
@@ -194,6 +196,7 @@ class VueCompCodeGen:
 
     @staticmethod
     def add_event_listener(widget, event, listener):
+        listener = wrap_callback(listener)
         if hasattr(widget, SFC.ADD_EVENT_LISTENER_FN):  # SFC
             getattr(widget, SFC.ADD_EVENT_LISTENER_FN)(event, listener)
         elif event.startswith('update:'):  # anywidget, ipyw
@@ -201,3 +204,22 @@ class VueCompCodeGen:
             widget.observe(listener, names=attr)
         else:  # ipyw click
             getattr(widget, f"on_{event}")(listener)
+
+
+def wrap_callback(callback):
+    """
+    Wraps a callback function to handle coroutines.
+    If the callback returns a coroutine, it will be scheduled to run in the event loop.
+    If the callback returns a non-coroutine, it will be returned immediately.
+    """
+    def _callback(*args, **kwargs):
+        ret = callback(*args, **kwargs)
+        if isinstance(ret, Coroutine):
+            # for jupyter
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                return asyncio.create_task(ret)
+            else:
+                asyncio.run(ret)
+        return ret
+    return _callback
