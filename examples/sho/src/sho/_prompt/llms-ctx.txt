@@ -10,7 +10,7 @@ vuep.py是一个用于构建用户界面的python框架。它基于标准html、
 ## 安装vuepy
 
 ```
-pip install org.vuepy.core
+pip install vuepy-core
 ```
 
 ## 单文件组件 SFC
