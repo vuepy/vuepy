@@ -68,3 +68,6 @@ __all__ = [
     'onBeforeMount',
     'onMounted',
 ]
+
+def load_ipython_extension(ipython):
+    from vuepy.utils import magic
