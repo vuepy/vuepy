@@ -219,17 +219,27 @@ def vuepy_run(vue_file, cell=''):
                             help='Name of the variable to store the app instance')
         return parser
 
+    def add_show_code_params(parser: argparse.ArgumentParser):
+        parser.add_argument('--show-code',
+                            required=False,
+                            action='store_true',
+                            help='show code')
+        return parser
+
+
     parser = argparse.ArgumentParser()
     ipython = IPython.get_ipython()
     if cell:
         add_plugins_params(parser)
         add_app_var_params(parser)
+        add_show_code_params(parser)
         args, _ = parser.parse_known_args(shlex.split(vue_file))
         App = import_sfc(cell, raw_content=True)
     else:
         add_vue_file_params(parser)
         add_plugins_params(parser)
         add_app_var_params(parser)
+        add_show_code_params(parser)
         args, _ = parser.parse_known_args(shlex.split(vue_file))
         vue_file = args.vue_file
         if vue_file.startswith('$'):
@@ -251,7 +261,14 @@ def vuepy_run(vue_file, cell=''):
 
     if args.app:
         ipython = IPython.get_ipython()
-        ipython.user_ns[args.app] = app 
+        ipython.user_ns[args.app] = app
+
+    if args.show_code:
+        # sfc_file_comment = f'<!-- {sfc_file_path} -->\n'
+        print(json.dumps({
+            'vue': cell,
+            'setup': '',
+        }))
 
     return app.mount()
 

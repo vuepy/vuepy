@@ -77,6 +77,9 @@ class DomCompiler(HTMLParser):
         return self.html_lines[row_idx][col_idx: col_idx + len(tag)]
 
     def _to_camel_case_tag(self, tag):
+        """
+        came-case to CameCase
+        """
         words = tag.split('-')
         if len(words) == 1:
             return tag
