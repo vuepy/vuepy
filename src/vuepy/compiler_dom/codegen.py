@@ -11,6 +11,7 @@ from typing import Tuple
 
 import ipywidgets as widgets
 
+from vuepy import defineEmits
 from vuepy import log
 from vuepy.compiler_core.ast import NodeAst
 from vuepy.compiler_core.ast import VForAst
@@ -22,6 +23,24 @@ from vuepy.reactivity.watch import WatchOptions
 from vuepy.reactivity.watch import watch
 
 logger = log.getLogger()
+
+
+class HtmlWidget(widgets.HTMLMath):
+    EV_VALUE_CHANGE = 'value_change'
+
+    def __init__(self, value=None, **kwargs):
+        super().__init__(value, **kwargs)
+        self.emits = defineEmits([self.EV_VALUE_CHANGE])
+
+    def on_change(self, callback, remove=False):
+        self.emits.add_event_listener(self.EV_VALUE_CHANGE, callback, remove)
+
+    def __setattr__(self, key, value):
+        super().__setattr__(key, value)
+
+        if key == 'value':
+            # trigger event: value_change
+            self.emits(self.EV_VALUE_CHANGE, value)
 
 
 def v_for_stack_to_iter(stack: List[VForAst], fn: VForIterFn, ns: dict,
@@ -186,7 +205,7 @@ class VueHtmlCompCodeGen:
             for child in node.children:
                 if callable(child):
                     inner.append(child())
-                elif isinstance(child, widgets.HTML):
+                elif isinstance(child, HtmlWidget):
                     inner.append(child.value)
                 else:
                     inner.append(child)
@@ -209,7 +228,7 @@ class VueHtmlCompCodeGen:
 
     @classmethod
     def gen_from_fn(cls, fn):
-        widget = widgets.HTML()
+        widget = HtmlWidget()
 
         @watch(fn, WatchOptions(immediate=True))
         def _update_html_widget_value(new_html, old_html, on_cleanup):
