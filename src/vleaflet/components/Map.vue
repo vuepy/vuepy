@@ -1,6 +1,8 @@
 <template>
   <div>
+    <!-- The list of layers that are currently on the map. -->
     <slot name="layers"> /* Marker, Circle, Rectangle, Polygon Polyline ... */ </slot>
+    <!-- The list of controls that are currently on the map. -->
     <slot name="controls">/* Layers, Draw, Measure, ... */</slot>
   </div>
 </template>
@@ -8,8 +10,9 @@
 <script>
 export default {
   name: 'LLMap',
+  event: [],
   props: {
-    /* The current center of the map */
+    /* v-model:center The current center of the map */
     center: {
       type: Array,
       default: () => [0, 0]
@@ -144,7 +147,27 @@ export default {
     basemap: {
       type: Object,
       default: () => ({}) /* OpenStreetMap */
-    }
+    },
+    /* css style: height, width, max_height, max_width, border...
+     */
+    style: {
+      type: string,
+      default: ''
+    },
+  },
+  methods: {
+    // Add an item on the map: either a layer or a control.
+    add(item, index=null) {},
+    // Clear all layers and controls.
+    clear() {},
+    // Sets a map view that contains the given geographical bounds with the maximum zoom level possible.
+    fit_bounds(bounds) {},
+    // Remove an item from the map : either a layer or a control.
+    remove(item) {},
+    // Save the Map to an .html file.
+    save(outfile, title) {},
+    // Replace an item (layer or control) with another one on the map.
+    substitute(old, new_) {},
   }
 }
 </script>

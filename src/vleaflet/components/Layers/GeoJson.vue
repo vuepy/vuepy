@@ -5,7 +5,7 @@
 <script>
 // https://ipyleaflet.readthedocs.io/en/latest/layers/geo_json.html
 export default {
-  name: 'VlGeoJSON',
+  name: 'VlGeoJson',
   event: ['click', 'hover'],
   props: {
     // The JSON data structure.

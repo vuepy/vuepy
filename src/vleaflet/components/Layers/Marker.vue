@@ -7,13 +7,15 @@
 <script>
 export default {
   name: 'VlMarker',
+  event: ['move'],
   props: {
-    // The tuple containing the latitude/longitude of the marker.
+    // v-model, The tuple containing the latitude/longitude of the marker.
     location: {
       type: Array,
       required: true,
       default: () => [0, 0]
     },
+    // layer name
     name: {
       type: String,
       default: '',
