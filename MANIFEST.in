@@ -9,3 +9,7 @@ include src/ipywui/widgets/assets/css/*.css
 include src/ipywui/widgets/custom/clipboard/*
 include src/ipywui/widgets/custom/dialog/*
 include src/ipywui/widgets/custom/message/*
+
+include src/vleaflet/components/*.vue
+include src/vleaflet/components/Controls/*.vue
+include src/vleaflet/components/Layers/*.vue

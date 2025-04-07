@@ -17,7 +17,7 @@ with open(os.path.join(HERE, "README.md")) as fid:
 setup(
     name="vuepy-core",
     version="0.1.9",
-    description="Vue.py is a progressive, incrementally-adoptable Python framework for building UI on the Jupyter Notebook.",
+    description="Vue.py is a progressive, incrementally-adoptable Python framework for building web interface in Jupyter Notebook.",
     long_description=README,
     long_description_content_type="text/markdown",
     url="https://www.vuepy.org",
@@ -39,4 +39,7 @@ setup(
         "anywidget",
     ],
     entry_points={"console_scripts": ["vuepy=vuepy.__main__:main"]},
+    extras_require={
+        'vleaflet': ['ipyleaflet'],
+    },
 )
