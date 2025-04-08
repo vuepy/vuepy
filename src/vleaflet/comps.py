@@ -150,7 +150,7 @@ class LayersControl(IPyLeafletComponent):
 
 
 @leaflet.ns_register()
-class FullScreenControl(IPyLeafletComponent):
+class FullscreenControl(IPyLeafletComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs}
         _params.setdefault('primary_length_unit', 'meters')
