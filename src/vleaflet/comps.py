@@ -168,7 +168,11 @@ class MeasureControl(IPyLeafletComponent):
 @leaflet.ns_register()
 class SplitMapControl(IPyLeafletComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
-        return ipyleaflet.SplitMapControl(**props, **attrs)
+        slots = ctx.get('slots')
+        left = getattr(slots.get('left', []), 'children', [None])[0]
+        right = getattr(slots.get('right', []), 'children', [None])[0]
+        _params = {**props, **attrs, 'left_layer': left, 'right_layer': right}
+        return ipyleaflet.SplitMapControl(**_params)
 
 
 @leaflet.ns_register()
