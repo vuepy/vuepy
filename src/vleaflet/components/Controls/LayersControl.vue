@@ -3,14 +3,14 @@
 </template>
 <script>
 export default {
-  name: 'LLayersControl',
+  name: 'VlLayersControl',
   props: {
-    // 图层控制的位置
     position: {
       type: String,
       default: 'topright'
     },
-    // 是否折叠, not dynamic!
+    // whether control should be open or closed by default,
+    // not dynamic!
     collapsed: {
       type: Boolean,
       default: true

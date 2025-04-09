@@ -153,8 +153,6 @@ class LayersControl(IPyLeafletComponent):
 class FullscreenControl(IPyLeafletComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs}
-        _params.setdefault('primary_length_unit', 'meters')
-        _params.setdefault('primary_area_unit', 'sqmeters')
         return ipyleaflet.FullScreenControl(**_params)
 
 
@@ -162,7 +160,10 @@ class FullscreenControl(IPyLeafletComponent):
 class MeasureControl(IPyLeafletComponent):
     # todo 如何获取标记的点？
     def _render(self, ctx, attrs, props, params, setup_returned):
-        return ipyleaflet.MeasureControl(**props, **attrs)
+        _params = {**props, **attrs}
+        _params.setdefault("primary_length_unit", 'meters')
+        _params.setdefault("primary_area_unit", 'sqmeters')
+        return ipyleaflet.MeasureControl(**_params)
 
 
 @leaflet.ns_register()
@@ -189,7 +190,7 @@ class LegendControl(IPyLeafletComponent):
 
 @leaflet.ns_register()
 class SearchControl(IPyLeafletComponent):
-    # todo search layers
+    # todo search layers, put onmounted
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         default_slot = ctx.get('slots', {}).get('default')

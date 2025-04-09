@@ -7,15 +7,15 @@
   https://geoman.io/docs/leaflet/modes/draw-mode#customize-style
 */
 export default {
-  name: 'LGeomanDrawControl',
+  name: 'VlGeomanDrawControl',
+  event: ['draw'],
   props: {
-    // Geoman绘制控制的位置
     position: {
       type: String,
       default: 'topleft',
       validator: (value) => ['topleft', 'topright', 'bottomleft', 'bottomright'].includes(value)
     },
-    // 绘制选项
+    // draw options
     draw: {
       type: Object,
       default: () => ({
@@ -28,7 +28,7 @@ export default {
         text: true,
       })
     },
-    // 编辑选项
+    // edit optinos
     edit: {
       type: Object,
       default: () => ({
@@ -39,6 +39,10 @@ export default {
         rotate: true
       })
     }
+  },
+  methods: {
+    // clear all text
+    clear_text() {},
   }
 }
 </script> 

@@ -1,12 +1,13 @@
 <template>
   <div>
+    <!-- marker: The marker used by the control.  -->
     <slot name="default">marker</slot>
   </div>
 </template>
 <script>
 // https://ipyleaflet.readthedocs.io/en/latest/controls/search_control.html
 export default {
-  name: 'LSearchControl',
+  name: 'VlSearchControl',
   model: {
     event: ['feature_found', 'location_found']
   },
@@ -16,6 +17,7 @@ export default {
       default: 'topleft',
       validator: (value) => ['topleft', 'topright', 'bottomleft', 'bottomright'].includes(value)
     },
+    // The url used for the search queries.
     url: {
       type: String,
       required: true
@@ -25,9 +27,15 @@ export default {
       type: LayerGroup,
       default: null
     },
+    // The zoom level after moving to searched location, by default zoom level will not change.
     zoom: {
       type: Number,
       default: null
+    },
+    // Style for searched feature when searching in LayerGroup.
+    found_style: {
+      type: String,
+      default:  {'fillColor': '#3f0', 'color': '#0f0'}
     },
     property_name: {
       type: String,

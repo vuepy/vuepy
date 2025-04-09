@@ -3,24 +3,27 @@
 </template>
 <script>
 export default {
-  name: 'LLegendControl',
+  name: 'VlLegendControl',
   props: {
-    // 图例控制的位置
     position: {
       type: String,
       default: 'bottomright',
       validator: (value) => ['topleft', 'topright', 'bottomleft', 'bottomright'].includes(value)
     },
-    // 图例标题
+    // The title of the legend.
     title: {
       type: String,
       default: '图例'
     },
-    // 图例内容
+    // A dictionary containing names as keys and CSS colors as values.
     legend: {
       type: Object, // {name: css color}
       required: true
     }
+  },
+  methods: {
+    add_legend_element(key, val) {},
+    remove_legend_element(key) {},
   }
 }
 </script> 

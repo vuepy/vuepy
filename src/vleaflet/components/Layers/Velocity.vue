@@ -5,22 +5,46 @@
 </template>
 
 <script>
-// todo
+// https://ipyleaflet.readthedocs.io/en/latest/layers/velocity.html
 export default {
   name: 'LLVelocity',
   props: {
+    // Underlying dataset
     data: {
       type: Object,
       required: true
     },
+    // layer name
     name: {
       type: String,
       default: ''
     },
+    // Variable name in underlying dataset for the zonal speed.
+    zonal_speed: {
+      type: String,
+      default: ''
+    },
+    // Variable name in underlying dataset for the meridional speed.
+    meridional_speed: {
+      type: String,
+      default: ''
+    },
+    // Name of the latitude dimension in underlying dataset.
+    latitude_dimension: {
+      type: String,
+      default: ''
+    },
+    // Name of the longitude dimension in underlying dataset.
+    longitude_dimension: {
+      type: String,
+      default: ''
+    },
+    // Display velocity data on mouse hover.
     display_values: {
       type: Boolean,
       default: true
     },
+    // Display options.
     display_options: {
       type: Object,
       default: () => ({
@@ -31,31 +55,26 @@ export default {
         speed_unit: 'kts'
       })
     },
+    // Used to align color scale
     min_velocity: {
       type: Number,
       default: 0
     },
+    // Used to align color scale.
     max_velocity: {
       type: Number,
       default: 10
     },
+    // To be modified for particle animations.
     velocity_scale: {
       type: Number,
       default: 0.005
     },
+    // Array of hex/rgb colors for user-specified color scale.
     color_scale: {
       type: Array,
-      default: () => ['rgb(36,104, 180)', 'rgb(60,157, 194)', 'rgb(128,205,193)', 'rgb(151,218,168)', 'rgb(198,231,181)', 'rgb(238,247,217)', 'rgb(255,238,159)', 'rgb(252,217,125)', 'rgb(255,182,100)', 'rgb(252,150,75)', 'rgb(250,112,52)', 'rgb(245,64,32)', 'rgb(237,45,28)', 'rgb(220,24,32)', 'rgb(180,0,35)']
+      default: () => []
     },
-    opacity: {
-      type: Number,
-      default: 0.97,
-      validator: (value) => value >= 0 && value <= 1
-    },
-    visible: {
-      type: Boolean,
-      default: true
-    }
   }
 }
 </script> 
