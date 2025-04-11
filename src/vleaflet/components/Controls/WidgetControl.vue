@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- The widget to put inside of the control. It can be any widget, even coming from a third-party library like bqplot.  -->
-    <slot></slot>
+    <slot name="default"></slot>
   </div>
 </template>
 <script>

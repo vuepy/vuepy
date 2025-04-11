@@ -1,7 +1,7 @@
 <template>
   <div>
-    <!-- markers -->
-    <slot></slot>
+    <!-- markers: List of markers to include in the cluster. -->
+    <slot name="default"></slot>
   </div>
 </template>
 

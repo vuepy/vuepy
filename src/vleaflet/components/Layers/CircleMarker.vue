@@ -16,9 +16,8 @@ export default {
     },
     // Radius of the circle in pixels.
     radius: {
-      type: Array,
+      type: Number,
       required: true,
-      validator: (value) => value.length === 2 && value.every(coord => Array.isArray(coord) && coord.length === 2)
     },
     // layer name
     name: {

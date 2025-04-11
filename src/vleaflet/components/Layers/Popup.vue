@@ -1,7 +1,7 @@
 <template>
   <div>
-    <!-- child -->
-    <slot></slot>
+    <!-- child: Child widget that the Popup will contain. -->
+    <slot name="default"></slot>
   </div>
 </template>
 

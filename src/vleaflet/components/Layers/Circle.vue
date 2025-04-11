@@ -14,11 +14,10 @@ export default {
       required: true,
       default: () => [0, 0]
     },
-    // Radius of the circle in pixels.
+    // Radius of the circle in meters.
     radius: {
-      type: Array,
+      type: Number,
       required: true,
-      validator: (value) => value.length === 2 && value.every(coord => Array.isArray(coord) && coord.length === 2)
     },
     // layer name
     name: {

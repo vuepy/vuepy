@@ -1,6 +1,7 @@
 <template>
   <div>
-    <slot></slot>
+    <!-- List of layers to include in the group. -->
+    <slot name="default"></slot>
   </div>
 </template>
 
@@ -8,11 +9,6 @@
 export default {
   name: 'VlLayerGroup',
   props: {
-    // List of layers to include in the group.
-    layers: {
-      type: Array,
-      default: []
-    },
     // layer name
     name: {
       type: String,

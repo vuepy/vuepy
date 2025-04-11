@@ -1,6 +1,7 @@
 <template>
   <div>
-    <slot></slot>
+    <!-- layers: Set of layers to display in the magnified view. These layers shouldn’t be already added to a map instance. -->
+    <slot name="default"></slot>
   </div>
 </template>
 
@@ -34,11 +35,6 @@ export default {
     fixed_zoom: {
       type: Number,
       default: null
-    },
-    // Set of layers to display in the magnified view. These layers shouldn’t be already added to a map instance.
-    layers: {
-      type: Array,
-      default: () => []
     },
     name: {
       type: String,

@@ -351,6 +351,10 @@ class Popup(IPyLeafletComponent):
         _params = {**props, **attrs}
         if widgets:
             widgets = widgets[0] if len(widgets) == 1 else vbox(widgets)
+            _child_param = _params.get('child')
+            if isinstance(_child_param, (list, tuple)):
+                widgets.extend(_child_param)
+
             _params['child'] = widgets
 
         return ipyleaflet.Popup(**_params)

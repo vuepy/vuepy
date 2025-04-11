@@ -5,6 +5,7 @@
   </div>
 </template>
 <script>
+// https://ipyleaflet.readthedocs.io/en/latest/layers/marker.html
 export default {
   name: 'VlMarker',
   event: ['move'],
