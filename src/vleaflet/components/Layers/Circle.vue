@@ -10,7 +10,7 @@ export default {
   props: {
     // The tuple containing the latitude/longitude of the Circle.
     location: {
-      type: Array,
+      type: [Number, Number],
       required: true,
       default: () => [0, 0]
     },
