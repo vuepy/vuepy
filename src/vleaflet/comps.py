@@ -8,80 +8,12 @@ from vleaflet.core import IPyLeafletComponent, leaflet
 class Map(IPyLeafletComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
-
-        # # Basic parameters
-        # center = props.get('center', [0, 0])
-        # zoom = props.get('zoom', 10)
-
-        # # Zoom related parameters
-        # max_zoom = props.get('max_zoom')
-        # min_zoom = props.get('min_zoom')
-        # zoom_snap = props.get('zoom_snap', 1)
-        # zoom_delta = props.get('zoom_delta', 1)
-
-        # # Interaction related parameters
-        # dragging = props.get('dragging', True)
-        # touch_zoom = props.get('touch_zoom', True)
-        # scroll_wheel_zoom = props.get('scroll_wheel_zoom', False)
-        # double_click_zoom = props.get('double_click_zoom', True)
-        # box_zoom = props.get('box_zoom', True)
-        # tap = props.get('tap', True)
-        # tap_tolerance = props.get('tap_tolerance', 15)
-        # world_copy_jump = props.get('world_copy_jump', False)
-        # close_popup_on_click = props.get('close_popup_on_click', True)
-        # bounce_at_zoom_limits = props.get('bounce_at_zoom_limits', True)
-
-        # # Keyboard control parameters
-        # keyboard = props.get('keyboard', True)
-        # keyboard_pan_offset = props.get('keyboard_pan_offset', 80)
-        # keyboard_zoom_offset = props.get('keyboard_zoom_offset', 1)
-
-        # # Inertia related parameters
-        # inertia = props.get('inertia', True)
-        # inertia_deceleration = props.get('inertia_deceleration', 3000)
-        # inertia_max_speed = props.get('inertia_max_speed', 1500)
-
-        # # Control related parameters
-        # zoom_control = props.get('zoom_control', True)
-        # attribution_control = props.get('attribution_control', True)
-        # zoom_animation_threshold = props.get('zoom_animation_threshold', 4)
-
-        # # Style related parameters
-        # style = props.get('style', {})
-
-        # Create map instance
         _params = {
             **props,
             **attrs,
         }
         map_widget = ipyleaflet.Map(
             **{k.replace('-', '_'): v for k, v in _params.items()},
-            # center=center,
-            # zoom=zoom,
-            # max_zoom=max_zoom,
-            # min_zoom=min_zoom,
-            # zoom_snap=zoom_snap,
-            # zoom_delta=zoom_delta,
-            # dragging=dragging,
-            # touch_zoom=touch_zoom,
-            # scroll_wheel_zoom=scroll_wheel_zoom,
-            # double_click_zoom=double_click_zoom,
-            # box_zoom=box_zoom,
-            # tap=tap,
-            # tap_tolerance=tap_tolerance,
-            # world_copy_jump=world_copy_jump,
-            # close_popup_on_click=close_popup_on_click,
-            # bounce_at_zoom_limits=bounce_at_zoom_limits,
-            # keyboard=keyboard,
-            # keyboard_pan_offset=keyboard_pan_offset,
-            # keyboard_zoom_offset=keyboard_zoom_offset,
-            # inertia=inertia,
-            # inertia_deceleration=inertia_deceleration,
-            # inertia_max_speed=inertia_max_speed,
-            # zoom_control=zoom_control,
-            # attribution_control=attribution_control,
-            # zoom_animation_threshold=zoom_animation_threshold,
-            # **style
         )
 
         layers = getattr(slots.get('layers', []), 'children', [])
