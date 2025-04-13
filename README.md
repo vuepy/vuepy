@@ -11,7 +11,7 @@
 </h1>
 <samp>
   <p align="center">
-    <span>a progressive, incrementally-adoptable Python framework <br>for building UI on the Jupyter Notebook.</span>
+    <span>a progressive, incrementally-adoptable Python framework <br>for building web interface in Jupyter Notebook.</span>
       <br>
       <a href="#installation">installation</a> .
       <a href="https://www.vuepy.org/guide/introduction.html">docs</a> .
@@ -28,7 +28,7 @@ Vue.py (pronounced /vjuːpaɪ/, like "view py") is a reactive Python framework f
 * 🤖 prototype within .ipynb or .py files
 * 🪄 reactive: update the data, vuepy will reactively update all dependent view components
 * 🚀 batteries-included: built-in IPywUI includes 37+ commonly used UI components
-* 🧩 extensible: can easily integrate third-party python libraries such as plotly, pandas, etc
+* 🧩 extensible: can easily integrate third-party python libraries such as plotly, pandas, ipyleaflet etc
 * 🖐️ interactive: bind sliders, buttons, plots, and more to Python — no callbacks required
 * 🚀 run in Jupyter, JupyterLab, VSCode, Cursor, Google Colab and more
 * ✨ generate UI interface with one click through AI-driven conversation interface. provide [llms.txt](https://www.vuepy.org/llms.txt), [llms-ctx.txt](https://www.vuepy.org/llms-ctx.txt)

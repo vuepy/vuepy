@@ -141,8 +141,12 @@ class WidgetCssStyle:
         :param css_style:
         :return: {'style': {...}, 'layout': {...}}
         """
-        attrs_str = (kv.strip().split(':') for kv in css_style.rstrip('; ').split(';'))
-        attrs = ((k.strip().replace('-', '_'), v.strip()) for k, v in attrs_str)
+        if isinstance(css_style, dict):  # Adaptation :style="{'a': 1}"
+            attrs = css_style.items()
+        else:
+            attrs_str = (kv.strip().split(':') for kv in css_style.rstrip('; ').split(';'))
+            attrs = ((k.strip().replace('-', '_'), v.strip()) for k, v in attrs_str)
+
         ret = {
             cls.WIDGET_STYLE_ATTR: {},
             cls.WIDGET_LAYOUT_ATTR: {},
