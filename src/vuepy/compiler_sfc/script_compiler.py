@@ -51,11 +51,9 @@ class ScriptCompiler:
         module.body = [func_ast]
         ast.fix_missing_locations(module)
         code = compile(module, filename='<ast>', mode='exec')
-
-        pymodule = types.ModuleType('tmp_module')
-        pymodule.__dict__['__file__'] = source_file_path
-        exec(code, pymodule.__dict__)
-        return pymodule.setup
+        ns = {}
+        exec(code, ns)
+        return ns[func_name]
 
     @staticmethod
     def compile_script_src(dir_path, src):
