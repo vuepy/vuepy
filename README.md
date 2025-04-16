@@ -103,7 +103,10 @@ Check out our [docs](https://www.vuepy.org/guide/introduction.html), the `exampl
   <tr>
     <td><img src='https://github.com/vuepy/vuepy/blob/master/docs/assets/vleaflet-demo-orgin-low.gif?raw=true' with='389px'></td>
     <td>vleaflet interactive maps demo</td>
-    <td><a target="_blank" href="https://github.com/vuepy/vuepy/blob/master/examples/vleaflet_travel/travel.ipynb">Read more</a> </td>
+    <td>
+      <a target="_blank" href="https://github.com/vuepy/vuepy/blob/master/examples/vleaflet_travel/travel.ipynb">Read more</a>, 
+      <a target="_blank" href="https://www.vuepy.org/vleaflet/overview.html">docs</a>
+    </td>
   </tr>
 </table>
 
