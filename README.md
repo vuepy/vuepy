@@ -100,6 +100,11 @@ Check out our [docs](https://www.vuepy.org/guide/introduction.html), the `exampl
     <td>Building vuepy app with LLMs</td>
     <td><a target="_blank" href="https://www.vuepy.org/guide/build-vuepy-withs-llms.html">Read more</a> </td>
   </tr>
+  <tr>
+    <td><img src='https://github.com/vuepy/vuepy/blob/master/docs/assets/vleaflet-demo-orgin-low.gif?raw=true' with='389px'></td>
+    <td>vleaflet interactive maps demo</td>
+    <td><a target="_blank" href="https://github.com/vuepy/vuepy/blob/master/examples/vleaflet_travel/travel.ipynb">Read more</a> </td>
+  </tr>
 </table>
 
 
