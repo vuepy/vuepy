@@ -8,7 +8,7 @@
 // https://ipyleaflet.readthedocs.io/en/latest/layers/marker.html
 export default {
   name: 'VlMarker',
-  event: ['move'],
+  event: ['move', 'click'],
   props: {
     // v-model, The tuple containing the latitude/longitude of the marker.
     location: {
