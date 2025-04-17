@@ -6,8 +6,44 @@ import jinja2
 import ipynb_converter
 
 HERE = Path(__file__).absolute().parent
+VLEAFLET_DIR = HERE.parent.parent.parent.parent / 'examples' / 'vleaflet'
 PROMPT_TPL_DIR = HERE.parent.parent / 'prompts'
 PROMPT_OUT_DIR = HERE / '_prompt'
+
+
+def convert_ipynb_to_md(ipynb_path):
+    with open(ipynb_path) as f:
+        return ipynb_converter.ipynb_demo_to_markdown_prompt(f.read())
+
+
+def gen_vleaflet_ctx():
+    ipynb_files = []
+    
+    main_files = ['Map.ipynb', 'Basemaps.ipynb']
+    for file in main_files:
+        ipynb_files.append(VLEAFLET_DIR / file)
+    
+    layers_dir = VLEAFLET_DIR / 'layers'
+    ipynb_files.extend(layers_dir.glob('*.ipynb'))
+    
+    controls_dir = VLEAFLET_DIR / 'controls'
+    ipynb_files.extend(controls_dir.glob('*.ipynb'))
+    
+    all_content = []
+    for ipynb_file in ipynb_files:
+        if ipynb_file.name.startswith('.'):
+            continue
+        md_content = convert_ipynb_to_md(ipynb_file)
+        all_content.append(f"{md_content}\n\n")
+    
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader(PROMPT_TPL_DIR))
+    llms_ctx = env.get_template('llms-ctx-vleaflet.txt.jinja2')
+    out = llms_ctx.render(**{
+        'docs': '\n'.join(all_content),
+    })
+    output_file = PROMPT_OUT_DIR / 'llms-ctx-vleaflet.md'
+    with open(output_file, 'w') as f:
+        f.write(out)
 
 
 def main():
@@ -34,7 +70,10 @@ def main():
     })
     with open(PROMPT_OUT_DIR / 'llms-ctx.txt', 'w') as f:
         f.write(out)
+    
+    gen_vleaflet_ctx()
 
+    # final out
     sys_prompt_tpl = env.get_template('sys-prompt.html.jinja2')
     sys_prompt_out = sys_prompt_tpl.render(**{
         'vuepy_doc': vue_doc,
