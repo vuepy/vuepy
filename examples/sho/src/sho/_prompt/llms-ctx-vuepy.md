@@ -568,7 +568,7 @@ app.use(I18nPlugin, options={
 ```
 ## ipython magic函数
 
-需要先通过`from vuepy.utils import magic`导入。
+需要先通过`%load_ext vuepy`或者`from vuepy.utils import magic`导入。
 
 ### 导入SFC组件
 

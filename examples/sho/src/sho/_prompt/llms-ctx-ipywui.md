@@ -45,7 +45,7 @@ Positioning相关
 ```
 ### Component, Button
 
-对于click的事件处理函数有两种方式：
+特别注意：对于click的事件处理函数有两种方式：
 1. 指定参数的方式：`@click=far()` 或 `@click=far(arg)`
 2. 不指定参数的方式：`@click=handle`，会自动传入btn参数(当前按钮的widget对象)，所以handle函数必须接受一个参数：
 ```python
@@ -54,6 +54,13 @@ def handle(btn):
 ```
 
  可以通过icon属性为按钮添加图标，图标为fontawesome v5。
+
+ 支持Events
+
+| 事件名 | 说明                  | 类型                                   |
+| ---   | ---                  | ---                                    |
+| click | 当按钮被点击时触发的事件 |  `Callable[button: Widget, None]` |
+
 ```vue
 <!-- button/basic.vue -->
 <template>
