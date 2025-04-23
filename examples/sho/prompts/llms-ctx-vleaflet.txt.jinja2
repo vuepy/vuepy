@@ -40,9 +40,7 @@ from vleaflet import leaflet
 # -- cell --
 %%vuepy_run --plugins leaflet
 <template>
-  <Button description="add"
-          button_style="info"
-  ></Button>
+  <vl-map :center="[53, 354]" />
 </template>
 ```
 
