@@ -2,10 +2,20 @@
 
 IPywUI 是基于 Vue.py 和 ipywidgets 开发的 UI 组件库。当前作为 Vue.py 内置的 UI 组件库。
 
-ipywui组件作为Vuepy的插件提供，一般会自动注册，也可以手动注册：
+**安装**
+
+```
+pip install vuepy-core
+```
+
+ipywui组件作为Vuepy的插件提供，在`create_app`时会自动注册，也可以选择选择不自动注册`create_app(..., use_wui=False)`，显示调用`use`来注册：
 ```py
+from vuepy import create_app, import_sfc
 from ipywui import wui
+App = import_sfc('App.vue')
+app = create_app(App, use_wui=False)
 app.use(wui)
+app.mount()
 ```
 
 设置ipywui组件的style属性可以改变其样式（与css非常相似）：
@@ -66,7 +76,7 @@ def handle(btn):
 <template>
   <HBox>
     <Button @click="on_click()">Default</Button>
-    <Button type="info">Info</Button>
+    <Button type="info" @click="async_click">Info</Button>
     <Button type="success">Success</Button>
     <Button type="warning">Warning</Button>
     <Button label="Danger" type="danger"></Button>
@@ -85,6 +95,7 @@ import Button from "../../../src/ipywui/components/Button";
 import HBox from "../../../src/ipywui/components/HBox";
 </script>
 <script lang="py">
+import asyncio
 from vuepy import ref
 
 count = ref(1)
@@ -95,6 +106,12 @@ def on_click():
 
 def on_click2(btn):
   print(f"{btn} on click") # Button(icon='search', style=ButtonStyle()) on click
+
+# support async def
+async def async_click(btn):
+  btn.loading = True
+  await asyncio.sleep(1)
+  btn.loading = False
 </script>
 ```
 
