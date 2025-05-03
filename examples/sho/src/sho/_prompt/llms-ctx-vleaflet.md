@@ -1699,6 +1699,7 @@ def on_move(**kwargs):
 图像服务层，用于通过Web服务提供的栅格数据
 ## 基础用法
 
+
 ```vue
 <template>
   <vl-map :center="[47.655548, -122.303200]" :zoom='12'>

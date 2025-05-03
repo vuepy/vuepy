@@ -13,10 +13,17 @@ def ipynb_demo_to_markdown_prompt(nb_content: str) -> str:
             code_source = '\n'.join(cell.get('source', []))
             if code_source.startswith('##ignore'):
                 continue
+            prompt = ''
             try:
-                prompt = ''
-                code_out, widget_out = cell.get('outputs', ['', ''])
-                code_out = json.loads(code_out['text'][0])
+                cell_output = cell.get('outputs')
+                if not cell_output:
+                    continue
+                code_out = cell_output[0]
+                if 'text' not in code_out:
+                    print('no text in code_out')
+                    continue
+                code_text = code_out['text'][0]
+                code_out = json.loads(code_text)
                 vue_code = code_out.get('vue')
                 if vue_code:
                     prompt += f'```vue\n{vue_code}\n```\n'
@@ -24,9 +31,12 @@ def ipynb_demo_to_markdown_prompt(nb_content: str) -> str:
                 setup_code = code_out.get('setup')
                 if setup_code:
                     prompt += f'```python\n{setup_code}\n```\n'
-            except Exception as e:
-                print(e)
-                continue
+            except json.JSONDecodeError as e:
+                msg = f"convert error: {repr(e)}, code_text: {code_text}"
+                print(msg)
+            except Exception as err:
+                msg = f"convert error: {repr(err)}"
+                print(msg)
 
             out.append(prompt)
 

@@ -1,4 +1,5 @@
 # coding: utf-8
+import datetime
 from pathlib import Path
 
 import jinja2
@@ -65,6 +66,7 @@ def main():
 
     llms_ctx = env.get_template('llms-ctx.txt.jinja2')
     out = llms_ctx.render(**{
+        'updated': datetime.datetime.strftime(datetime.datetime.utcnow(), '%Y-%m-%d %H:%M:%S'),
         'vuepy_doc': vue_doc,
         'ipywui_examples': ipywui_examples,
     })

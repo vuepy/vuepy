@@ -1483,6 +1483,63 @@ def update_figure(new_val, _, __):
 
 ```
 
+利用 Display 组件集成 Bokeh
+```vue
+<!-- display/bokeh.vue -->
+<template>
+  <p>value {{ val.value }} </p>
+  <Slider v-model='val.value' :min='1' :max='10' :step='1' @change='change()'/>
+  <Display :obj="bo" />
+</template>
+<script lang='py'>
+from vuepy import ref, watch
+from bokeh.plotting import figure
+from bokeh.models import ColumnDataSource
+from jupyter_bokeh.widgets import BokehModel
+from bokeh.io import output_notebook
+
+output_notebook()
+
+val = ref(1)
+
+x = list(range(0, 11))
+source = ColumnDataSource(data={'x': x, 'y': x})
+p = figure(height=300, width=600)
+l = p.line(x, x, line_width=3, line_alpha=0.6)
+bo = BokehModel(p)
+
+def change():
+    power = val.value
+    l.data_source.data['y'] = [i**power for i in x]
+    
+</script>
+```
+
+利用 Display 组件集成 panel
+```vue
+<!-- display/panel.vue -->
+<template>
+  <p>ref value {{ a.value }} </p>
+  <Display :obj="pn_slider" />
+  <Display :obj="pn_row" />
+</template>
+<script lang='py'>
+from vuepy import ref
+import panel as pn
+
+pn.extension()
+
+a = ref(5)
+pn_slider = pn.widgets.FloatSlider(name='Panel Slider', start=0, end=10, value=5)
+pn_slider.param.watch(lambda ev: setattr(a, 'value', ev.new), 'value')
+# pn.bind(lambda val: setattr(a, 'value', val), pn_slider, watch=True)
+
+x = pn.widgets.Select(name='x', options=['a', 'b', 'c'])
+y = pn.widgets.Select(name='y', options=[1, 2, 3])
+pn_row = pn.Row(x, y)
+</script>
+```
+
 利用 Display 组件集成基于 ipywidgets 的任意 widget。
 ```vue
 <!-- display/ipywidgets.vue -->
