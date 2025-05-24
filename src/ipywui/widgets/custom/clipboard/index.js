@@ -28,7 +28,7 @@ async function copyToClipboardAsync(textToCopy) {
   });
 }
 
-export async function render(view) {
+async function render(view) {
   let model = view.model;
   let el = view.el;
 
@@ -59,3 +59,5 @@ export async function render(view) {
 
   el.appendChild(copyWrap);
 }
+
+export default { render }

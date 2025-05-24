@@ -5,7 +5,7 @@ async function unpack_models(model_ids, manager) {
 }
 
 
-export async function render(view) {
+async function render(view) {
   let model = view.model;
 
   let shouldShowDialog = () => model.get('value');
@@ -71,3 +71,6 @@ export async function render(view) {
     shouldShowDialog() ? openDialog() : closeDialog();
   })
 }
+
+console.info("ipywui dialog")
+export default { render }

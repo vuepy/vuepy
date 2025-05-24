@@ -28,7 +28,7 @@ function createMsg(options) {
   return msgDom;
 }
 
-export async function render(view) {
+async function render(view) {
   let model = view.model;
   const msgRoot = view.el;
   msgRoot.className += ' wui-message-root'
@@ -55,3 +55,5 @@ export async function render(view) {
     closeMsg(msgDom);
   })
 }
+
+export default { render }
