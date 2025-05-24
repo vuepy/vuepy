@@ -124,7 +124,7 @@ class VueCompAst:
         self.tag = tag
         # todo rename to attrs
         self.kwargs = {}
-        self.layout = {}
+        # self.layout = {}
 
         self.v_if: VueCompExpr = None
         self.v_else_if: VueCompExpr = None
@@ -257,13 +257,13 @@ class VueCompAst:
             elif cls.is_v_ref(attr):
                 comp.v_ref = value
 
-            elif cls.is_layout(attr):
-                comp.layout[attr] = value
+            # elif cls.is_layout(attr):
+            # comp.layout[attr] = value
 
             else:
                 comp.kwargs[attr] = value
 
-        if comp.layout:
-            comp.kwargs['layout'] = comp.layout
+        # if comp.layout:
+        #     comp.kwargs['layout'] = comp.layout
 
         return comp

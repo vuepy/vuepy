@@ -18,5 +18,8 @@ class FactoryMeta(type):
     def get_all_registry(cls):
         return cls._registry
 
+    def get_by_name(cls, name):
+        return cls._registry.get(name, None)
+
     def create(cls, *args, **kwargs):
         return cls(*args, **kwargs)

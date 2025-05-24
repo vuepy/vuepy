@@ -184,8 +184,11 @@ class OnChange:
     """
     ON_CHANGE_OBSERVE_NAME = 'value'
 
-    def on_change(self, callback):
-        self.observe(callback, names=self.ON_CHANGE_OBSERVE_NAME)
+    def on_change(self, callback, remove=False):
+        if remove:
+            self.unobserve(callback, names=self.ON_CHANGE_OBSERVE_NAME)
+        else:
+            self.observe(callback, names=self.ON_CHANGE_OBSERVE_NAME)
 
 
 class AppLayout(widgets.AppLayout, WidgetCssStyle):

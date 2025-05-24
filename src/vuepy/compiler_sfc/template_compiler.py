@@ -9,8 +9,6 @@ from html.parser import HTMLParser
 from typing import List
 from typing import Tuple
 
-import ipywidgets as widgets
-
 from vuepy import log
 from vuepy.compiler_core.ast import NodeAst
 from vuepy.compiler_core.ast import NodeAstType
@@ -23,8 +21,9 @@ from vuepy.compiler_core.utils import VueCompNamespace
 from vuepy.compiler_dom.codegen import VueHtmlCompCodeGen
 from vuepy.compiler_dom.codegen import VueHtmlTemplateRender
 from vuepy.compiler_dom.codegen import v_for_stack_to_iter
+from vuepy.compiler_sfc.codegen_backends.ipywidgets import IwNode
+from vuepy.compiler_sfc.sfc_codegen import SFC
 from vuepy.compiler_sfc.template_codegen import VueCompCodeGen
-from vuepy.compiler_sfc.codegen import VueComponent
 from vuepy.reactivity.watch import watch
 from vuepy.runtime.core.api_create_app import App
 from vuepy.utils.common import Nil
@@ -37,7 +36,7 @@ class DomCompiler(HTMLParser):
     @vue/compiler-dom
     """
 
-    def __init__(self, vm: VueComponent, app: 'App'):
+    def __init__(self, vm: SFC, app: 'App'):
         super().__init__()
         self.vm = vm
         self.app = app
@@ -66,7 +65,7 @@ class DomCompiler(HTMLParser):
         if self.vm.component(node.tag):
             widget = VueCompCodeGen.gen(node, self.vm, ns, self.app)
         else:
-            widget = VueHtmlCompCodeGen.gen(node, ns)
+            widget = VueHtmlCompCodeGen.gen(node, ns, self.app)
 
         return widget
 
@@ -132,6 +131,7 @@ class DomCompiler(HTMLParser):
 
             @watch(__track_list_change)
             def __track_list_change_rerender(new, old, on_cleanup):
+                logger.warning(f'️💥 {attr_chain} trigger rerender')
                 self.vm.render()
 
         if self.v_for_stack:
@@ -204,7 +204,7 @@ class DomCompiler(HTMLParser):
             if node.type == NodeAstType.HTML:
                 node.add_child(__handle_data_gen_html)
             else:
-                node.add_child(VueHtmlCompCodeGen.gen_from_fn(__handle_data_gen_html))
+                node.add_child(VueHtmlCompCodeGen.gen_from_fn(__handle_data_gen_html, self.app))
 
         # ./_gen_text()
 
@@ -220,16 +220,16 @@ class DomCompiler(HTMLParser):
                 return
 
             widget = self._gen_widget(_node, _node.v_for_scopes)
-            widget._vtag = widget.__class__.__name__
+            widget._vtag = (widget.unwrap() if isinstance(widget, IwNode) else widget).__class__.__name__
             # not v-for
             if not _node.v_for_scopes:
                 if callable(widget):
-                    widget = VueHtmlCompCodeGen.gen_from_fn(widget)
+                    widget = VueHtmlCompCodeGen.gen_from_fn(widget, self.app)
                     widget._vtag = tag
             # curr v-for end
             elif _node.for_processed:
                 if callable(widget):
-                    widget = VueHtmlCompCodeGen.gen_from_fn(widget)
+                    widget = VueHtmlCompCodeGen.gen_from_fn(widget, self.app)
                     widget._vtag = tag
                 widget._vtag = f"{widget._vtag} v-for: {_node.v_for_scopes.idxs}"
             # v-for in process
@@ -311,4 +311,8 @@ class DomCompiler(HTMLParser):
 
         if len(self.widgets.children) == 1:
             return self.widgets.children[0]
-        return widgets.VBox(self.widgets.children)
+
+        # return widgets.VBox(self.widgets.children)
+        node = self.app.codegen_backend.gen_widget_collection_node()
+        node.replace_children(self.widgets.children)
+        return node

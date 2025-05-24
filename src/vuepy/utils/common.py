@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import dataclasses
+from typing import Iterable
 
 from vuepy.log import getLogger
 
@@ -12,9 +13,19 @@ logger = getLogger()
 
 def has_changed(value, old) -> bool:
     try:
-        return bool(value != old)
+        ret = (value != old)
+        if isinstance(ret, Iterable):
+            return any(ret)
+        else:
+            return bool(ret)
+    except ValueError as e:
+        try:
+            return ret.any()
+        except Exception as e:
+            logger.warning(f"Run has_changed failed, {e}")
+            return True
     except Exception as e:
-        logger.warn(f"Run has_changed failed, {e}")
+        logger.warning(f"Run has_changed failed, {e}")
         return True
 
 

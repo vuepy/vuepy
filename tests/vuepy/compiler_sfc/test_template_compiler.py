@@ -1,7 +1,7 @@
 import unittest
 
 from ipywui import wui
-from vuepy.compiler_sfc.codegen import VueComponent
+from vuepy.compiler_sfc.sfc_codegen import SFC
 from vuepy.compiler_sfc.template_compiler import DomCompiler
 from vuepy.runtime.core.api_create_app import App
 
@@ -10,7 +10,7 @@ class TestCompileTraceback(unittest.TestCase):
 
     def setUp(self):
         self.app = App({}).use(wui)
-        self.vm = VueComponent({'l': [1, 2, 3]}, app=self.app)
+        self.vm = SFC({}, {}, {'l': [1, 2, 3]}, '', app=self.app)
         self.compiler = DomCompiler(self.vm, self.app)
 
     def test_v_for_start_error(self):
@@ -26,7 +26,7 @@ class TestCompileTraceback(unittest.TestCase):
 <VBox>
   <HBox>...</HBox>
   <HBox>
-    <Label> start <----- compile failed, name 'var_no_exist' is not defined
+    <Label> start <----- compile failed, name 'var_not_exist' is not defined
 '''
         with self.assertRaises(Exception) as context:
             self.compiler.compile(html_content)

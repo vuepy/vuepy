@@ -5,28 +5,13 @@ from __future__ import annotations
 
 import abc
 
-import ipywidgets as widgets
+from typing import Dict
 
 from vuepy import log
+# due to a circular import
+# from vuepy.compiler_sfc.codegen_backends.backend import INode
 
 logger = log.getLogger()
-
-
-class Dom(widgets.VBox):
-    """
-    https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model/Introduction
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def appendChild(self, el):
-        self.children = self.children + (el,)
-        return el
-
-    def appendLeftChild(self, el):
-        self.children = (el,) + self.children
-        return el
 
 
 class SetupContext:
@@ -93,7 +78,12 @@ class VueComponent(metaclass=abc.ABCMeta):
             **self._data,
         }
 
-    def render(self, ctx, props, setup_returned) -> VNode:
+    @abc.abstractmethod
+    def _convert_slot_nodes_to_widgets(self, slots: Dict):
+        pass
+
+    @abc.abstractmethod
+    def render(self, ctx, props, setup_returned) -> "INode":
         """
         h(tag, props|attrs, children)
 
@@ -105,4 +95,4 @@ class VueComponent(metaclass=abc.ABCMeta):
         # if not self.template:
         #     return None
         # return vue_compiler_dom(self.template)
-        pass
+        raise NotImplementedError

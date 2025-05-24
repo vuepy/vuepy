@@ -32,7 +32,7 @@ class Marker(IPyLeafletComponent):
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
-        _params = {**props, **attrs}
+        _params = {**props, **attrs, **params}
         icon = slots.get('icon')
         if icon and len(icon.children) > 0:
             _params['icon'] = icon.children[0]
@@ -84,7 +84,7 @@ class LayersControl(IPyLeafletComponent):
 @leaflet.ns_register()
 class FullscreenControl(IPyLeafletComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
-        _params = {**props, **attrs}
+        _params = {**props, **attrs, **params}
         return ipyleaflet.FullScreenControl(**_params)
 
 
@@ -92,7 +92,7 @@ class FullscreenControl(IPyLeafletComponent):
 class MeasureControl(IPyLeafletComponent):
     # todo 如何获取标记的点？
     def _render(self, ctx, attrs, props, params, setup_returned):
-        _params = {**props, **attrs}
+        _params = {**props, **attrs, **params}
         _params.setdefault("primary_length_unit", 'meters')
         _params.setdefault("primary_area_unit", 'sqmeters')
         return ipyleaflet.MeasureControl(**_params)
@@ -104,7 +104,7 @@ class SplitMapControl(IPyLeafletComponent):
         slots = ctx.get('slots')
         left = getattr(slots.get('left', []), 'children', [None])[0]
         right = getattr(slots.get('right', []), 'children', [None])[0]
-        _params = {**props, **attrs, 'left_layer': left, 'right_layer': right}
+        _params = {**props, **attrs, **params, 'left_layer': left, 'right_layer': right}
         return ipyleaflet.SplitMapControl(**_params)
 
 
@@ -126,7 +126,7 @@ class SearchControl(IPyLeafletComponent):
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         default_slot = ctx.get('slots', {}).get('default')
-        _params = {**props, **attrs}
+        _params = {**props, **attrs, **params}
         if default_slot:
             _params['marker'] = default_slot[0]
 
@@ -168,7 +168,7 @@ class MarkerCluster(IPyLeafletComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
         widgets = slots.get('default')
-        _params = {**props, **attrs}
+        _params = {**props, **attrs, **params}
         if widgets:
             _params['markers'] = widgets
 
@@ -228,7 +228,7 @@ class LayerGroup(IPyLeafletComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
         widgets = slots.get('default')
-        _params = {**props, **attrs}
+        _params = {**props, **attrs, **params}
         if widgets:
             _params['layers'] = widgets
 
@@ -258,7 +258,7 @@ class DivIcon(IPyLeafletComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
         html = slots.get('default')
-        _params = {**props, **attrs}
+        _params = {**props, **attrs, **params}
         if html:
             html = html[0]
             _params['html'] = html.value
@@ -280,9 +280,9 @@ class Popup(IPyLeafletComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
         widgets = slots.get('default')
-        _params = {**props, **attrs}
+        _params = {**props, **attrs, **params}
         if widgets:
-            widgets = widgets[0] if len(widgets) == 1 else vbox(widgets)
+            widgets = widgets[0] if len(widgets) == 1 else VBox(widgets)
             _child_param = _params.get('child')
             if isinstance(_child_param, (list, tuple)):
                 widgets.extend(_child_param)
@@ -314,7 +314,7 @@ class WmsLayer(IPyLeafletComponent):
 class MagnifyingGlass(IPyLeafletComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         default_slot = ctx.get('slots', {}).get('default')
-        _params = {**props, **attrs}
+        _params = {**props, **attrs, **params}
         if default_slot:
             _params['layers'] = default_slot
 

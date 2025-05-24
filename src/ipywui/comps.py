@@ -2,6 +2,8 @@
 # ---------------------------------------------------------
 # Copyright (c) vuepy.org. All rights reserved.
 # ---------------------------------------------------------
+from typing import Dict
+
 import ipywui
 from ipywui.core import IPywidgetsComponent
 from ipywui.core import is_float
@@ -11,16 +13,17 @@ from ipywui.widgets import DialogWidget
 from ipywui.widgets import DisplayViewer
 from ipywui.widgets import MarkdownViewerWidget
 from vuepy import log as logging
+from vuepy.compiler_sfc.codegen_backends.backend import IHTMLNode
 
 logger = logging.getLogger()
 
 
 @wui.register()
 class AppLayout(IPywidgetsComponent):
-    def render(self, ctx, props, setup_returned):
+    def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
         attrs = ctx.get('attrs', {})
-        return ipywui.widgets.AppLayout(**slots, **props, **attrs)
+        return ipywui.widgets.AppLayout(**slots, **props, **attrs, **params)
 
 
 @wui.register()
@@ -30,7 +33,6 @@ class VBox(IPywidgetsComponent):
         return ipywui.widgets.VBox(children=slots.get('default', []), **props, **attrs, **params)
 
 
-@wui.register('template')
 class Template(VBox):
     pass
 
@@ -85,22 +87,25 @@ class Button(IPywidgetsComponent):
         ('disabled', False),
     ]
 
+    def _convert_slot_nodes_to_widgets(self, slots: Dict | None):
+        pass
+
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {}).get('default', [])
-        slot_label = slots[0] if slots else None
+        slot_label: IHTMLNode = slots[0] if slots else None
         if slot_label:
-            attrs[self.v_model_default] = slot_label.value
+            attrs[self.v_model_default] = slot_label.outer_html
 
         # params > attrs > props
         merged_props = {**props, **attrs, **params}
         widget = ipywui.widgets.Button(**merged_props)
 
         if slot_label:
-            def _update_html_widget_value(change):
+            def _update_button_name(change):
                 val = change['new'] if isinstance(change, dict) else change
                 setattr(widget, self.v_model_default, val)
 
-            slot_label.observe(_update_html_widget_value, 'value')
+            slot_label.on_change(_update_button_name)
 
         return widget
 
@@ -109,11 +114,8 @@ class Button(IPywidgetsComponent):
 class Checkbox(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        self.update_style(attrs)
-        self.update_style(props)
-        return ipywui.widgets.Checkbox(**props, **attrs)
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        return ipywui.widgets.Checkbox(**props, **attrs, **params)
 
 
 @wui.register()
@@ -146,17 +148,17 @@ class Combobox(IPywidgetsComponent):
 class Controller(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return ipywui.widgets.Controller(**props, **attrs)
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        return ipywui.widgets.Controller(**props, **attrs, **params)
 
 
 @wui.register()
 class Clipboard(IPywidgetsComponent):
-    def render(self, ctx, props, setup_returned):
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
         attrs = ctx.get('attrs', {})
         slots = ctx.get('slots', {})
-        return ClipboardWidget(children=slots.get('default', []), **props, **attrs)
+        return ClipboardWidget(children=slots.get('default', []), **props, **attrs, **params)
 
 
 @wui.register()
@@ -202,18 +204,15 @@ class Dialog(IPywidgetsComponent):
     """
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
+    def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
         slot_body = slots.get('default', slots.get('body', []))
         slot_footer = slots.get('footer', [])
         body = slot_body if isinstance(slot_body, list) else [slot_body]
         footer = slot_footer if isinstance(slot_footer, list) else [slot_footer]
 
-        attrs = ctx.get('attrs', {})
-        width = attrs.pop("layout", {}).pop("width", '50%')
-        params = {
-            'width': width,
-        }
+        _params = {**props, **attrs, **params}
+        _params.setdefault('width', '50%')
         widget = DialogWidget(body=body, footer=footer, **props, **attrs, **params)
         return widget
 
@@ -224,10 +223,9 @@ class Display(IPywidgetsComponent):
         ("multi_thread", False),
     ]
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
+    def _render(self, ctx, attrs, props, params, setup_returned):
         obj = props.pop('obj', '-')
-        widget = DisplayViewer(obj, **props, **attrs)
+        widget = DisplayViewer(obj, **props, **attrs, **params)
         return widget
 
 
@@ -259,9 +257,8 @@ class FileUpload(IPywidgetsComponent):
 class HTMLMath(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return ipywui.widgets.HTMLMath(**props, **attrs)
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        return ipywui.widgets.HTMLMath(**props, **attrs, **params)
 
 
 @wui.register()
@@ -360,9 +357,8 @@ class Label(IPywidgetsComponent):
 class MarkdownViewer(IPywidgetsComponent):
     v_model_default = 'value'
 
-    def render(self, ctx, props, setup_returned):
-        attrs = ctx.get('attrs', {})
-        return MarkdownViewerWidget(**props, **attrs)
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        return MarkdownViewerWidget(**props, **attrs, **params)
 
 
 @wui.register()

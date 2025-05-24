@@ -2,8 +2,8 @@
 import argparse
 import json
 import logging
-from pathlib import Path
 import shlex
+from pathlib import Path
 
 import IPython
 from IPython.core.magic import register_line_cell_magic
@@ -11,6 +11,7 @@ from IPython.core.magic import register_line_magic
 
 from ipywui import wui
 from vuepy import log
+from vuepy.compiler_sfc.codegen_backends import ipywidgets as iw_backend
 from vuepy.compiler_sfc.sfc_parser import SFCMetadata
 from vuepy.runtime.core.api_create_app import create_app
 from vuepy.runtime.core.import_sfc import import_sfc
@@ -197,25 +198,33 @@ def vuepy_run(vue_file, cell=''):
     :param cell: raw_content of vue file | None
     :return:
     """
+
+    def add_codegen_backend_params(parser: argparse.ArgumentParser):
+        parser.add_argument('--codegen-backend',
+                            type=str,
+                            default=iw_backend.NAME,
+                            help='codegen backend')
+        return parser
+
     def add_vue_file_params(parser: argparse.ArgumentParser):
-        parser.add_argument('vue_file', 
-                            type=str, 
-                            help='Vue file to run') 
+        parser.add_argument('vue_file',
+                            type=str,
+                            help='Vue file to run')
         return parser
 
     def add_plugins_params(parser: argparse.ArgumentParser):
-        parser.add_argument('--plugins', 
+        parser.add_argument('--plugins',
                             required=False,
-                            nargs='+', 
+                            nargs='+',
                             default=[],
                             type=lambda v: [i.strip() for i in v.split(',')],
                             help='List of plugins (comma-separated or space-separated)')
         return parser
 
     def add_app_var_params(parser: argparse.ArgumentParser):
-        parser.add_argument('--app', 
+        parser.add_argument('--app',
                             required=False,
-                            type=str, 
+                            type=str,
                             help='Name of the variable to store the app instance')
         return parser
 
@@ -226,13 +235,13 @@ def vuepy_run(vue_file, cell=''):
                             help='show code')
         return parser
 
-
     parser = argparse.ArgumentParser()
     ipython = IPython.get_ipython()
     if cell:
         add_plugins_params(parser)
         add_app_var_params(parser)
         add_show_code_params(parser)
+        add_codegen_backend_params(parser)
         args, _ = parser.parse_known_args(shlex.split(vue_file))
         App = import_sfc(cell, raw_content=True)
     else:
@@ -240,6 +249,7 @@ def vuepy_run(vue_file, cell=''):
         add_plugins_params(parser)
         add_app_var_params(parser)
         add_show_code_params(parser)
+        add_codegen_backend_params(parser)
         args, _ = parser.parse_known_args(shlex.split(vue_file))
         vue_file = args.vue_file
         if vue_file.startswith('$'):
@@ -249,7 +259,7 @@ def vuepy_run(vue_file, cell=''):
         else:
             App = import_sfc(vue_file)
 
-    app = create_app(App)
+    app = create_app(App, backend=args.codegen_backend)
     plugins = []
     for _p in args.plugins:
         plugins.extend(_p) if isinstance(_p, list) else plugins.append(_p)
