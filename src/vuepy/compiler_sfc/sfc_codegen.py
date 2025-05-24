@@ -7,12 +7,12 @@ import dataclasses
 import pathlib
 from typing import Any
 from typing import Callable
+from typing import Dict
 from typing import List
 from typing import Tuple
 
-from ipywidgets import CallbackDispatcher
-
-from vuepy.compiler_sfc.codegen import Dom
+from vuepy.compiler_sfc.codegen_backends.backend import INode
+from vuepy.compiler_sfc.codegen_backends.backend import SFCLifeCycle, ISFCNode
 from vuepy.compiler_sfc.codegen import SetupContext
 from vuepy.compiler_sfc.codegen import VNode
 from vuepy.compiler_sfc.codegen import VueComponent
@@ -20,25 +20,15 @@ from vuepy.compiler_sfc.codegen import logger
 from vuepy.reactivity.effect_scope import EffectScope
 from vuepy.runtime.core.api_lifecycle import OnBeforeMount
 from vuepy.runtime.core.api_lifecycle import OnMounted
-from vuepy.runtime.core.api_setup_helpers import DefineProp
 from vuepy.runtime.core.api_setup_helpers import DefineProps
 from vuepy.runtime.core.api_setup_helpers import defineEmits
 from vuepy.runtime.core.api_setup_helpers import defineModel
 from vuepy.utils.common import Nil
 
 
-class SFCWidgetContainer(Dom):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.on_mounted_dispatcher = CallbackDispatcher()
-        self.on_before_mount_dispatcher = CallbackDispatcher()
-        self.on_unmounted_dispatcher = CallbackDispatcher()
-        self.on_before_unmount_dispatcher = CallbackDispatcher()
-
-
 class SFC(VueComponent):
-    ADD_EVENT_LISTENER_FN = '_s1_on'  # $on
-    EMIT_FN = '_s1_emit'  # $emit
+    # ADD_EVENT_LISTENER_FN = '_s1_on'  # $on
+    # EMIT_FN = '_s1_emit'  # $emit
 
     def __init__(
             self,
@@ -63,21 +53,18 @@ class SFC(VueComponent):
         self.file = file
         self.scope: EffectScope = EffectScope(True)
 
-        # setup define_x
-        _emits, _on_fn = self._gen_widget_on_fn()
-        _props_property = self._gen_widget_props_property()
-        _model_update_events = self._gen_model_update_events()
-        for _event in _model_update_events:
-            _emits.add_event(_event)
+        props = self._get_props()
+        emitter = self.define_emits[1] if self.define_emits else defineEmits([])
+        for event in self._get_events():
+            emitter.add_event(event)
 
-        _sfc_container_cls = type('SfcContainer', (SFCWidgetContainer,), {
-            **_props_property,
-            self.ADD_EVENT_LISTENER_FN: _on_fn,
-            self.EMIT_FN: _emits,
-        })
-        self.root: SFCWidgetContainer = _sfc_container_cls()
+        self.sfc_widget_node: ISFCNode = self.app.codegen_backend.gen_sfc_widget_node(props, emitter)
         self._init_static_props(context.get('attrs', {}))
-        self._register_lifecycle_cb(self.root)
+
+        for _, cb in self._get_var_by_type(OnBeforeMount):
+            self.sfc_widget_node.on(SFCLifeCycle.ON_BEFORE_MOUNT, cb.callback)
+        for _, cb in self._get_var_by_type(OnMounted):
+            self.sfc_widget_node.on(SFCLifeCycle.ON_MOUNTED, cb.callback)
 
     def _init_static_props(self, attrs):
         if not self.define_props:
@@ -88,58 +75,57 @@ class SFC(VueComponent):
             val = attrs.get(prop_name, Nil)
             if val is Nil:
                 continue
-            setattr(self.root, prop_name, val)
-
-    def _register_lifecycle_cb(self, container: SFCWidgetContainer):
-        for _, cb in self._get_var_by_type(OnBeforeMount):
-            container.on_before_mount_dispatcher.register_callback(cb.callback)
-
-        for _, cb in self._get_var_by_type(OnMounted):
-            container.on_mounted_dispatcher.register_callback(cb.callback)
+            self.sfc_widget_node.setattr(prop_name, val)
 
     def setup(self, props: dict = None, ctx=None, vm: 'App' = None):
         return self._data
-
-    def _gen_model_update_events(self):
-        return [_model.update_event for (_, _model) in self.define_models]
-
-    def _gen_widget_props_property(self):
-        def _get(prop: DefineProp):
-            def _(this):
-                return prop.value
-
-            return _
-
-        def _set(prop: DefineProp):
-            def _(this, val):
-                prop.value = val
-
-            return _
-
+    
+    def _get_events(self):
+        events = list(SFCLifeCycle)
+        events.extend([_model.update_event for (_, _model) in self.define_models])
+        return events
+    
+    def _get_props(self):
         props = [model.prop for _, model in self.define_models]
         if self.define_props:
             props.extend(self.define_props[1].props)
-
         return {
-            prop.name: property(_get(prop), _set(prop))
-            for prop in props
+            prop.name: prop for prop in props
         }
 
-    def _gen_widget_on_fn(self):
-        emits = self.define_emits[1] if self.define_emits else defineEmits([])
-
-        def _on_fn(this, event, callback, remove=False):
-            emits.add_event_listener(event, callback, remove)
-
-        return emits, _on_fn
+    # def _gen_model_update_events(self):
+    #     return [_model.update_event for (_, _model) in self.define_models]
+    #
+    # def _gen_widget_props_property(self):
+    #     def _get(prop: DefineProp):
+    #         def _(this):
+    #             return prop.value
+    #
+    #         return _
+    #
+    #     def _set(prop: DefineProp):
+    #         def _(this, val):
+    #             prop.value = val
+    #
+    #         return _
+    #
+    #     props = [model.prop for _, model in self.define_models]
+    #     if self.define_props:
+    #         props.extend(self.define_props[1].props)
+    #
+    #     return {
+    #         prop.name: property(_get(prop), _set(prop))
+    #         for prop in props
+    #     }
 
     @property
-    def define_props(self) -> (str, DefineProps):
+    def define_props(self) -> Tuple[str, DefineProps]:
         ret = self._get_var_by_type(DefineProps, limit=1)
         return ret[0] if ret else []
 
     @property
-    def define_emits(self) -> (str, defineEmits):
+    def define_emits(self) -> Tuple[str, defineEmits]:
+        # todo raise error if define_emits get more than 1
         ret = self._get_var_by_type(defineEmits, limit=1)
         return ret[0] if ret else []
 
@@ -159,14 +145,23 @@ class SFC(VueComponent):
         return ret
 
     def __repr__(self):
-        return f"{self.__class__.__name__}<{pathlib.Path(self.file).name}> at {id(self)}"
+        return f"{self.__class__.__name__}<{pathlib.Path(self.file).name}> "\
+               f"at {hex(id(self))}"
 
-    def render(self, ctx: SetupContext = None, props: dict = None, setup_returned: dict = None) -> VNode:
+    def _convert_slot_nodes_to_widgets(self, slots: Dict):
+        pass
+
+    def render(
+        self,
+        ctx: SetupContext = None,
+        props: dict = None,
+        setup_returned: dict = None
+    ) -> INode:
         logger.info(f"🔥 Rerender {self}")
         self.scope.clear()
 
         # beforeMount
-        self.root.on_before_mount_dispatcher()
+        self.sfc_widget_node.emit(SFCLifeCycle.ON_BEFORE_MOUNT)
 
         # compile and render
         with self.scope:
@@ -176,12 +171,12 @@ class SFC(VueComponent):
                 from vuepy.compiler_sfc.template_compiler import DomCompiler
                 dom = DomCompiler(self, self.app).compile(self.template)
 
-        self.root.children = [dom]
+        self.sfc_widget_node.replace_children([dom])
 
         # mounted
-        self.root.on_mounted_dispatcher()
+        self.sfc_widget_node.emit(SFCLifeCycle.ON_MOUNTED)
 
-        return self.root
+        return self.sfc_widget_node
 
 
 @dataclasses.dataclass

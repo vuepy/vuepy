@@ -16,7 +16,11 @@ from IPython.display import display
 
 from vuepy import log
 from vuepy.compiler_core.options import CompilerOptions
-from vuepy.compiler_sfc.codegen import Dom
+from vuepy.compiler_sfc import codegen_backends
+from vuepy.compiler_sfc.codegen_backends import CodegenBackendMgr
+from vuepy.compiler_sfc.codegen_backends.backend import ICodegenBackend
+from vuepy.compiler_sfc.codegen_backends.backend import IDocumentNode
+from vuepy.compiler_sfc.codegen_backends.backend import INode
 from vuepy.compiler_sfc.sfc_codegen import SFC
 from vuepy.compiler_sfc.sfc_codegen import SFCType
 from vuepy.compiler_sfc.codegen import VueComponent
@@ -52,7 +56,12 @@ class AppContext:
 class App:
     components = {}
 
-    def __init__(self, root_component: RootComponent, debug=False):
+    def __init__(self, root_component: RootComponent, backend=codegen_backends.ipywidgets.NAME, debug=False):
+        self.codegen_backend: ICodegenBackend = CodegenBackendMgr.get_by_name(backend)
+        if self.codegen_backend is None:
+            backends = CodegenBackendMgr.get_all_registry().keys()
+            raise ValueError(f"backend should in {backends}, but '{backend}' found.")
+
         self.config: AppConfig = AppConfig()
 
         self._installed_plugins = []
@@ -76,9 +85,11 @@ class App:
         self.debug = debug
 
         self._components = {}
+        self.component('template', self.codegen_backend.get_template_component())
 
-        self.document: Document = Document()
-        self.dom = None
+        # self.document: Document = Document()
+        self.document: IDocumentNode = self.codegen_backend.gen_document_node()
+        self.dom: INode = None
 
         self._proxy_methods()
 
@@ -126,7 +137,7 @@ class App:
         logger.info('App render end.')
         return self.dom
 
-    def component(self, name: str, comp: 'VueComponent' = None) -> App:
+    def component(self, name: str, comp: Type['VueComponent'] = None) -> App:
         """
         query component(name) -> Component | None
         register component(name, comp) -> self
@@ -173,9 +184,10 @@ class App:
         self.render()
         # self._call_if_callable(self.options.mounted)
 
-        self.document.body.appendChild(self.dom)
+        # self.document.body_node.appendChild(self.dom)
+        self.document.body.append(self.dom)
 
-        return self.document
+        return self.document.unwrap()
 
 
 class VuePlugin:
@@ -195,25 +207,15 @@ def create_app(root_component: RootComponent, use_wui=True, **root_props) -> App
     app = create_app(App)
     app = create_app({})
 
-    :param use_wui:
     :param root_component:
-    :param root_props:
+    :param use_wui:
+    :param root_props: dict { backend, debug }
     :return:
     """
     debug = root_props.get('debug', False)
-    app = App(root_component, debug)
+    backend = root_props.get('backend', codegen_backends.ipywidgets.NAME)
+    app = App(root_component, backend=backend, debug=debug)
     if use_wui:
         from ipywui import wui
         app.use(wui)
     return app
-
-
-class Document(widgets.VBox):
-    """
-    https://developer.mozilla.org/en-US/docs/Web/API/Document
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.body = Dom()
-        self.children = (self.body,)

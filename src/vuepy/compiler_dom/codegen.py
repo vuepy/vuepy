@@ -3,6 +3,7 @@
 # ---------------------------------------------------------
 from __future__ import annotations
 
+import html
 import re
 from typing import Any
 from typing import Callable
@@ -18,6 +19,7 @@ from vuepy.compiler_core.ast import VForAst
 from vuepy.compiler_core.ast import VueCompAst
 from vuepy.compiler_core.component_expr import VueCompExpr
 from vuepy.compiler_core.utils import VueCompNamespace
+from vuepy.compiler_sfc.codegen_backends.backend import IHTMLNode
 from vuepy.reactivity.reactive import to_raw
 from vuepy.reactivity.watch import WatchOptions
 from vuepy.reactivity.watch import watch
@@ -113,7 +115,8 @@ class VForBLockScope:
         if iter_exp in self.ns:
             self.iter_exp = self.ns[iter_exp]
         else:
-            self.iter_exp = eval(iter_exp, {}, self.ns)
+            # todo enhance eval security
+            self.iter_exp = eval(iter_exp, {'type': type}, self.ns)
         self._iter = iter(self.iter_exp)
 
         target_var = self.v_for_ast.target
@@ -168,7 +171,7 @@ class VueHtmlTemplateRender:
             expr_ast = VueCompExpr.parse(expr_str)
             # TODO html可以设置value，按需更新
             _value = expr_ast.eval(ns)
-            return str(_value)
+            return html.escape(str(_value))
 
         return warp
 
@@ -183,8 +186,10 @@ class VueHtmlTemplateRender:
 
 
 class VueHtmlCompCodeGen:
+    START_END_TAGS = {'path'}
+
     @classmethod
-    def gen(cls, node: NodeAst, ns: VueCompNamespace):
+    def gen(cls, node: NodeAst, ns: VueCompNamespace, app: 'App'):
         comp_ast = VueCompAst.transform(node.tag, node.attrs)
 
         # @computed
@@ -205,33 +210,44 @@ class VueHtmlCompCodeGen:
             for child in node.children:
                 if callable(child):
                     inner.append(child())
-                elif isinstance(child, HtmlWidget):
-                    inner.append(child.value)
+                # elif isinstance(child, HtmlWidget):
+                #     inner.append(child.value)
+                elif isinstance(child, IHTMLNode):
+                    inner.append(child.outer_html)
                 else:
                     inner.append(child)
-            inner_html = ' '.join(inner)
+            inner_html = '\n  '.join(inner)
 
+            # for <svg viewBox>
+            if node.tag == 'svg' and 'viewbox' in comp_ast.kwargs:
+                comp_ast.kwargs['viewBox'] = comp_ast.kwargs.pop('viewbox')
             attrs = [f"{k}='{v}'" for k, v in comp_ast.kwargs.items()]
 
             # v-bind:
             for attr, exp_ast in comp_ast.v_binds.items():
                 attrs.append(f"{attr}='{to_raw(exp_ast.eval(ns))}'")
 
-            html = f'''
-                <{node.tag} {' '.join(attrs)}>
-                  {inner_html}
-                </{node.tag}>'''
+            # for <svg><path .. /></svg>
+            if node.tag in cls.START_END_TAGS and inner_html.strip() == '':
+                html = f"<{node.tag} {' '.join(attrs)} />"
+            else:
+                html = f"<{node.tag} {' '.join(attrs)}>\n"\
+                       f"  {inner_html}\n"\
+                       f"</{node.tag}>"
 
             return html
 
         return __html_tag_exit_gen_html
 
     @classmethod
-    def gen_from_fn(cls, fn):
-        widget = HtmlWidget()
+    def gen_from_fn(cls, fn, app: 'App'):
+        # widget = HtmlWidget()
+        html_node: IHTMLNode = app.codegen_backend.gen_html_node()
 
         @watch(fn, WatchOptions(immediate=True))
         def _update_html_widget_value(new_html, old_html, on_cleanup):
-            widget.value = new_html
+            # widget.value = new_html
+            html_node.outer_html = new_html
 
-        return widget
+        # return widget
+        return html_node

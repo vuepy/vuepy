@@ -1,33 +1,44 @@
 # ---------------------------------------------------------
 # Copyright (c) vuepy.org. All rights reserved.
 # ---------------------------------------------------------
-from typing import List
+from __future__ import annotations
+
+from abc import ABC
+from abc import abstractmethod
+from typing import Dict
+from typing import Iterable, List
 from typing import Tuple
 
 from ipywui.widgets import WidgetCssStyle
 from ipywui.widgets.custom.message import MessageService
 from vuepy import App
 from vuepy import VueComponent
+from vuepy.compiler_sfc.codegen_backends import ipywidgets as iw_backend
+from vuepy.compiler_sfc.codegen_backends.ipywidgets import IwNode
+from vuepy.compiler_sfc.codegen_backends.ipywidgets import IwWidget
 from vuepy.runtime.core.api_create_app import VuePlugin
 from vuepy.utils.factory import FactoryMeta
 
 
 class wui(VuePlugin, metaclass=FactoryMeta):
     @classmethod
-    def install(cls, app: App, options: dict):
+    def install(cls, app: "App", options: dict):
         components = cls.get_all_registry()
         for name, component in components.items():
             app.component(name, component)
 
         app.message = MessageService(app_instance=app)
-        app.document.body.appendLeftChild(app.message.widget)
+        # todo panel时如何使用message？
+        if app.codegen_backend == iw_backend.NAME:
+            app.document.body.prepend_child(app.message.widget)
+        # app.document.body_node.appendLeftChild(app.message.widget)
 
 
-class IPywidgetsComponent(VueComponent):
+class IPywidgetsComponent(VueComponent, ABC):
     STYLE_ATTR = 'style'
     PARAMS_STORE_TRUE: List[Tuple[str, bool]] = []
 
-    def update_style(self, kw):
+    def _process_style(self, kw):
         styles = kw.pop(self.STYLE_ATTR, None)
         if styles:
             kw.update(WidgetCssStyle.convert_css_style_to_widget_style_and_layout(styles))
@@ -45,17 +56,31 @@ class IPywidgetsComponent(VueComponent):
         # return f'Ipw{cls.__name__}'
         return cls.__name__
 
-    def render(self, ctx, props, setup_returned):
+    def _convert_slot_nodes_to_widgets(self, slots: Dict | None):
+        if not slots:
+            return
+
+        for name, children in slots.items():
+            if isinstance(children, Iterable):
+                children = [IwNode.convert_to_widget(child) for child in children]
+            else:
+                children = IwNode.convert_to_widget(children)
+            slots[name] = children
+
+    def render(self, ctx, props, setup_returned) -> IwNode:
         attrs = ctx.get('attrs', {})
         params = self._process_store_true_params(attrs, props)
 
-        self.update_style(attrs)
-        self.update_style(props)
+        self._process_style(attrs)
+        self._process_style(props)
 
-        return self._render(ctx, attrs, props, params, setup_returned)
+        self._convert_slot_nodes_to_widgets(ctx.get('slots'))
+        widget = self._render(ctx, attrs, props, params, setup_returned)
+        return IwNode(widget)
 
-    def _render(self, ctx, attrs, props, params, setup_returned):
-        pass
+    @abstractmethod
+    def _render(self, ctx, attrs, props, params, setup_returned) -> IwWidget:
+        raise NotImplementedError
 
 
 def has_and_pop(attrs, key):
