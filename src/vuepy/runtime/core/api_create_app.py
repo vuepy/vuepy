@@ -10,7 +10,6 @@ from typing import Any
 from typing import Type
 from typing import Union
 
-import ipywidgets as widgets
 from IPython.display import clear_output
 from IPython.display import display
 

@@ -276,7 +276,7 @@ def vuepy_run(vue_file, cell=''):
     if args.show_code:
         # sfc_file_comment = f'<!-- {sfc_file_path} -->\n'
         print(json.dumps({
-            'vue': cell,
+            'vue': f'<!-- {vue_file} -->\n{cell}',
             'setup': '',
         }))
 

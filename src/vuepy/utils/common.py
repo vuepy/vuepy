@@ -17,6 +17,7 @@ def has_changed(value, old) -> bool:
         if isinstance(ret, Iterable):
             return any(ret)
         else:
+            logger.warning(f"{value}, {old}, ref={ret}")
             return bool(ret)
     except ValueError as e:
         try:

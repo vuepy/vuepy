@@ -62,7 +62,7 @@ class IwNode(INode[IwWidget]):
             import panel as pn
             return pn.ipywidget(w)
         except Exception as e:
-            err_msg = f"convert {w} to ipywidgets failed, {e}, Panel is not installed. " \
+            err_msg = f"convert {w} to ipywidgets failed, {e}, Maybe Panel is not installed. " \
                       f"Please install it with `pip install panel jupyter_bokeh`."
             print(err_msg)
             raise ImportError(err_msg) from e
