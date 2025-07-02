@@ -2,7 +2,7 @@
 import json
 
 
-def ipynb_demo_to_markdown_prompt(nb_content: str) -> str:
+def ipynb_demo_to_markdown_prompt(file_path, nb_content: str) -> str:
     nb = json.loads(nb_content)
     out = []
     for cell in nb.get('cells', []):
@@ -32,10 +32,10 @@ def ipynb_demo_to_markdown_prompt(nb_content: str) -> str:
                 if setup_code:
                     prompt += f'```python\n{setup_code}\n```\n'
             except json.JSONDecodeError as e:
-                msg = f"convert error: {repr(e)}, code_text: {code_text}"
+                msg = f"convert {file_path} error: {repr(e)}, code_text: {code_text}"
                 print(msg)
             except Exception as err:
-                msg = f"convert error: {repr(err)}"
+                msg = f"convert {file_path} error: {repr(err)}"
                 print(msg)
 
             out.append(prompt)

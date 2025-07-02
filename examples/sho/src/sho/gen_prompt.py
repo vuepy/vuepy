@@ -15,7 +15,7 @@ PROMPT_OUT_DIR = HERE / '_prompt'
 
 def convert_ipynb_to_md(ipynb_path):
     with open(ipynb_path) as f:
-        return ipynb_converter.ipynb_demo_to_markdown_prompt(f.read())
+        return ipynb_converter.ipynb_demo_to_markdown_prompt(ipynb_path, f.read())
 
 
 def gen_vleaflet_ctx():
@@ -74,14 +74,14 @@ def gen_vpanel_ctx():
 def main():
     ipynb_file = PROMPT_TPL_DIR / 'llms-ctx-ipywui.ipynb'
     with open(ipynb_file) as f:
-        ipywui_examples = ipynb_converter.ipynb_demo_to_markdown_prompt(f.read())
+        ipywui_examples = ipynb_converter.ipynb_demo_to_markdown_prompt(ipynb_file, f.read())
         md_file = PROMPT_OUT_DIR / (ipynb_file.name.rstrip('ipynb') + 'md')
         with open(md_file, 'w') as md_f:
             md_f.write(ipywui_examples)
 
     vue_file = PROMPT_TPL_DIR / 'llms-ctx-vuepy.ipynb'
     with open(vue_file) as f:
-        vue_doc = ipynb_converter.ipynb_demo_to_markdown_prompt(f.read())
+        vue_doc = ipynb_converter.ipynb_demo_to_markdown_prompt(vue_file, f.read())
         md_file = PROMPT_OUT_DIR / (vue_file.name.rstrip('ipynb') + 'md')
         with open(md_file, 'w') as md_f:
             md_f.write(vue_doc)
