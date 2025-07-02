@@ -13,3 +13,5 @@ include src/ipywui/widgets/custom/message/*
 include src/vleaflet/components/*.vue
 include src/vleaflet/components/Controls/*.vue
 include src/vleaflet/components/Layers/*.vue
+
+include src/panel_vuepy/*.py

@@ -186,8 +186,9 @@ def vuepy_run(vue_file, cell=''):
     ```
     ------cell--------
     [1] from ipywui import wui
+    [2] from vleaflet import leaflet
     ------cell--------
-    [2] %vuepy_run test.vue --plugins wui --app app
+    [2] %vuepy_run test.vue --plugins wui,leaflet --app app
     ------cell--------
     [3] app
     App at 0x100000000
@@ -234,6 +235,13 @@ def vuepy_run(vue_file, cell=''):
                             action='store_true',
                             help='show code')
         return parser
+    
+    def add_servable_params(parser: argparse.ArgumentParser):
+        parser.add_argument('--servable',
+                            required=False,
+                            action='store_true',
+                            help='make app servable')
+        return parser
 
     parser = argparse.ArgumentParser()
     ipython = IPython.get_ipython()
@@ -242,6 +250,7 @@ def vuepy_run(vue_file, cell=''):
         add_app_var_params(parser)
         add_show_code_params(parser)
         add_codegen_backend_params(parser)
+        add_servable_params(parser)
         args, _ = parser.parse_known_args(shlex.split(vue_file))
         App = import_sfc(cell, raw_content=True)
     else:
@@ -250,6 +259,7 @@ def vuepy_run(vue_file, cell=''):
         add_app_var_params(parser)
         add_show_code_params(parser)
         add_codegen_backend_params(parser)
+        add_servable_params(parser)
         args, _ = parser.parse_known_args(shlex.split(vue_file))
         vue_file = args.vue_file
         if vue_file.startswith('$'):
@@ -259,7 +269,7 @@ def vuepy_run(vue_file, cell=''):
         else:
             App = import_sfc(vue_file)
 
-    app = create_app(App, backend=args.codegen_backend)
+    app = create_app(App, backend=args.codegen_backend, servable=args.servable)
     plugins = []
     for _p in args.plugins:
         plugins.extend(_p) if isinstance(_p, list) else plugins.append(_p)

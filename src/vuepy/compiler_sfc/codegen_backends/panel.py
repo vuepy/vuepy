@@ -205,3 +205,7 @@ class PnCodegenBackend(ICodegenBackend):
     @classmethod
     def gen_html_node(cls) -> PnHTMLNode:
         return PnHTMLNode()
+    
+    @classmethod
+    def is_servable(cls) -> bool:
+        return True

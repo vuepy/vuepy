@@ -41,5 +41,6 @@ setup(
     entry_points={"console_scripts": ["vuepy=vuepy.__main__:main"]},
     extras_require={
         'vleaflet': ['ipyleaflet'],
+        'panel': ['panel', 'jupyter_bokeh', 'ipywidgets_bokeh'],
     },
 )

@@ -55,11 +55,21 @@ class AppContext:
 class App:
     components = {}
 
-    def __init__(self, root_component: RootComponent, backend=codegen_backends.ipywidgets.NAME, debug=False):
+    def __init__(
+        self, 
+        root_component: RootComponent, 
+        backend=codegen_backends.ipywidgets.NAME, 
+        servable=False,
+        debug=False, 
+    ):
         self.codegen_backend: ICodegenBackend = CodegenBackendMgr.get_by_name(backend)
         if self.codegen_backend is None:
             backends = CodegenBackendMgr.get_all_registry().keys()
             raise ValueError(f"backend should in {backends}, but '{backend}' found.")
+        
+        self.servable = servable
+        if servable and not self.codegen_backend.is_servable():
+            raise ValueError(f"backend {backend} is not servable.")
 
         self.config: AppConfig = AppConfig()
 
@@ -186,7 +196,10 @@ class App:
         # self.document.body_node.appendChild(self.dom)
         self.document.body.append(self.dom)
 
-        return self.document.unwrap()
+        widget = self.document.unwrap()
+        if self.servable:
+            widget.servable()
+        return widget
 
 
 class VuePlugin:
@@ -213,7 +226,8 @@ def create_app(root_component: RootComponent, use_wui=True, **root_props) -> App
     """
     debug = root_props.get('debug', False)
     backend = root_props.get('backend', codegen_backends.ipywidgets.NAME)
-    app = App(root_component, backend=backend, debug=debug)
+    servable = root_props.get('servable', False)
+    app = App(root_component, backend=backend, debug=debug, servable=servable)
     if use_wui:
         from ipywui import wui
         app.use(wui)

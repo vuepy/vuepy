@@ -68,6 +68,10 @@ class ICodegenBackend(metaclass=ABCMeta):
     @classmethod
     def gen_html_node(cls) -> 'IHTMLNode':
         raise NotImplementedError
+    
+    @classmethod
+    def is_servable(cls) -> bool:
+        return False
 
 
 W = TypeVar('W')

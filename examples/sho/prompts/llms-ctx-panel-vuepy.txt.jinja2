@@ -1,0 +1,91 @@
+# panel-vuepy
+
+Panel-vuepy 是基于 Vue.py 和 Panel 开发的现代化 Python 组件库。它结合了 Vuepy 的响应式开发能力与 Panel 强大的数据探索功能，为开发者提供了一套完整的解决方案：
+
+* 丰富的交互式 UI 组件 - 开箱即用的现代化组件，轻松构建专业级界面
+* 深度 PyData 生态集成 - 无缝对接 Python 数据科学生态，实现流畅的数据可视化与分析
+* 高效的应用开发框架 - 结合 Vue.py 的响应式特性和 Panel 的灵活后端，快速开发交互式 Web 应用
+
+无论是构建数据仪表盘、开发分析工具，还是创建复杂的业务应用，Panel-vuepy 都能让开发者以前端框架的体验享受 Python 的高效开发流程。 是基于 Vue.py 和 ipyleaflet 开发的响应式地图组件库，在 Jupyter 中实现交互式地图。vleaflet 中的每个对象（包括地图、TileLayers、图层、控件等）都是响应式的：您可以从 Python 或浏览器动态更新属性。
+
+## 安装
+
+```sh
+pip install 'vuepy-core[panel]'
+```
+
+## 运行 
+
+use 插件方式:
+
+```python{2,7}
+from vuepy import create_app, import_sfc
+from panel_vuepy import vpanel
+
+App = import_sfc("""
+<template>
+  <PnButton name='click'/>
+</template>
+""", raw_content=True)
+# or
+# App = import_sfc('App.vue')  # 根据 App.vue 实际位置修改
+app = create_app(App)
+app.use(vpanel)
+app.mount()
+```
+
+`%vuepy_run` 方式：
+
+```python
+from vuepy.utils import magic
+from panel_vuepy import vpanel
+
+%vuepy_run app.vue --plugins vpanel
+```
+
+`%%vuepy_run` 方式：
+
+```python
+from vuepy.utils import magic
+from panel_vuepy import vpanel
+
+# -- cell --
+%%vuepy_run --plugins vpanel
+<template>
+  <PnButton name='click'/>
+</template>
+```
+
+## 部署应用 
+
+将 `ipynb` 文件中的 `app` 声明为`servable`
+
+```python
+from vuepy import create_app, import_sfc
+from panel_vuepy import vpanel
+
+App = import_sfc("""
+<template>
+  <PnButton name='click'/>
+</template>
+""", raw_content=True)
+# or
+# App = import_sfc('App.vue')  # 根据 App.vue 实际位置修改
+app = create_app(App, backend='panel', servable=True)
+app.use(vpanel)
+app.mount()
+```
+
+使用 Panel 运行 ipynb 文件
+
+```bash
+panel server app.ipynb
+```
+
+打开 http://localhost:5006/app 查看应用
+
+参考：
+* [Panel: Serve Apps](https://panel.holoviz.org/tutorials/intermediate/serve.html)
+
+
+{{ docs }}

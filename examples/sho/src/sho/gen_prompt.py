@@ -8,6 +8,7 @@ import ipynb_converter
 
 HERE = Path(__file__).absolute().parent
 VLEAFLET_DIR = HERE.parent.parent.parent.parent / 'examples' / 'vleaflet'
+V_PANEL_DIR = HERE.parent.parent.parent.parent / 'examples' / 'panel_vuepy'
 PROMPT_TPL_DIR = HERE.parent.parent / 'prompts'
 PROMPT_OUT_DIR = HERE / '_prompt'
 
@@ -47,6 +48,29 @@ def gen_vleaflet_ctx():
         f.write(out)
 
 
+def gen_vpanel_ctx():
+    ipynb_files = []
+
+    for dir_ in ['chat', 'global', 'indicators', 'layouts', 'panes', 'widgets']:
+        ipynb_files.extend((V_PANEL_DIR / dir_).glob('*.ipynb'))
+
+    all_content = []
+    for ipynb_file in ipynb_files:
+        if ipynb_file.name.startswith('.'):
+            continue
+        md_content = convert_ipynb_to_md(ipynb_file)
+        all_content.append(f"{md_content}\n\n")
+
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader(PROMPT_TPL_DIR))
+    llms_ctx = env.get_template('llms-ctx-panel-vuepy.txt.jinja2')
+    out = llms_ctx.render(**{
+        'docs': '\n'.join(all_content),
+    })
+    output_file = PROMPT_OUT_DIR / 'llms-ctx-panel-vuepy.md'
+    with open(output_file, 'w') as f:
+        f.write(out)
+
+
 def main():
     ipynb_file = PROMPT_TPL_DIR / 'llms-ctx-ipywui.ipynb'
     with open(ipynb_file) as f:
@@ -74,6 +98,7 @@ def main():
         f.write(out)
     
     gen_vleaflet_ctx()
+    gen_vpanel_ctx()
 
     # final out
     sys_prompt_tpl = env.get_template('sys-prompt.html.jinja2')
