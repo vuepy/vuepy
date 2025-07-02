@@ -1,8 +1,0 @@
-bokeh_sampledata
-pyecharts
-folium
-seaborn
-streamz
-vtk
-pyvista
-vega_datasets
