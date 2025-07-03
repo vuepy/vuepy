@@ -4,6 +4,7 @@
 # 参考 @comps.py @comps.py 为python panel库的AutocompleteInput,BooleanStatus,ButtonIcon,
 # CheckBoxGroup,CheckButtonGroup,Checkbox,CodeEditor,ColorMap,ColorPicker,
 # CompositeWidget,CrossSelector,DataFrame 编写组件，保存到 @comps.py 中，一次性生成所有组件
+from __future__ import annotations
 from types import MethodType
 from typing import Dict
 
