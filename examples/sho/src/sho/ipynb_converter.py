@@ -18,19 +18,19 @@ def ipynb_demo_to_markdown_prompt(file_path, nb_content: str) -> str:
                 cell_output = cell.get('outputs')
                 if not cell_output:
                     continue
-                code_out = cell_output[0]
-                if 'text' not in code_out:
-                    print('no text in code_out')
-                    continue
-                code_text = code_out['text'][0]
-                code_out = json.loads(code_text)
-                vue_code = code_out.get('vue')
-                if vue_code:
-                    prompt += f'```vue\n{vue_code}\n```\n'
+                for code_out in cell_output:
+                    if 'text' not in code_out:
+                        print('no text in code_out')
+                        continue
+                    code_text = code_out['text'][0]
+                    code_out = json.loads(code_text)
+                    vue_code = code_out.get('vue')
+                    if vue_code:
+                        prompt += f'```vue\n{vue_code}\n```\n'
 
-                setup_code = code_out.get('setup')
-                if setup_code:
-                    prompt += f'```python\n{setup_code}\n```\n'
+                    setup_code = code_out.get('setup')
+                    if setup_code:
+                        prompt += f'```python\n{setup_code}\n```\n'
             except json.JSONDecodeError as e:
                 msg = f"convert {file_path} error: {repr(e)}, code_text: {code_text}"
                 print(msg)

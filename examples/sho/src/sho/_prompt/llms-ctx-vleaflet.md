@@ -576,6 +576,7 @@ def on_load(**kwargs):
 To visualize the direction and intensity of arbitrary velocities
 ## 基础用法
 
+
 ## API
 
 ### 属性
@@ -1685,7 +1686,7 @@ def on_move(**kwargs):
 
 | 插槽名 | 说明 |
 |--------|------|
-| default | 自定义图标内容(仅支持html) |
+| default | 自定义图标内容 |
 
 ### 方法
 

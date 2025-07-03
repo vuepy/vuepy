@@ -189,10 +189,43 @@ panel server app.ipynb
 
 根据 enter_sends 参数的值(默认为 True)，按 Enter 键或 Ctrl-Enter/Cmd-Enter 键提交消息：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnChatAreaInput v-model='output_text.value'
+                   placeholder="Type something, and press Enter to clear!" />
+  <p> value: {{ output_text.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+            
+output_text = ref("")
+</script>
+
+```
+
 
 ## 实时更新
 
 要查看当前输入的内容而不等待提交，可以使用 value_input 属性：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnChatAreaInput 
+    :enter_sends='False'
+    v-model:value_input="output_text.value"
+    placeholder="Type something, do not submit it" 
+  />
+  <p> value: {{ output_text.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+output_text = ref("")
+</script>
+
+```
 
 
 ## API
@@ -299,27 +332,194 @@ panel server app.ipynb
 
 基本的聊天界面组件：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnChatInterface 
+  v-model='messages.value'
+  :callback="get_response" user='Asker' avatar='?' 
+  @change='on_change'
+/>
+<p> messages: {{ messages.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+import asyncio
+
+messages = ref([])
+
+def on_change(event):
+    print('onchange', event.new)
+
+async def get_response(contents, user, instance):
+    print(contents, user, instance) # hello Asker ChatInterface...
+    await asyncio.sleep(0.5)  # Simulate processing
+    return f"Got your message: {contents}"
+</script>
+
+```
+
 
 ## 输入组件
 
 可以自定义输入组件，支持多种输入类型：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+<PnChatInterface :callback="get_num">
+  <template #inputs>
+    <PnIntSlider name='Number Input' :end='10' />
+    <PnIntSlider name='Number Input2' :end='10' />
+  </template>
+</PnChatInterface>
+</template>
+<script lang='py'>
+from vuepy import ref
+import panel as pn
+
+def get_num(contents, user):
+    return f"You selected: {contents}"
+</script>
+
+```
+
 
 可以添加文件上传等其他输入组件：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+<!-- use widgets prop -->
+<PnChatInterface :callback="handle_file" 
+  :widgets="[
+    pn.widgets.FileInput(name='CSV File', accept='.csv')
+  ]"
+/>
+<!-- use inputs slot -->
+<PnChatInterface :callback="handle_file">
+  <template #inputs>
+    <PnFileInput name='CSV File' accept='.csv' />
+  </template>
+</PnChatInterface>
+</template>
+<script lang='py'>
+from vuepy import ref
+import panel as pn
+
+def handle_file(contents, user):
+    if hasattr(contents, 'filename'):
+        return f"Received file: {contents.filename}"
+    return "Please upload a file"
+</script>
+
+```
+
 
 可以使用 `reset_on_send` 参数控制发送后是否重置输入值：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnChatInterface 
+  :callback="echo_message"
+  :reset_on_send="False"
+/>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+def echo_message(contents):
+    return f"Echo: {contents}"
+</script>
+
+```
 
 
 ## 按钮控制
 
 可以通过 `show_rerun`、`show_undo`、`show_clear` 等参数控制底部按钮的显示：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnChatInterface 
+  :callback="get_response"
+  :show_rerun="False"
+  :show_undo="False"
+/>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+def get_response(contents):
+    return f"Got: {contents}"
+</script>
+
+```
+
 
 使用 `show_button_name=False` 可以隐藏按钮标签，创建更紧凑的界面：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnChatInterface 
+  :callback="get_response"
+  :show_button_name="False"
+  :width="400"
+/>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+def get_response(contents):
+    return f"Got: {contents}"
+</script>
+
+```
+
 
 可以通过 `button_properties` 添加自定义功能按钮：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnChatInterface 
+  ref='chat_ref'
+  :button_properties="{
+    # new button
+    'help': {
+      'icon': 'help','callback': show_notice,
+    },
+    # override clear button 
+    'clear': {
+        'icon': 'star', 'callback': run_before, 'post_callback': run_after,
+    },
+  }"
+/>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+chat_ref = ref(None)
+
+def show_notice(instance, event):
+    instance.send("This is how you add buttons!", respond=False, user="System")
+
+def run_before(instance, event):
+    instance.send(
+        "This will be cleared so it won't show after clear!",
+        respond=False,
+        user="System",
+    )
+
+def run_after(instance, event):
+    instance.send("This will show after clear!", respond=False, user="System")
+
+</script>
+
+```
 
 
 ## API
@@ -392,28 +592,172 @@ panel server app.ipynb
 
 基本的步骤组件初始化：
 
+```vue
+<template>
+  <PnChatStep/>
+</template>
+<script lang='py'>
+</script>
+
+```
+
 
 通过 `stream` 方法对内容实现以下操作：
 - 附加内容，支持`Markdown`、图像等任何内容
 - 覆盖内容
 
 标题也可以通过 `stream_title` 方法对标题实现类似操作。
+```vue
+<template>
+<PnColumn>
+  <PnChatStep ref="step_ref" :width='200' />
+  <PnButton name="Add Content" @click="add_content()" />
+</PnColumn>
+</template>
+<script lang='py'>
+import asyncio
+import panel as pn
+from vuepy import ref
+
+step_ref = ref(None)
+
+async def add_content():
+    step = step_ref.value.unwrap()
+    step.title = ('Thinking...')
+    step.stream("Just thinking...")
+    await asyncio.sleep(0.5)
+    
+    # Calling stream again will concatenate the text
+    step.stream(" about `ChatStep`!")
+    await asyncio.sleep(0.5)
+    
+    step.stream('clear', replace=True)
+    await asyncio.sleep(0.5)
+    
+    step.title = ('Ok')
+    step.append(pn.pane.Image("https://assets.holoviz.org/panel/samples/png_sample.png", width=50, height=50))
+    
+</script>
+
+```
+
 ## Badges
 
 默认头像是 `BooleanStatus` 组件，但可以通过提供 `default_badges` 进行更改。值可以是表情符号、图像、文本或 Panel 对象
+```vue
+<template>
+<PnChatStep 
+    :default_badges='default_badges'
+    status="success"
+/>
+</template>
+<script lang='py'>
+
+default_badges={
+    "pending": "🤔",
+    "running": "🏃",
+    "success": "🎉",
+    "failed": "😞",
+}
+</script>
+
+```
+
 
 ## 状态管理
 
 为了显示该步骤正在处理，您可以将`status`设置为 `running` 并提供 `running_title`，使用 `success_title` 在成功时更新标题。
+```vue
+<template>
+<PnCol>
+  <PnChatStep
+    :width='300'
+    status="running" 
+    running_title="Processing this step..."
+    success_title="Pretend job done!"
+    ref="step_ref"
+  />
+  <PnButton name="Set status" @click="on_click()" />
+</PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+import time
+
+step_ref = ref(None)
+
+def on_click():
+    step = step_ref.value.unwrap()
+    step.stream("Pretending to do something.")
+    time.sleep(1)
+    step.status = "success"
+</script>
+
+```
+
 
 ## 错误处理
 
 处理失败状态：
 
+```vue
+<template>
+<PnCol>
+  <PnChatStep 
+    running_title="Processing this step..." 
+    success_title="Pretend job done!"
+    ref="step_ref"
+  />
+  <PnButton name="Click" @click="on_click()" />
+</PnCol>
+</template>
+<script lang='py'>
+import time
+from vuepy import ref
+
+step_ref = ref(None)
+
+def on_click():
+    step = step_ref.value.unwrap()
+    step.status = "running"
+    try:
+        step.stream("Breaking something")
+        time.sleep(0.5)
+        raise RuntimeError("Just demoing!")
+    except RuntimeError as e:
+        step.status = "failed"
+        step.stream(f"Error: {str(e)}", replace=True)
+</script>
+
+```
+
 
 ## 标题流式显示
 
 支持标题的流式更新：
+
+```vue
+<template>
+<PnColumn>
+  <PnChatStep :width='200' ref="step_ref" />
+  <PnButton name="Stream Title" @click="stream_title()" />
+</PnColumn>
+</template>
+<script lang='py'>
+from vuepy import ref
+import time
+
+step_ref = ref(None)
+
+def stream_title():
+    step = step_ref.value.unwrap()
+    step.status = "running"
+    for char in "It's streaming a title!":
+        time.sleep(0.1)
+        step.stream_title(char)
+</script>
+
+```
 
 
 ## API
@@ -473,84 +817,718 @@ PnChatFeed是一个中层布局组件，用于管理一系列聊天消息(ChatMe
 
 `PnChatFeed`可以不需要任何参数初始化，通过`send`方法发送聊天消息。
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+<PnCol>
+  <PnChatFeed ref="chat_feed" />
+  <PnButton name='send' @click='on_click()'/>
+</PnCol>
+</template>
+
+<script lang='py'>
+import panel as pn
+from vuepy import ref, onMounted
+
+chat_feed = ref(None)
+
+def on_click():
+    message = chat_feed.value.unwrap().send(
+        "Hello world!",
+        user="Bot",
+        avatar="B",
+        footer_objects=[pn.widgets.Button(name="Footer Object")]
+    )
+_ = onMounted(on_click)
+</script>
+
+```
+
 
 ## 回调函数
 
 添加回调函数可以使`PnChatFeed`更加有趣。回调函数的签名必须包含最新可用的消息值`contents`。
 除了`contents`之外，签名还可以包含最新可用的`user`名称和聊天`instance`。
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnChatFeed :callback="echo_message" ref="chat_feed" />
+  <PnButton name='send' @click='send_message()'/>
+</template>
+<script lang='py'>
+from vuepy import ref, onMounted
+
+chat_feed = ref(None)
+
+# def echo_message(contents, user, instance):
+def echo_message(contents):
+    return f"Echoing... {contents}"
+
+def send_message():
+    message = chat_feed.value.unwrap().send("Hello!")
+
+_ = onMounted(send_message)
+</script>
+
+```
+
 
 可以更新`callback_user`和`callback_avatar`来分别更改响应者的默认名称和头像。
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnChatFeed :callback='echo_message' 
+              callback_user='Echo Bot' callback_avatar='🛸' ref="chat_feed" />
+  <PnButton name='send' @click='send_message()'/>
+</template>
+
+<script lang='py'>
+from vuepy import ref, onMounted
+
+chat_feed = ref(None)
+
+def echo_message(contents, user):
+    return f"Echoing {user!r}... {contents}"
+
+def send_message():
+    message = chat_feed.value.unwrap().send("Hey!")
+
+d = onMounted(send_message)
+</script>
+
+```
 
 
 指定的`callback`也可以返回一个包含`value`、`user`和`avatar`键的字典，这将覆盖默认的`callback_user`和`callback_avatar`。
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnChatFeed :callback="parrot_message" 
+              callback_user='Echo Bot' 
+              callback_avatar='🛸' ref="chat_feed" />
+</template>
+
+<script lang='py'>
+from vuepy import ref, onMounted
+
+chat_feed = ref(None)
+
+def parrot_message(contents):
+    return {"value": f"No, {contents.lower()}", "user": "Parrot", "avatar": "🦜"}
+
+def send_message():
+    message = chat_feed.value.unwrap().send("Are you a parrot?")
+
+_ = onMounted(send_message)
+</script>
+
+```
+
 
 如果不希望与`send`一起触发回调，请将`respond`设置为`False`。
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnChatFeed :callback="parrot_message" callback_user='Echo Bot' callback_avatar='🛸' ref="chat_feed" />
+</template>
+
+<script lang='py'>
+from vuepy import ref, onMounted
+
+chat_feed = ref(None)
+
+def parrot_message(contents):
+    return {"value": f"No, {contents.lower()}", "user": "Parrot", "avatar": "🦜"}
+
+def send_message():
+    message = chat_feed.value.unwrap().send("Don't parrot this.", respond=False)
+
+_ = onMounted(send_message)
+</script>
+
+```
+
 
 可以通过将`callback_exception`设置为`"summary"`来显示异常。
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnChatFeed :callback="bad_callback" callback_exception='summary' ref="chat_feed" />
+</template>
+
+<script lang='py'>
+from vuepy import ref, onMounted
+
+chat_feed = ref(None)
+
+def bad_callback(contents):
+    return 1 / 0
+
+def send_message():
+    chat_feed.value.unwrap().send("This will fail...")
+
+_ = onMounted(send_message)
+</script>
+
+```
 
 
 ## 异步回调
 
 `PnChatFeed`还支持*异步*`callback`。我们建议尽可能使用*异步*`callback`以保持应用程序的快速响应，*只要函数中没有阻塞事件循环的内容*。
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnChatFeed :callback="parrot_message" callback_user='Echo Bot' ref="chat_feed" />
+</template>
+
+<script lang='py'>
+import asyncio
+from vuepy import ref, onMounted
+
+chat_feed = ref(None)
+
+async def parrot_message(contents):
+    await asyncio.sleep(2.8)
+    return {"value": f"No, {contents.lower()}", "user": "Parrot", "avatar": "🦜"}
+
+def send_message():
+    message = chat_feed.value.unwrap().send("Are you a parrot?")
+
+_ = onMounted(send_message)
+</script>
+
+```
+
 
 流式输出的最简单和最优方式是通过*异步生成器*。如果您不熟悉这个术语，只需在函数前加上`async`，并用`yield`替换`return`。
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnChatFeed :callback="stream_message" ref="chat_feed" />
+</template>
+
+<script lang='py'>
+import asyncio
+from vuepy import ref, onMounted
+
+chat_feed = ref(None)
+
+async def stream_message(contents):
+    message = ""
+    for character in contents:
+        message += character
+        await asyncio.sleep(0.1)
+        yield message
+
+def send_message():
+    message = chat_feed.value.unwrap().send("Streaming...")
+
+_ = onMounted(send_message)
+</script>
+
+```
 
 
 如果不连接字符，也可以持续替换原始消息。
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnChatFeed :callback="replace_message" ref="chat_feed" />
+</template>
+
+<script lang='py'>
+import asyncio
+from vuepy import ref, onMounted
+
+chat_feed = ref(None)
+
+async def replace_message(contents):
+    for character in contents:
+        await asyncio.sleep(0.1)
+        yield character
+
+def send_message():
+    message = chat_feed.value.unwrap().send("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+_ = onMounted(send_message)
+</script>
+
+```
+
 
 也可以手动触发回调与`respond`。这对于从初始消息实现一系列响应很有用！
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnChatFeed :callback="chain_message" ref="chat_feed" />
+</template>
+
+<script lang='py'>
+import asyncio
+from vuepy import ref, onMounted
+
+chat_feed = ref(None)
+
+async def chain_message(contents, user, instance):
+    await asyncio.sleep(1.8)
+    if user == "User":
+        yield {"user": "Bot 1", "value": "Hi User! I'm Bot 1--here to greet you."}
+        instance.respond()
+    elif user == "Bot 1":
+        yield {
+            "user": "Bot 2",
+            "value": "Hi User; I see that Bot 1 already greeted you; I'm Bot 2.",
+        }
+        instance.respond()
+    elif user == "Bot 2":
+        yield {
+            "user": "Bot 3",
+            "value": "I'm Bot 3; the last bot that will respond. See ya!",
+        }
+
+def send_message():
+    message = chat_feed.value.unwrap().send("Hello bots!")
+
+_ = onMounted(send_message)
+</script>
+
+```
 
 
 ## 编辑回调
 
 可以将`edit_callback`附加到`PnChatFeed`以处理消息编辑。签名必须包含最新可用的消息值`contents`、编辑消息的索引和聊天`instance`。
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnChatFeed :callback="echo_callback" :edit_callback="edit_callback" callback_user="Echo Guy" ref="chat_feed" />
+</template>
+
+<script lang='py'>
+from vuepy import ref, onMounted
+
+chat_feed = ref(None)
+
+def echo_callback(content):
+    return content
+
+def edit_callback(content, index, instance):
+    instance.objects[index + 1].object = content
+
+def send_message():
+    chat_feed.value.unwrap().send("Edit this")
+
+_ = onMounted(send_message)
+</script>
+
+```
+
 
 ## 步骤
 
 可以通过一系列`ChatStep`提供中间步骤，如思想链。
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnChatFeed ref="chat_feed" />
+</template>
+
+<script lang='py'>
+import time
+from vuepy import ref, onMounted
+
+chat_feed = ref(None)
+
+def demo_steps():
+    # First step
+    with chat_feed.value.unwrap().add_step(
+        "To answer the user's query, I need to first create a plan.", 
+        title="Create a plan", user='Agent'
+    ) as step:
+        step.stream("\n\n...Okay the plan is to demo this!")
+    
+    # Second step - append to existing message
+    with chat_feed.value.unwrap().add_step(
+        title="Execute the plan", status="running"
+    ) as step:
+        step.stream("\n\n...Executing plan...")
+        time.sleep(1)
+        step.stream("\n\n...Handing over to SQL Agent")
+    
+    # Third step - new user creates a new message
+    with chat_feed.value.unwrap().add_step(
+        title="Running SQL query", user='SQL Agent'
+    ) as step:
+        step.stream('Querying...')
+        time.sleep(1)
+        step.stream('\nSELECT * FROM TABLE')
+
+_ = onMounted(demo_steps)
+</script>
+
+```
 
 
 ## 提示用户
 
 可以使用`prompt_user`暂时暂停代码执行并提示用户回答问题或填写表单，该方法接受任何Panel `component`和后续`callback`（带有`component`和`instance`作为args）在提交后执行。
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnChatFeed :callback="show_interest" callback_user="Ice Cream Bot" ref="chat_feed" />
+</template>
+
+<script lang='py'>
+from vuepy import ref, onMounted
+
+chat_feed = ref(None)
+
+def repeat_answer(component, instance):
+    contents = component.value
+    instance.send(f"Wow, {contents}, that's my favorite flavor too!", respond=False, user="Ice Cream Bot")
+
+def show_interest(contents, user, instance):
+    if "ice" in contents or "cream" in contents:
+        answer_input = {"component": "PnTextInput", "props": {"placeholder": "Enter your favorite ice cream flavor"}}
+        instance.prompt_user(answer_input, callback=repeat_answer)
+    else:
+        return "I'm not interested in that topic."
+
+def send_message():
+    chat_feed.value.unwrap().send("ice cream")
+
+_ = onMounted(send_message)
+</script>
+
+```
+
 
 还可以设置一个`predicate`来评估组件的状态，例如小部件是否有值。如果提供，当谓词返回`True`时，提交按钮将被启用。
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnChatFeed :callback="show_interest" callback_user="Ice Cream Bot" ref="chat_feed" />
+</template>
+
+<script lang='py'>
+from vuepy import ref, onMounted
+
+chat_feed = ref(None)
+
+def is_chocolate(component):
+    return "chocolate" in component.value.lower()
+
+def repeat_answer(component, instance):
+    contents = component.value
+    instance.send(f"Wow, {contents}, that's my favorite flavor too!", respond=False, user="Ice Cream Bot")
+
+def show_interest(contents, user, instance):
+    if "ice" in contents or "cream" in contents:
+        answer_input = {"component": "PnTextInput", "props": {"placeholder": "Enter your favorite ice cream flavor"}}
+        instance.prompt_user(answer_input, callback=repeat_answer, predicate=is_chocolate)
+    else:
+        return "I'm not interested in that topic."
+
+def send_message():
+    chat_feed.value.unwrap().send("ice cream")
+
+_ = onMounted(send_message)
+</script>
+
+```
 
 
 ## 序列化
 
 聊天历史可以通过`serialize`并设置`format="transformers"`来序列化，以供`transformers`或`openai`包使用。
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnChatFeed ref="chat_feed" />
+  <PnCol>
+    <PnButton @click="send_messages()" name="Send Messages" />
+    <PnButton @click="serialize_chat()" name="Serialize" />
+    <PnTextAreaInput v-model="serialized.value" :rows="10" />
+  </PnCol>
+</template>
+
+<script lang='py'>
+from vuepy import ref, onMounted
+
+chat_feed = ref(None)
+serialized = ref("")
+
+def send_messages():
+    chat_feed.value.unwrap().send("Hello!", user="User")
+    chat_feed.value.unwrap().send("Hi there!", user="Bot 1")
+    chat_feed.value.unwrap().send("How are you?", user="User")
+    chat_feed.value.unwrap().send("I'm doing well!", user="Bot 2")
+
+def serialize_chat():
+    serialized.value = str(chat_feed.value.unwrap().serialize(format="transformers"))
+  
+m1 = onMounted(send_messages)
+m2 = onMounted(serialize_chat)
+</script>
+
+```
+
 
 可以设置`role_names`来显式映射角色到ChatMessage的用户名。
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnChatFeed ref="chat_feed" />
+  <PnCol>
+    <PnButton @click="send_messages()" name="Send Messages" />
+    <PnButton @click="serialize_chat()" name="Serialize with role_names" />
+    <PnTextAreaInput v-model="serialized.value" :rows="10" />
+  </PnCol>
+</template>
+
+<script lang='py'>
+from vuepy import ref, onMounted
+
+chat_feed = ref(None)
+serialized = ref("")
+
+def send_messages():
+    chat_feed.value.unwrap().send("Hello!", user="User")
+    chat_feed.value.unwrap().send("Hi there!", user="Bot 1")
+    chat_feed.value.unwrap().send("How are you?", user="User")
+    chat_feed.value.unwrap().send("I'm doing well!", user="Bot 2")
+
+def serialize_chat():
+    serialized.value = str(chat_feed.value.unwrap().serialize(
+        format="transformers", 
+        role_names={"assistant": ["Bot 1", "Bot 2", "Bot 3"]}
+    ))
+
+m1 = onMounted(send_messages)
+m2 = onMounted(serialize_chat)
+</script>
+
+```
 
 
 ## 流式传输
 
 如果返回的对象不是生成器（特别是LangChain输出），仍然可以使用`stream`方法流式传输输出。
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnChatFeed ref="chat_feed" />
+</template>
+
+<script lang='py'>
+import time
+import panel as pn
+from vuepy import ref, onMounted
+
+chat_feed = ref(None)
+
+def demo_stream():
+    # Create a new message
+    message = chat_feed.value.unwrap().stream("Hello", user="Aspiring User", avatar="🤓")
+    
+    # Stream (append) to the previous message
+    message = chat_feed.value.unwrap().stream(
+        " World!",
+        user="Aspiring User",
+        avatar="🤓",
+        message=message,
+        footer_objects=[{"component": "PnButton", "props": {"name": "Footer Object"}}]
+    )
+    
+    # Demonstrate streaming with a loop
+    message = None
+    for n in "12":
+        time.sleep(0.1)
+        message = chat_feed.value.unwrap().stream(n, message=message)
+
+# m1 = onMounted(demo_stream)
+pn.state.add_periodic_callback(demo_stream, 500, count=1)
+</script>
+
+```
+
 
 ## 自定义
 
 可以通过`message_params`传递`ChatEntry`参数。
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnChatFeed 
+    :message_params="message_params"
+    ref="chat_feed" />
+</template>
+
+<script lang='py'>
+from vuepy import ref, onMounted
+
+chat_feed = ref(None)
+message_params = {
+    "default_avatars": {"System": "S", "User": "👤"}, 
+    "reaction_icons": {"like": "thumb-up"}
+}
+
+def send_messages():
+    chat_feed.value.unwrap().send(user="System", value="This is the System speaking.")
+    chat_feed.value.unwrap().send(user="User", value="This is the User speaking.")
+
+m1 = onMounted(send_messages)
+</script>
+
+```
+
 
 直接将这些参数传递给ChatFeed构造函数，它将自动转发到`message_params`中。
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnChatFeed 
+    :default_avatars='{"System": "S", "User": "👤"}'
+    :reaction_icons='{"like": "thumb-up"}'
+    ref="chat_feed" />
+</template>
+
+<script lang='py'>
+from vuepy import ref, onMounted
+
+chat_feed = ref(None)
+
+def send_messages():
+    chat_feed.value.unwrap().send(user="System", value="This is the System speaking.")
+    chat_feed.value.unwrap().send(user="User", value="This is the User speaking.")
+
+m1 = onMounted(send_messages)
+</script>
+
+```
+
 
 也可以通过设置`message_params`参数来自定义聊天流的外观。
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnChatFeed 
+    :show_activity_dot="True"
+    :message_params="message_params"
+    ref="chat_feed" />
+</template>
+
+<script lang='py'>
+from vuepy import ref, onMounted
+
+chat_feed = ref(None)
+message_params = {
+    "stylesheets": [
+        """
+        .message {
+            background-color: tan;
+            font-family: "Courier New";
+            font-size: 24px;
+        }
+        """
+    ]
+}
+
+def send_message():
+    chat_feed.value.unwrap().send("I am so stylish!")
+
+m1 = onMounted(send_message)
+</script>
+
+```
 
 
 ## 自定义聊天界面
 
 您也可以在`PnChatFeed`的基础上构建自己的自定义聊天界面。
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnCol>
+    <PnChatFeed
+      ref="chat_feed"
+      :callback="get_response"
+      :height="500"
+      :message_params="message_params"
+    />
+    <PnLayout.Divider />
+    <PnRow>
+      <span>Click a button</span>
+      <PnButton name="Andrew" @click="send_andrew()" />
+      <PnButton name="Marc" @click="send_marc()" />
+      <PnButton name="Undo" @click="undo_messages()" />
+      <PnButton name="Clear" @click="clear_messages()" />
+    </PnRow>
+  </PnCol>
+</template>
+
+<script lang='py'>
+import asyncio
+from vuepy import ref, onMounted
+
+chat_feed = ref(None)
+ASSISTANT_AVATAR = "https://upload.wikimedia.org/wikipedia/commons/6/63/Yumi_UBports.png"
+
+message_params = {
+    "default_avatars": {"Assistant": ASSISTANT_AVATAR}
+}
+
+async def get_response(contents, user):
+    await asyncio.sleep(0.88)
+    return {
+        "Marc": "It is 2",
+        "Andrew": "It is 4",
+    }.get(user, "I don't know")
+
+def send_marc():
+    chat_feed.value.unwrap().send(
+        "What is the square root of 4?", user="Marc", avatar="🚴"
+    )
+
+def send_andrew():
+    chat_feed.value.unwrap().send(
+        "What is the square root of 4 squared?", user="Andrew", avatar="🏊"
+    )
+
+def undo_messages():
+    chat_feed.value.unwrap().undo(2)
+
+def clear_messages():
+    chat_feed.value.unwrap().clear()
+
+def init_chat():
+    chat_feed.value.unwrap().send("Hi There!", user="Assistant", avatar=ASSISTANT_AVATAR)
+
+m1 = onMounted(init_chat)
+</script>
+
+```
 
 
 ## API
@@ -623,28 +1601,185 @@ PnChatFeed是一个中层布局组件，用于管理一系列聊天消息(ChatMe
 
 基本的消息展示：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnChatMessage object="Hi and welcome!" />
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
+
 
 ChatMessage可以显示任何Panel可以显示的Python对象，例如Panel组件、数据框和图表：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnColumn>
+  <PnChatMessage :object="df" />
+  <PnChatMessage :object="vgl_pane" />
+</PnColumn>
+</template>
+<script lang='py'>
+from vuepy import ref
+import pandas as pd
+import panel as pn
+
+# Create sample data
+df = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+
+# Create a Vega-Lite spec
+vegalite = {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {"url": "https://raw.githubusercontent.com/vega/vega/master/docs/data/barley.json"},
+    "mark": "bar",
+    "encoding": {
+        "x": {"aggregate": "sum", "field": "yield", "type": "quantitative"},
+        "y": {"field": "variety", "type": "nominal"},
+        "color": {"field": "site", "type": "nominal"}
+    },
+    "width": "container",
+}
+vgl_pane = pn.pane.Vega(vegalite, height=240)
+</script>
+
+```
+
 
 可以指定自定义用户名和头像：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnChatMessage object="Want to hear some beat boxing?" 
+               user="Beat Boxer" avatar="🎶" />
+<PnChatMessage object="Want to hear some beat boxing?" 
+               user="Beat Boxer" 
+               :avatar="r'\N{musical note}'" />
+</template>
+
+```
 
 
 ## 消息更新
 
 组件的值、用户名和头像都可以动态更新：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+<PnColumn>
+  <PnChatMessage ref='msg_ref' 
+                 object='Initial message' 
+                 user='Jolly Guy' avatar="🎅" />
+  <PnButton name="Update Message" @click="update_message()" />
+</PnColumn>
+</template>
+<script lang='py'>
+from vuepy import ref
+import asyncio
+
+msg_ref = ref(None)
+
+def update_message():
+    msg = msg_ref.value.unwrap()
+    msg.object = "Updated message!"
+    msg.user = "Updated Guy"
+    msg.avatar = "😎"
+</script>
+
+```
+
 将输出流式传输到`ChatMessage`最简单、最好的方式是通过异步生成器。
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+<PnColumn>
+  <PnChatMessage :object='response.value' 
+                 user='Jolly Guy' avatar="🎅" />
+  <PnButton name="Update Message" @click="on_click()" />
+</PnColumn>
+</template>
+<script lang='py'>
+import asyncio
+import panel as pn
+from vuepy import ref, onMounted
+
+response = ref('')
+
+sentence = """
+    The greatest glory in living lies not in never falling,
+    but in rising every time we fall.
+"""
+
+async def append_response():
+    value = ""
+    for token in sentence.split():
+        value += f" {token}"
+        await asyncio.sleep(0.1)
+        # yield value
+        response.value = value
+        # yield value
+        response.value = value
+
+def on_click():
+    print('xxxx')
+
+pn.state.add_periodic_callback(append_response, count=1)
+
+</script>
+
+```
+
 
 ## 样式
 
 如果您想要一个仅显示 `value` 的普通界面，请将 `show_user` 、 `show_copy_icon` 、 `show_avatar` 和 `show_timestamp` 设置为 `False` ，并为 `reaction_icons` 提供一个空的 `dict` 。
 
 可以设置常用的样式和布局参数，如 `sizing_mode` 、 `height` 、 `width` 、 `max_height` 、 `max_width` 和 `styles` 。
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnChatMessage object="Want to hear some beat boxing?"
+    :show_avatar=False
+    :show_user=False
+    :show_timestamp=False
+    :show_copy_icon=False
+    :reaction_icons='ChatReactionIcons(options={})'
+/>
+</template>
+<script lang='py'>
+from panel.chat import ChatReactionIcons
+
+</script>
+
+```
+
 
 ## 代码高亮
 
 支持代码块的语法高亮（需要安装 pygments）：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnChatMessage :object='code_content' user='Bot' avatar="🤖" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+# code_content = """```python
+# print('hello world')
+# ```"""
+code_content = """```
+print('hello world')
+```"""
+</script>
+
+```
 
 
 ## API
@@ -712,15 +1847,97 @@ ChatMessage可以显示任何Panel可以显示的Python对象，例如Panel组�
 
 最简单的`Trend`只需要提供带有x和y值的`data`，可以声明为字典或`pandas.DataFrame`。`value`和`value_change`值将从数据中自动计算：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTrend 
+    name="Price" 
+    :data="data" 
+    :width="200" 
+    :height="200" 
+  />
+</template>
+
+<script lang='py'>
+import numpy as np
+
+np.random.seed(8)
+data = {'x': np.arange(50), 'y': np.random.randn(50).cumsum()}
+</script>
+
+```
+
 
 ## 数据流式传输
 
 `Trend`指示器还提供了一个方便的方法来流式传输新数据，支持`rollover`参数来限制显示的数据量。我们将使用`setInterval`来定期更新图表：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+ <PnCol>
+  <PnTrend 
+    ref="trend_ref"
+    name="Price" 
+    :data="data" 
+    :width="200" 
+    :height="200" 
+  />
+  <PnButton name="Start Streaming" @click="start()" />
+ </PnCol>
+</template>
+
+<script lang='py'>
+import numpy as np
+import panel as pn
+from vuepy import ref
+
+data = {'x': np.arange(10), 'y': np.random.randn(10).cumsum()}
+interval_id = None
+trend_ref = ref(None)
+
+def stream_data():
+    trend = trend_ref.value.unwrap()
+    trend.stream({
+        'x': [trend.data['x'][-1]+1],
+        'y': [trend.data['y'][-1]+np.random.randn()]
+    },  rollover=50)
+    
+
+def start():
+    pn.state.add_periodic_callback(stream_data, period=250, count=15);
+</script>
+
+```
+
 
 ## 图表类型
 
 除了默认的`plot_type`外，流指示器还支持其他几种选项：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnTrend 
+      v-for="plot_type in plot_types"
+      :name="plot_type" 
+      :data="data" 
+      :plot_type="plot_type"
+      :width="150" 
+      :height="150" 
+    />
+  </PnRow>
+</template>
+
+<script lang='py'>
+import numpy as np
+
+data = {'x': np.arange(50), 'y': np.random.randn(50).cumsum()}
+plot_types = ['line', 'bar', 'step', 'area']
+</script>
+
+```
 
 
 ## API
@@ -771,15 +1988,48 @@ ChatMessage可以显示任何Panel可以显示的Python对象，例如Panel组�
 
 `TooltipIcon`指示器可以使用字符串进行实例化：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTooltipIcon value="This is a simple tooltip by using a string" />
+</template>
+
+```
+
 
 ## 使用Bokeh.models.Tooltip
 
 也可以使用`bokeh.models.Tooltip`进行实例化：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTooltipIcon :value="tooltip_value" />
+</template>
+
+<script lang='py'>
+from bokeh.models import Tooltip
+
+tooltip_value = Tooltip(content="This is a tooltip using a bokeh.models.Tooltip", position="right")
+</script>
+
+```
+
 
 ## 与其他组件组合使用
 
 `TooltipIcon`可以用来为组件添加更多信息：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnButton name="Click me!" />
+    <PnTooltipIcon value="Nothing happens when you click the button!" />
+  </PnRow>
+</template>
+
+```
 
 
 ## API
@@ -820,15 +2070,52 @@ ChatMessage可以显示任何Panel可以显示的Python对象，例如Panel组�
 
 最简单的仪表盘只需要设置一个在指定范围内的`value`。默认的格式化器和范围假设你提供的是百分比值：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnGauge name="Failure Rate" :value="10" :bounds="(0, 100)" />
+</template>
+
+```
+
 
 ## 自定义格式与颜色阈值
 
 如果我们想要显示其他值，例如发动机每分钟转速，我们可以设置不同的`bounds`值并重写`format`。此外，我们还可以提供一组不同的颜色，定义应在提供范围的哪个点上更改颜色。`colors`接受一个元组列表，定义分数和颜色：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnGauge 
+    name="Engine" 
+    :value="2500" 
+    :bounds="(0, 3000)" 
+    format="{value} rpm"
+    :colors="[[0.2, 'green'], [0.8, 'gold'], [1, 'red']]" 
+  />
+</template>
+
+```
+
 
 ## 自定义指针颜色
 
 您还可以通过传递自定义选项来更改指针的颜色：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnGauge 
+    name="Engine" 
+    :value="2500" 
+    :bounds="(0, 3000)" 
+    format="{value} rpm"
+    :colors="[[0.2, 'green'], [0.8, 'gold'], [1, 'red']]" 
+    :custom_opts="{'pointer': {'itemStyle': {'color': 'red'}}}"
+  />
+</template>
+
+```
 
 
 ## API
@@ -882,6 +2169,36 @@ Tqdm指示器包装了著名的[`tqdm`](https://github.com/tqdm/tqdm)进度指�
 
 要使用`Tqdm`指示器，只需实例化该对象，然后像使用`tqdm.tqdm`一样使用生成的变量，即可迭代任何可迭代对象：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+ <PnCol>
+  <PnTqdm ref="tqdm_ref" />
+  <PnButton name="Run Loop" @click="run_loop()" />
+ </PnCol>
+</template>
+
+<script lang='py'>
+import time
+import numpy as np
+import panel as pn
+from vuepy import ref
+
+tqdm_ref = ref(None)
+
+
+def run_loop():
+    tqdm = tqdm_ref.value.unwrap()
+    for i in tqdm(range(0, 10), desc="My loop bar", leave=True, colour='#666666'):
+        if pn.state._is_pyodide:
+            # time.sleep does not work in pyodide
+            np.random.random((10**6, 30))  
+        else:
+            time.sleep(0.2)
+</script>
+
+```
+
 
 大多数[tqdm支持的参数](https://github.com/tqdm/tqdm#parameters)都可以传递给`Tqdm`指示器的call方法。
 
@@ -889,10 +2206,69 @@ Tqdm指示器包装了著名的[`tqdm`](https://github.com/tqdm/tqdm)进度指�
 
 当嵌套使用`Tqdm`指示器时，使用`margin`参数可以直观地表示嵌套级别。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCol>
+    <PnTqdm ref="tqdm_outer_ref" />
+    <PnTqdm ref="tqdm_inner_ref" :margin="(0, 0, 0, 20)" />
+    <PnButton name="Run Nested Loop" @click="run_nested_loop()" />
+  </PnCol>
+</template>
+
+<script lang='py'>
+import time
+import numpy as np
+import panel as pn
+from vuepy import ref
+
+tqdm_outer_ref = ref(None)
+tqdm_inner_ref = ref(None)
+
+def run_nested_loop():
+    tqdm_outer = tqdm_outer_ref.value.unwrap()
+    tqdm_inner = tqdm_inner_ref.value.unwrap()
+    for i in tqdm_outer(range(10)):
+        for j in tqdm_inner(range(10)):
+            if pn.state._is_pyodide:
+                # time.sleep does not work in pyodide
+                np.random.random((10**6, 30))  
+            else:
+                time.sleep(0.01)
+</script>
+
+```
+
 
 ## Pandas集成
 
 要使用tqdm pandas集成，可以通过调用`tqdm.pandas`并传入所有配置选项来激活它。激活后，`progress_apply`方法在`pandas.DataFrame`上可用：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+ <PnCol>
+  <PnTqdm ref="tqdm_pandas_ref" :width="500" />
+  <PnButton name="Run Pandas Apply" button_type="success" @click="run_df()" />
+ </PnCol>
+</template>
+
+<script lang='py'>
+import numpy as np
+import pandas as pd
+from vuepy import ref
+
+df = pd.DataFrame(np.random.randint(0, 100, (100000, 6)))
+tqdm_pandas_ref = ref(None)
+
+def run_df():
+    tqdm_pandas = tqdm_pandas_ref.value.unwrap()
+    # Register Pandas. This gives DataFrame.progress_apply method
+    tqdm_pandas.pandas(desc="Pandas Progress")
+    df.progress_apply(lambda x: x**2)
+</script>
+
+```
 
 
 ## API
@@ -940,15 +2316,54 @@ Tqdm指示器包装了著名的[`tqdm`](https://github.com/tqdm/tqdm)进度指�
 
 最简单的线性仪表只需要设置一个在指定范围内的`value`。默认的格式化器和范围假设你提供的是百分比值：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnLinearGauge name="Failure Rate" :value="30" :bounds="(0, 100)" />
+</template>
+
+```
+
 
 ## 自定义格式与颜色
 
 如果我们想要显示其他值，例如发动机每分钟转速，我们可以设置不同的`bounds`值并重写`format`。此外，我们还可以提供一组不同的颜色，定义应在提供范围的哪个点上更改颜色。`colors`可以接受颜色列表或元组列表：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnLinearGauge 
+    name="Engine" 
+    :value="2500" 
+    :bounds="(0, 3000)" 
+    format="{value:.0f} rpm"
+    :colors="['green', 'gold', 'red']" 
+    :horizontal="True" 
+    :width="125" 
+  />
+</template>
+
+```
+
 
 ## 显示颜色边界
 
 如果我们想要显示不同颜色之间的过渡点，我们也可以启用`show_boundaries`：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnLinearGauge 
+    name="Engine" 
+    :value="2800" 
+    :bounds="(0, 3000)" 
+    format="{value:.0f} rpm"
+    :colors="[(0.2, 'green'), (0.8, 'gold'), (1, 'red')]" 
+    show_boundaries
+  />
+</template>
+
+```
 
 
 ## API
@@ -999,15 +2414,58 @@ Tqdm指示器包装了著名的[`tqdm`](https://github.com/tqdm/tqdm)进度指�
 
 `Progress`组件可以使用或不使用值来实例化。如果给定`value`，进度条将根据`max`值（默认为100）的进度进行填充：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+ <PnCol>
+  <PnProgress name="Progress" v-model="progress.value" :width="200" />
+  <PnIntSlider v-model="progress.value" 
+              :start="0" :end="100" name="Progress Value" />
+ </PnCol>
+</template>
+
+<script lang='py'>
+from vuepy import ref
+
+progress = ref(20)
+</script>
+
+```
+
 
 ## 不确定状态
 
 `Progress`也可以在不设置`value`的情况下实例化，显示不确定状态：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnProgress name="Indeterminate Progress" :active="True" :width="200" />
+</template>
+
+```
+
 
 ## 不同颜色
 
 `Progress`组件支持多种条形颜色：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCol>
+    <PnRow v-for="(index, color) in bar_colors">
+      <PnStaticText :value="color" :width="100" />
+      <PnProgress :width="300" :value="10 + index * 10" :bar_color="color" />
+    </PnRow>
+  </PnCol>
+</template>
+
+<script lang='py'>
+bar_colors = ['primary', 'secondary', 'success', 'info', 'warning', 'danger', 'light', 'dark']
+</script>
+
+```
 
 
 ## API
@@ -1052,10 +2510,47 @@ Tqdm指示器包装了著名的[`tqdm`](https://github.com/tqdm/tqdm)进度指�
 
 `LoadingSpinner`可以实例化为旋转或静止状态：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnLoadingSpinner :value="False" name="Idle..." />
+    <PnLoadingSpinner :value="True" :size="20" name="Loading..." />
+  </PnRow>
+</template>
+
+```
+
 
 ## 颜色与背景
 
 `LoadingSpinner`支持多种旋转部分颜色和背景：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <!--<PnGridBox :ncols="3">
+    <PnLabel value="" />
+    <PnLabel value="light" />
+    <PnLabel value="dark" />-->
+    <PnStaticText value="" />
+    <PnStaticText value="light" />
+    <PnStaticText value="dark" />
+    
+    <PnRow v-for="color in colors">
+      <!--<PnLabel :value="color" />-->
+      <PnStaticText :value="color" :width='80' />
+      <PnLoadingSpinner :size="50" :value="True" :color="color" bgcolor="light" />
+      <PnLoadingSpinner :size="50" :value="True" :color="color" bgcolor="dark" />
+    </PnRow>
+  <!--</PnGridBox>-->
+</template>
+
+<script lang='py'>
+colors = ['primary', 'secondary', 'success', 'info', 'warning', 'danger', 'light', 'dark']
+</script>
+
+```
 
 
 ## API
@@ -1100,10 +2595,45 @@ Tqdm指示器包装了著名的[`tqdm`](https://github.com/tqdm/tqdm)进度指�
 
 `Number`指示器可用于指示一个简单的数字，并根据需要进行格式化：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnNumber name="Failure Rate" :value="10" format="{value}%" />
+</template>
+
+```
+
 
 ## 颜色阈值
 
 如果我们想要指定特定的阈值，在这些阈值下指示器会改变颜色：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnNumber 
+      name="Failure Rate" 
+      :value="10" 
+      format="{value}%"
+      :colors="[[33, 'green'], [66, 'gold'], [100, 'red']]" 
+    />
+    <PnNumber 
+      name="Failure Rate" 
+      :value="42" 
+      format="{value}%"
+      :colors="[[33, 'green'], [66, 'gold'], [100, 'red']]" 
+    />
+    <PnNumber 
+      name="Failure Rate" 
+      :value="93" 
+      format="{value}%"
+      :colors="[[33, 'green'], [66, 'gold'], [100, 'red']]" 
+    />
+  </PnRow>
+</template>
+
+```
 
 
 ## API
@@ -1150,10 +2680,43 @@ Tqdm指示器包装了著名的[`tqdm`](https://github.com/tqdm/tqdm)进度指�
 
 BooleanStatus组件可以实例化为`False`或`True`状态：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnBooleanStatus :value="False" />
+    <PnBooleanStatus :value="True" />
+  </PnRow>
+</template>
+
+```
+
 
 ## 颜色设置
 
 BooleanStatus指示器支持多种颜色：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnStaticText value="" />
+    <PnStaticText value="False" />
+    <PnStaticText value="True" />
+  </PnRow>
+    
+    <PnRow v-for="color in colors">
+      <PnStaticText :value="color" :width='80' />
+      <PnBooleanStatus :width="50" :height="50" :value="False" :color="color" />
+      <PnBooleanStatus :width="50" :height="50" :value="True" :color="color" />
+    </PnRow>
+</template>
+
+<script lang='py'>
+colors = ['primary', 'secondary', 'success', 'info', 'warning', 'danger', 'light', 'dark']
+</script>
+
+```
 
 
 ## API
@@ -1195,10 +2758,32 @@ BooleanStatus指示器支持多种颜色：
 
 最简单的刻度盘只需要设置一个在指定范围内的`value`。默认的格式化器和范围假设你提供的是百分比值：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnDial name="Failure Rate" :value="10" :bounds="(0, 100)" />
+</template>
+
+```
+
 
 ## 自定义格式与颜色阈值
 
 如果我们想要显示其他值，例如发动机每分钟转速，我们可以设置不同的`bounds`值并重写`format`。此外，我们还可以提供一组不同的颜色，定义应在提供范围的哪个点上更改颜色。`colors`接受一个元组列表，定义分数和颜色：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnDial 
+    name="Engine" 
+    :value="2500" 
+    :bounds="(0, 3000)" 
+    format="{value} rpm"
+    :colors="[[0.2, 'green'], [0.8, 'gold'], [1, 'red']]" 
+  />
+</template>
+
+```
 
 
 ## API
@@ -1252,15 +2837,99 @@ FlexBox是一种基于CSS Flexbox的列表式布局组件，提供了灵活的�
 
 默认情况下，FlexBox使用`direction='row'`和`flex_wrap='wrap'`，使得元素按行排列并在必要时换行：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnFlexBox>
+    <PnHTML v-for="i in range(24)" 
+            :object="str(i)" 
+            :style="f'background: {rcolor()}; width:100px;height:100px'" 
+    />
+  </PnFlexBox>
+</template>
+<script lang='py'>
+from vuepy import ref
+import random
+
+random.seed(7)
+
+# Function to generate random colors
+def rcolor():
+    return "#%06x" % random.randint(0, 0xFFFFFF)
+    
+</script>
+
+```
+
 
 ## 列式布局
 
 可以通过设置`flex_direction='column'`让FlexBox按列排列元素：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnFlexBox flex_direction="column" :height='450'>
+    <PnHTML v-for="i in range(24)" 
+            :object="str(i)" 
+            :style="f'background: {rcolor()}; width:100px;height:100px'" 
+    />
+  </PnFlexBox>
+</template>
+<script lang='py'>
+from vuepy import ref
+import random
+
+random.seed(7)
+# Function to generate random colors
+def rcolor():
+    return "#%06x" % random.randint(0, 0xFFFFFF)
+</script>
+
+```
+
 
 ## 元素对齐方式
 
 可以通过`align_content`、`align_items`和`justify_content`控制元素如何在容器中对齐和分布：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+    <PnCol>
+      <PnMarkdown>
+       ##### justify_content: space-between
+      </PnMarkdown>
+      <PnFlexBox justify_content="space-between" style='background: #f5f5f5'>
+         <PnHTML v-for="i in range(3)" 
+            :object="str(i)" 
+            :style="f'background: {rcolor()}; width:100px;height:100px'" 
+         />
+      </PnFlexBox>
+    </PnCol>
+    
+    <PnCol>
+      <PnMarkdown>
+       ##### align_items: center
+      </PnMarkdown>
+      <PnFlexBox align_items="center" align_content="center" style='background: #f5f5f5'>
+         <PnHTML v-for="i in range(3)" 
+            :object="str(i)" 
+            :style="f'background: {rcolor()}; width:100px;height:100px'" 
+         />
+      </PnFlexBox>
+    </PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+import random
+
+# Function to generate random colors
+def rcolor():
+    return "#%06x" % random.randint(0, 0xFFFFFF)
+</script>
+
+```
 
 
 ## API
@@ -1308,10 +2977,65 @@ FlexBox是一种基于CSS Flexbox的列表式布局组件，提供了灵活的�
 
 使用分割线将不同组件清晰地分隔开：
 
+```vue
+<template>
+  <PnCol :width='400' style='background: whitesmoke'>
+    <PnMarkdown>
+      # Lorem Ipsum
+    </PnMarkdown>
+    <PnDivider />
+    <PnMarkdown>
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
+      ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation 
+      ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in
+      reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+      Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt
+      mollit anim id est laborum.  
+      $$ x^{2} - 1 $$
+    </PnMarkdown>
+  </PnCol>
+</template>
+
+```
+
 
 ## 响应式布局
 
 启用响应式尺寸后，分割线会自动占据全宽：
+
+```vue
+<template>
+  <PnColumn sizing_mode="stretch_width">
+    <PnMarkdown>
+      ## Slider
+    </PnMarkdown>
+    <PnDivider :margin="(-20, 0, 0, 0)" />
+    <PnRow>
+      <PnFloatSlider name="Float" />
+      <PnIntSlider name="Int" />
+      <PnRangeSlider name="Range" />
+      <PnIntRangeSlider name="Int Range" />
+    </PnRow>
+    <PnMarkdown>
+      ## Input
+    </PnMarkdown>
+    <PnDivider :margin="(-20, 0, 0, 0)" />
+    <PnRow>
+      <PnTextInput name="Text" />
+      <PnDatetimeInput name="Date" />
+      <PnPasswordInput name="Password" />
+      <PnNumberInput name="Number" />
+    </PnRow>
+  </PnColumn>
+</template>
+<script lang='py'>
+from vuepy import ref
+import panel as pn
+
+pn.config.sizing_mode = 'stretch_width'
+</script>
+
+```
 
 
 ## API
@@ -1348,6 +3072,20 @@ Row 允许在水平容器中排列多个组件。它拥有类似列表的 API，
 
 
 ## 基本用法
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnTextInput name="Text:" />
+    <PnIntSlider name="Slider" />
+  </PnRow>
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
 
 
 ## API
@@ -1390,15 +3128,57 @@ Feed组件继承自Column布局，允许在垂直容器中排列多个组件，�
 
 Feed组件可以显示大量条目，但只会加载和渲染当前可见的部分和缓冲区内的内容：
 
+```vue
+<template>
+  <PnFeed :load_buffer="20" :height="300">
+    <PnMarkdown v-for="i in range(0, 100)">
+      Content for item {{ i }}
+    </PnMarkdown>
+  </PnFeed>
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
+
 
 ## 初始化显示最新条目
 
 通过设置`view_latest=True`，可以让Feed在初始化时显示最新条目：
 
+```vue
+<template>
+  <PnFeed :view_latest="True" :height="300">
+    <PnMarkdown v-for="i in range(0, 100)">
+      Content for item {{ i }}
+    </PnMarkdown>
+  </PnFeed>
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
+
 
 ## 添加滚动按钮
 
 通过设置`scroll_button_threshold`，可以让Feed显示一个可点击的滚动按钮，帮助用户快速滚动到底部：
+
+```vue
+<template>
+  <PnFeed :scroll_button_threshold="20" :width="300" :height="300">
+    <PnMarkdown v-for="i in range(0, 100)">
+      Content for item {{ i }}
+    </PnMarkdown>
+  </PnFeed>
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
 
 
 ## API
@@ -1448,20 +3228,88 @@ Column组件允许在垂直容器中排列多个组件。
 Column组件可以垂直排列多个元素。
 
 `Col`是`Column`的同名组件。
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCol style="background: WhiteSmoke">
+    <PnTextInput name="Text:" />
+    <PnFloatSlider name="Slider" />
+    <PnSelect :options="['A', 'B', 'C']" />
+  </PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
+
 
 ## 固定尺寸
 
 可以给Column设置固定的宽度和高度，内部元素会根据布局模式进行调整。
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnColumn :height="300" :width="200">
+    <PnSpacer style="background: red" sizing_mode="stretch_both" />
+    <PnSpacer style="background: green" sizing_mode="stretch_both" />
+    <PnSpacer style="background: blue" sizing_mode="stretch_both" />
+  </PnColumn>
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
 
 
 ## 自适应宽度
 
 当没有指定固定尺寸时，Column会根据其内容的大小自动调整。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnColumn>
+    <PnSpacer style="background: red; " />
+    <PnSpacer style="background: green" sizing_mode="stretch_both" />
+    <PnDisplay :obj="p1" />
+    <PnDisplay :obj="p2" />
+  </PnColumn>
+</template>
+<script lang='py'>
+from vuepy import ref
+from bokeh.plotting import figure
+
+p1 = figure(height=150, sizing_mode='stretch_width')
+p2 = figure(height=150, sizing_mode='stretch_width')
+
+p1.line([1, 2, 3], [1, 2, 3])
+p2.scatter([1, 2, 3], [1, 2, 3])
+</script>
+
+```
+
 
 ## 启用滚动条
 
 当内容超出容器大小时，可以启用滚动条。
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnColumn scroll :height="420">
+    <PnSpacer style="background: red" :width="200" :height="200" />
+    <PnSpacer style="background: green" :width="200" :height="200" />
+    <PnSpacer style="background: blue" :width="200" :height="200" />
+  </PnColumn>
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
 
 
 ## API
@@ -1509,15 +3357,67 @@ Swipe布局可以接受任意两个对象进行比较，为了获得最佳效果
 
 以下示例比较了1945-1949年和2015-2019年的平均地表温度图像：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnSwipe :before="gis_1945" :after="gis_2015" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+# URLs of images to compare
+gis_1945 = 'https://earthobservatory.nasa.gov/ContentWOC/images/globaltemp/global_gis_1945-1949.png'
+gis_2015 = 'https://earthobservatory.nasa.gov/ContentWOC/images/globaltemp/global_gis_2015-2019.png'
+</script>
+
+```
+
 
 ## 比较数据可视化
 
 该布局可以比较任何类型的组件，例如，我们可以比较两个小提琴图：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnSwipe :before="plot1" :after="plot2" :value="51" />
+</template>
+<script lang='py'>
+import pandas as pd
+import hvplot.pandas
+from vuepy import ref
+
+# Load dataset
+penguins = pd.read_csv('https://datasets.holoviz.org/penguins/v1/penguins.csv')
+
+# Create plots to compare
+plot1 = penguins[penguins.species=='Chinstrap'].hvplot.violin('bill_length_mm', color='#00cde1')
+plot2 = penguins[penguins.species=='Adelie'].hvplot.violin('bill_length_mm', color='#cd0000')
+</script>
+
+```
+
 
 ## 自定义滑块样式
 
 您可以自定义滑块的宽度和颜色：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnSwipe :before="gis_1945" :after="gis_2015" :slider_width="20" slider_color="red" />
+  </PnRow>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+# URLs of images to compare
+gis_1945 = 'https://earthobservatory.nasa.gov/ContentWOC/images/globaltemp/global_gis_1945-1949.png'
+gis_2015 = 'https://earthobservatory.nasa.gov/ContentWOC/images/globaltemp/global_gis_2015-2019.png'
+</script>
+
+```
 
 
 ## API
@@ -1564,6 +3464,19 @@ Swipe布局可以接受任意两个对象进行比较，为了获得最佳效果
 
 ## 基本用法
 
+```vue
+<template>
+  <PnWidgetBox>
+    <PnTextInput name="Text:" />
+    <PnIntSlider name="Slider" />
+  </PnWidgetBox>
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
+
 
 ## API
 
@@ -1605,15 +3518,138 @@ GridStack布局允许将多个Panel对象排列在网格中，并支持用户拖
 
 GridStack可以创建可拖拽和调整大小的网格布局：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnGridStack :height="300" :width='300'>
+    <PnGridStackItem :row_start="0" :row_end="3" :col_start="0" :col_end="1">
+      <PnSpacer style="background: red" />
+    </PnGridStackItem>
+    
+    <PnGridStackItem :row_start="0" :row_end="1" :col_start="1" :col_end="3">
+      <PnSpacer style="background: green" />
+    </PnGridStackItem>
+    
+    <PnGridStackItem :row_start="1" :row_end="2" :col_start="2" :col_end="4">
+      <PnSpacer style="background: orange" />
+    </PnGridStackItem>
+    
+    <PnGridStackItem :row_start="2" :row_end="3" :col_start="1" :col_end="4">
+      <PnSpacer style="background: blue" />
+    </PnGridStackItem>
+    
+    <PnGridStackItem :row_start="0" :row_end="1" :col_start="3" :col_end="4">
+      <PnSpacer style="background: purple" />
+    </PnGridStackItem>
+  </PnGridStack>
+</template>
+
+```
+
 
 ## 响应式网格
 
 通过设置合适的响应式布局参数，GridStack可以适应不同的屏幕尺寸：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnGridStack :width='600' :height='400'>
+    <PnGridStackItem :row_start="0" :row_end="1" :col_start="0" :col_end="3">
+      <PnSpacer style="background: #FF0000" />
+    </PnGridStackItem>
+    
+    <PnGridStackItem :row_start="1" :row_end="3" :col_start="0" :col_end="1">
+      <PnSpacer style="background: #0000FF" />
+    </PnGridStackItem>
+    
+    <PnGridStackItem :row_start="1" :row_end="3" :col_start="1" :col_end="3">
+      <PnDisplay :obj="fig" />
+    </PnGridStackItem>
+    
+    <PnGridStackItem :row_start="3" :row_end="5" :col_start="0" :col_end="1">
+      <PnDisplay :obj="hv.Curve([1, 2, 3])" />
+    </PnGridStackItem>
+
+<!--
+    <PnGridStackItem :row_start="3" :row_end="5" :col_start="1" :col_end="2">
+      <PnImage :object="image_url" />
+    </PnGridStackItem>
+-->
+
+    <PnGridStackItem :row_start="3" :row_end="5" :col_start="2" :col_end="3">
+      <PnColumn>
+        <PnFloatSlider />
+        <PnColorPicker />
+        <PnToggle name="Toggle Me!" />
+      </PnColumn>
+    </PnGridStackItem>
+  </PnGridStack>
+</template>
+<script lang='py'>
+from vuepy import ref
+import holoviews as hv
+from bokeh.plotting import figure
+
+fig = figure()
+fig.scatter([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [0, 1, 2, 3, 2, 1, 0, -1, -2, -3])
+
+image_url = "https://upload.wikimedia.org/wikipedia/commons/4/47/PNG_transparency_demonstration_1.png"
+</script>
+
+```
+
 
 ## 禁用拖拽或调整大小
 
 可以通过设置`allow_drag`和`allow_resize`参数来控制是否允许拖拽和调整大小：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnCol>
+    <PnMarkdown>
+      ### 禁用拖拽和调整大小
+    </PnMarkdown>
+    <PnGridStack :allow_drag="False" :allow_resize="False" :height="200" :width="200">
+      <PnGridStackItem :row_start="0" :row_end="1" :col_start="0" :col_end="1">
+        <PnCard title="Card 1">Fixed position and size</PnCard>
+      </PnGridStackItem>
+      <PnGridStackItem :row_start="0" :row_end="1" :col_start="1" :col_end="2">
+        <PnCard title="Card 2">Fixed position and size</PnCard>
+      </PnGridStackItem>
+    </PnGridStack>
+
+    <PnMarkdown>
+      ### 只允许拖拽，不允许调整大小
+    </PnMarkdown>
+    <PnGridStack :allow_drag="True" :allow_resize="False" :height="200" :width="200">
+      <PnGridStackItem :row_start="0" :row_end="1" :col_start="0" :col_end="1">
+        <PnCard title="Card 1">Can drag but not resize</PnCard>
+      </PnGridStackItem>
+      <PnGridStackItem :row_start="0" :row_end="1" :col_start="1" :col_end="2">
+        <PnCard title="Card 2">Can drag but not resize</PnCard>
+      </PnGridStackItem>
+    </PnGridStack>
+    
+    <PnMarkdown>
+      ### 只允许调整大小，不允许拖拽
+    </PnMarkdown>
+    <PnGridStack :allow_drag="False" :allow_resize="True" :height="200" :width="200">
+      <PnGridStackItem :row_start="0" :row_end="1" :col_start="0" :col_end="1">
+        <PnCard title="Card 1">Can resize but not drag</PnCard>
+      </PnGridStackItem>
+      <PnGridStackItem :row_start="0" :row_end="1" :col_start="1" :col_end="2">
+        <PnCard title="Card 2">Can resize but not drag</PnCard>
+      </PnGridStackItem>
+    </PnGridStack>
+  </PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
 
 
 ## GridStack API
@@ -1686,15 +3722,88 @@ GridBox是一种列表式布局，将对象按照指定的行数和列数包装�
 
 GridBox可以将元素按指定的列数排列，自动换行形成网格：
 
+```vue
+<template>
+  <PnGridBox :ncols="6">
+    <PnHTML v-for="i in range(24)"
+            :value='str(i)'
+            :style="f'background: {rcolor()};width:50px;height:50px;'" 
+    />
+  </PnGridBox>
+</template>
+<script lang='py'>
+from vuepy import ref
+import random
+
+random.seed(7)
+def rcolor():
+    return "#%06x" % random.randint(0, 0xFFFFFF)
+</script>
+
+```
+
 
 ## 动态调整列数
 
 可以动态地调整GridBox的列数，从而改变网格的排列：
 
+```vue
+<template>
+  <PnColumn>
+    <PnRow>
+      <PnButton name="2" @click="ncols(2)" />
+      <PnButton name="3" @click="ncols(3)" />
+      <PnButton name="4" @click="ncols(4)" />
+      <PnButton name="6" @click="ncols(6)" />
+    </PnRow>
+    <PnGridBox :ncols="columns.value">
+        <PnHTML v-for="i in range(24)"
+                :value='str(i)'
+                :style="f'background: {rcolor()};width:50px;height:50px;'" 
+        />
+    </PnGridBox>
+  </PnColumn>
+</template>
+<script lang='py'>
+from vuepy import ref
+import random
+
+random.seed(7)
+columns = ref(4)
+
+def ncols(n):
+    columns.value = n
+
+def rcolor():
+    return "#%06x" % random.randint(0, 0xFFFFFF)
+</script>
+
+```
+
 
 ## 按行数排列
 
 除了指定列数，也可以使用`nrows`指定行数：
+
+```vue
+<template>
+  <PnGridBox :nrows="4">
+    <PnHTML v-for="i in range(24)"
+            :value='str(i)'
+            :style="f'background: {rcolor()};width:50px;height:50px;'" 
+    />
+  </PnGridBox>
+</template>
+<script lang='py'>
+from vuepy import ref
+import random
+
+# Function to generate random colors
+def rcolor():
+    return "#%06x" % random.randint(0, 0xFFFFFF)
+</script>
+
+```
 
 
 ## API
@@ -1737,10 +3846,42 @@ FloatPanel提供一个可拖动的容器，可以放置在其父容器内部或�
 
 浮动面板可以包含在父容器内：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnColumn :height="250">
+    <PnMarkdown>
+      **Example: Basic `FloatPanel`**
+    </PnMarkdown>
+    <PnFloatPanel name="Basic FloatPanel" :margin="20">
+      <PnTextInput name="Text:" />
+    </PnFloatPanel>
+  </PnColumn>
+</template>
+
+```
+
 
 ## 自由浮动
 
 浮动面板也可以配置为自由浮动，不受父容器限制：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnFloatPanel name="Free Floating FloatPanel" 
+               :contained="False" 
+               position="center">
+    <PnMarkdown>
+      Try dragging me around.
+    </PnMarkdown>
+  </PnFloatPanel>
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
 
 
 ## 自定义配置
@@ -1749,10 +3890,82 @@ FloatPanel可以通过`config`参数进行高度自定义，比如移除关闭�
 
 要了解更多配置选项，请查看 [jsPanel 文档](https://jspanel.de/)
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnColumn :height="200">
+    <PnMarkdown>
+      Example: `FloatPanel` without *close button*
+    </PnMarkdown>
+    <PnFloatPanel name="FloatPanel without close button" 
+                 :margin="20" 
+                 :config="config">
+      <PnMarkdown>
+        You can't close me!
+      </PnMarkdown>
+    </PnFloatPanel>
+  </PnColumn>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+# Custom configuration to remove close button
+config = {"headerControls": {"close": "remove"}}
+</script>
+
+```
+
 
 ## 状态控制
 
 可以通过`status`属性控制FloatPanel的状态：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnColumn>
+    <PnRow>
+      <PnButton name="Norm" @click="set_normal()" />
+      <PnButton name="Max" @click="set_max()" />
+      <PnButton name="Min" @click="set_min()" />
+      <PnButton name="Small" @click="set_small()" />
+      <PnButton name="Closed" @click="set_closed()" />
+    </PnRow>
+    <PnFloatPanel name="FloatPanel with Status Control" 
+                 v-model="status.value"
+                 :contained="False"
+                 @change="handle_change">
+      <PnMarkdown>
+        Try changing my status with the buttons above.
+      </PnMarkdown>
+    </PnFloatPanel>
+  </PnColumn>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+status = ref("normalized")
+
+def set_normal():
+    status.value = 'normalized'
+
+def set_max():
+    status.value = 'maximized'
+    
+def set_min():
+    status.value = 'minimized'
+    
+def set_small():
+    status.value = 'smallified'
+    
+def set_closed():
+    status.value = 'closed'
+
+def handle_change(event):
+    print(event.new)
+</script>
+
+```
 
 
 ## API
@@ -1801,10 +4014,80 @@ FloatPanel可以通过`config`参数进行高度自定义，比如移除关闭�
 
 折叠面板可以包含任意数量的子项，每个子项可以包含任意内容。
 
+```vue
+<template>
+  <PnAccordion v-model="active.value" @change='on_change'>
+    <PnAccordionItem name="Scatter Plot">
+      <!--<PnDisplay :obj="p1" />-->
+      <PnButton name='accordion item1'/>
+    </PnAccordionItem>
+    <PnAccordionItem name="Line Plot">
+      <!--<PnDisplay :obj="p2" />-->
+      <PnButton name='accordion item2'/>
+    </PnAccordionItem>
+    <PnAccordionItem name="Square Plot">
+      <!--<PnDisplay :obj="p3" />-->
+      <PnButton name='accordion item3'/>
+    </PnAccordionItem>
+  </PnAccordion>
+  <p>active: {{ active.value }} </p>
+</template>
+<script lang='py'>
+from vuepy import ref
+from bokeh.plotting import figure
+
+# Create sample figures
+p1 = figure(width=300, height=300, margin=5)
+p1.scatter([0, 1, 2, 3, 4, 5, 6], [0, 1, 2, 3, 2, 1, 0])
+
+p2 = figure(width=300, height=300, margin=5)
+p2.line([0, 1, 2, 3, 4, 5, 6], [0, 1, 2, 3, 2, 1, 0])
+
+p3 = figure(width=300, height=300, margin=5)
+p3.scatter([0, 1, 2, 3, 4, 5, 6], [0, 1, 2, 3, 2, 1, 0], marker='square', size=10)
+
+# Define active panels (can be multiple when toggle is False)
+active = ref([0, 2])
+
+def on_change(event):
+    print(event.new)
+</script>
+
+```
+
 
 ## 切换模式
 
 当`toggle`属性设置为`True`时，同一时间只能展开一个面板。
+
+```vue
+<template>
+  <PnAccordion :toggle="True" v-model="active.value" @change='on_change'>
+    <PnAccordionItem name="Panel 1">
+      <PnButton name='Panel1'/>
+    </PnAccordionItem>
+
+    <PnAccordionItem name="Panel 2">
+      <PnButton name='Panel2'/>
+    </PnAccordionItem>
+
+    <PnAccordionItem name="Panel 3">
+      <PnButton name='Panel3'/>
+    </PnAccordionItem>
+  </PnAccordion>
+  <p>active: {{ active.value }} </p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+# When toggle=True, only one panel can be active
+active = ref([0])
+
+def on_change(event):
+    print(event.new)
+</script>
+
+```
 
 
 ## Accordion API
@@ -1866,6 +4149,22 @@ Modal 布局在布局顶部提供了一个对话框窗口。它基于 [a11y-dial
 
 The Modal component displays content in a dialog overlay. Use the `open` prop to control visibility, and you can add any content via slot.
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnModal :open="True" :show_close_button="True" :background_close="True">
+    <PnCol>
+      <PnTextInput name="Text:" />
+      <PnIntSlider name="Slider" />
+    </PnCol>
+  </PnModal>
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
+
 
 ## API
 
@@ -1910,18 +4209,122 @@ The Modal component displays content in a dialog overlay. Use the `open` prop to
 ## 基本用法
 
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabs v-model="active.value" @change='on_change'>
+    <PnTabPane name="Scatter Plot">
+      <PnDisplay :obj="p1" />
+    </PnTabPane>
+    <PnTabPane name="Line Plot">
+      <PnDisplay :obj="p2" />
+    </PnTabPane>
+    <PnTabPane name="Square Plot">
+      <PnDisplay :obj="p3" />
+    </PnTabPane>
+  </PnTabs>
+  <p>active: {{ active.value }} </p>
+</template>
+<script lang='py'>
+from vuepy import ref
+from bokeh.plotting import figure
+
+# Create sample figures
+p1 = figure(width=300, height=300, margin=5)
+p1.scatter([0, 1, 2, 3, 4, 5, 6], [0, 1, 2, 3, 2, 1, 0])
+
+p2 = figure(width=300, height=300, margin=5)
+p2.line([0, 1, 2, 3, 4, 5, 6], [0, 1, 2, 3, 2, 1, 0])
+
+p3 = figure(width=300, height=300, margin=5)
+p3.scatter([0, 1, 2, 3, 4, 5, 6], [0, 1, 2, 3, 2, 1, 0], marker='square', size=10)
+
+# Define active panels (can be multiple when toggle is False)
+active = ref(0)
+
+def on_change(event):
+    print(event.new) # 1
+</script>
+
+```
+
 ## 动态添加标签页
 
 ==Todo==
 ## 动态渲染
 
 启用 dynamic 选项后，仅当前活动的标签页会被渲染，只有当切换到新标签页时才会加载其内容。这对于服务器环境或笔记本环境中显示大量标签页，或当单个组件渲染体量极大/渲染成本极高时尤为有用。但需注意：在没有实时服务器的情况下，非活动标签页的内容将不会被加载。
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabs dynamic>
+    <PnTabPane name="Scatter Plot">
+      <PnDisplay :obj="p1" />
+    </PnTabPane>
+    <PnTabPane name="Line Plot">
+      <PnDisplay :obj="p2" />
+    </PnTabPane>
+  </PnTabs>
+</template>
+<script lang='py'>
+from vuepy import ref
+from bokeh.plotting import figure
+
+# Create sample figures
+p1 = figure(width=300, height=300, margin=5)
+p1.scatter([0, 1, 2, 3, 4, 5, 6], [0, 1, 2, 3, 2, 1, 0])
+
+p2 = figure(width=300, height=300, margin=5)
+p2.line([0, 1, 2, 3, 4, 5, 6], [0, 1, 2, 3, 2, 1, 0])
+</script>
+
+```
+
 ## 可关闭标签页
 
 设置 closable 为 True 后，标签页会显示关闭按钮：
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabs closable>
+    <PnTabPane name="Red">
+      <PnSpacer style="background: red; width: 100px; height: 100px" />
+    </PnTabPane>
+    <PnTabPane name="Blue">
+      <PnSpacer style="background: blue; width: 100px; height: 100px" />
+    </PnTabPane>
+  </PnTabs>
+</template>
+
+```
+
 ## 标签位置
 
 通过 tabs_location 参数可以调整标签头的位置：
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabs tabs_location="above">
+    <PnTabPane name="Above1">
+      <PnButton name='xxx' />
+    </PnTabPane>
+    <PnTabPane name="Above2">
+      <PnButton name='yyy' />
+    </PnTabPane>
+  </PnTabs>
+  <PnDivider/>
+  <PnTabs tabs_location="right">
+    <PnTabPane name="Right1">
+      <PnButton name='xxx' />
+    </PnTabPane>
+    <PnTabPane name="Right2">
+      <PnButton name='yyy' />
+    </PnTabPane>
+  </PnTabs>
+</template>
+
+```
+
 ## Tabs API
 
 ### 属性
@@ -1977,25 +4380,122 @@ The Modal component displays content in a dialog overlay. Use the `open` prop to
 
 卡片可以包含任意内容，并可以设置标题。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCard title="Card" style="background: WhiteSmoke">
+    <PnTextInput name="Text:" />
+    <PnFloatSlider name="Slider" />
+  </PnCard>
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
+
 
 ## 折叠控制
 
 卡片可以通过`collapsible`和`collapsed`属性来控制是否可折叠以及初始状态是否折叠。
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCol>
+    <PnCard title="Collapsible (Default)" >
+      <PnTextInput placeholder="This card can be collapsed" />
+    </PnCard>
+    
+    <PnCard title='Initially Collapsed' 
+            collapsible collapsed >
+      <PnTextInput placeholder="This card is initially collapsed" />
+    </PnCard>
+    
+    <PnCard title="Not Collapsible" :collapsible="False">
+      <PnTextInput placeholder="This card cannot be collapsed" />
+    </PnCard>
+  </PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
 
 
 ## 自定义头部
 
 卡片可以使用自定义的头部，而不仅仅是标题文本。
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnCard header_background="#2f2f2f" header_color="white" :width="300">
+    <template #header>
+      <PnButton name='header' :height="50" />
+    </template>
+    <PnButton name='content1' :height="50" />
+    <PnButton name='content2' :height="50" />
+  </PnCard>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+</script>
+
+```
+
 
 ## 隐藏头部
 
 可以通过`hide_header`属性完全隐藏卡片的头部。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCard hide_header :width="160" style="background: lightgray">
+    <PnNumber :value="42" :default_color="'white'" name="Completion" format="{value}%" />
+  </PnCard>
+</template>
+
+```
+
 
 ## 布局控制
 
 可以设置卡片的固定尺寸，或者让它根据内容自适应。
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnCol>
+    <!-- fixed size -->
+    <PnCard title="Fixed Size" :height="300" :width="200">
+      <PnButton name='fixed' sizing_mode="stretch_both" />
+    </PnCard>
+    
+    <!-- Responsive -->
+    <PnCard title='Responsive' sizing_mode='stretch_width'>
+      <!--<PnDisplay :obj="p1" />-->
+      <PnButton name='responsive' sizing_mode="stretch_both" />
+      <PnDivider />
+      <!--<PnDisplay :obj="p2" />-->
+    </PnCard>
+  </PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+from bokeh.plotting import figure
+
+p1 = figure(height=250, sizing_mode='stretch_width', margin=5)
+p2 = figure(height=250, sizing_mode='stretch_width', margin=5)
+
+p1.line([1, 2, 3], [1, 2, 3])
+p2.scatter([1, 2, 3], [1, 2, 3])
+</script>
+
+```
 
 
 ## API
@@ -2048,15 +4548,187 @@ GridSpec布局是一种类似数组的布局，允许使用简单的API将多个
 
 GridSpec可以创建固定大小的网格布局，并通过GridSpecItem放置组件：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnGridSpec :width="400" :height="300">
+  <PnGridSpecItem :row_start="0" :row_end="3" :col_start="0" :col_end="1">
+    <PnSpacer style="background: red" />
+  </PnGridSpecItem>
+  
+  <PnGridSpecItem :row_start="0" :row_end="1" :col_start="1" :col_end="3">
+    <PnSpacer style="background: green" />
+  </PnGridSpecItem>
+  
+  <PnGridSpecItem :row_start="1" :row_end="2" :col_start="2" :col_end="4">
+    <PnSpacer style="background: orange" />
+  </PnGridSpecItem>
+  
+  <PnGridSpecItem :row_start="2" :row_end="3" :col_start="1" :col_end="4">
+    <PnSpacer style="background: blue" />
+  </PnGridSpecItem>
+  
+  <PnGridSpecItem :row_start="0" :row_end="1" :col_start="3" :col_end="4">
+    <PnSpacer style="background: purple" />
+  </PnGridSpecItem>
+</PnGridSpec>
+</template>
+
+```
+
 
 ## 响应式网格
 
 除了固定大小的网格外，GridSpec还支持响应式尺寸，可以在浏览器窗口调整大小时动态调整：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnGridSpec sizing_mode="stretch_both" :max_height="800">
+    <PnGridSpecItem :row_start="0" :row_end="1" :col_start="0" :col_end="3">
+      <PnSpacer style="background: #FF0000" />
+    </PnGridSpecItem>
+    
+    <PnGridSpecItem :row_start="1" :row_end="3" :col_start="0" :col_end="1">
+      <PnSpacer style="background: #0000FF" />
+    </PnGridSpecItem>
+    
+    <PnGridSpecItem :row_start="1" :row_end="3" :col_start="1" :col_end="3">
+      <!--<PnDisplay :obj="fig" />-->
+      <PnButton name='xxx' />
+    </PnGridSpecItem>
+    
+    <PnGridSpecItem :row_start="3" :row_end="5" :col_start="0" :col_end="1">
+      <!--<PnDisplay :obj="curve" />-->
+      <PnButton name='yyy' />
+    </PnGridSpecItem>
+    
+    <PnGridSpecItem :row_start="3" :row_end="5" :col_start="1" :col_end="2">
+      <PnImage :object="image_url" />
+    </PnGridSpecItem>
+    
+    <PnGridSpecItem :row_start="4" :row_end="5" :col_start="2" :col_end="3">
+      <PnColumn>
+        <PnFloatSlider />
+        <PnColorPicker />
+        <PnToggle name="Toggle Me!" />
+      </PnColumn>
+    </PnGridSpecItem>
+  </PnGridSpec>
+</template>
+<script lang='py'>
+from vuepy import ref
+import holoviews as hv
+from bokeh.plotting import figure
+import requests
+from io import BytesIO
+
+# 创建Bokeh图表
+fig = figure()
+fig.scatter([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [0, 1, 2, 3, 2, 1, 0, -1, -2, -3])
+
+# 创建HoloViews曲线
+curve = hv.Curve([1, 2, 3])
+
+# 图片URL
+image_url = "https://upload.wikimedia.org/wikipedia/commons/4/47/PNG_transparency_demonstration_1.png"
+</script>
+
+```
+
 
 ## 复杂布局示例
 
 使用GridSpec可以创建复杂的仪表板布局：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnGridSpec sizing_mode="stretch_both" :height="600">
+    <!-- 标题区 -->
+    <PnGridSpecItem :row_start="0" :row_end="1" :col_start="0" :col_end="6">
+      <PnMarkdown style="background: #e0e0e0; padding: 10px; text-align: center">
+        # Dashboard Title
+      </PnMarkdown>
+    </PnGridSpecItem>
+    
+    <!-- 左侧控制面板 -->
+    <PnGridSpecItem :row_start="1" :row_end="4" :col_start="0" :col_end="1">
+      <PnCard title="Controls">
+        <PnSelect :options="['Option 1', 'Option 2', 'Option 3']" name="Select" />
+        <PnIntSlider name="Value" :value="50" />
+        <PnDatePicker name="Date" />
+        <PnButton name="Update" />
+      </PnCard>
+    </PnGridSpecItem>
+    
+    <!-- 主图表区域 -->
+    <PnGridSpecItem :row_start="1" :row_end="3" :col_start="1" :col_end="5">
+      <PnCard title="Main Chart">
+        <PnDisplay :obj="main_fig" />
+      </PnCard>
+    </PnGridSpecItem>
+    
+    <!-- 右侧信息区 -->
+    <PnGridSpecItem :row_start="1" :row_end="2" :col_start="5" :col_end="6">
+      <PnCard title="Statistics">
+        <PnMarkdown>
+          - Value 1: 42
+          - Value 2: 73
+          - Average: 57.5
+        </PnMarkdown>
+      </PnCard>
+    </PnGridSpecItem>
+    
+    <!-- 右下角信息区 -->
+    <PnGridSpecItem :row_start="2" :row_end="4" :col_start="5" :col_end="6">
+      <PnCard title="Information">
+        <PnMarkdown>
+          This is additional information about the dashboard.
+          You can include any relevant details here.
+        </PnMarkdown>
+      </PnCard>
+    </PnGridSpecItem>
+    
+    <!-- 底部小图表区域 -->
+    <PnGridSpecItem :row_start="3" :row_end="4" :col_start="1" :col_end="3">
+      <PnCard title="Chart 1">
+        <PnDisplay :obj="sub_fig1" />
+      </PnCard>
+    </PnGridSpecItem>
+    
+    <PnGridSpecItem :row_start="3" :row_end="4" :col_start="3" :col_end="5">
+      <PnCard title="Chart 2">
+        <PnDisplay :obj="sub_fig2" />
+      </PnCard>
+    </PnGridSpecItem>
+  </PnGridSpec>
+</template>
+<script lang='py'>
+from vuepy import ref
+from bokeh.plotting import figure
+import numpy as np
+
+# 创建主图表
+main_fig = figure(height=300)
+x = np.linspace(0, 10, 100)
+y = np.sin(x)
+main_fig.line(x, y, line_width=2)
+
+# 创建子图表1
+sub_fig1 = figure(height=150)
+x = np.linspace(0, 10, 50)
+y = np.cos(x)
+sub_fig1.line(x, y, line_color="orange", line_width=2)
+
+# 创建子图表2
+sub_fig2 = figure(height=150)
+x = np.random.rand(50)
+y = np.random.rand(50)
+sub_fig2.scatter(x, y, color="green", size=8)
+</script>
+
+```
 
 
 ## GridSpec API
@@ -2129,6 +4801,20 @@ Column组件允许在垂直容器中排列多个组件。
 Column组件可以垂直排列多个元素。
 
 `Col`是`Column`的同名组件。
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCol style="background: WhiteSmoke">
+    <PnTextInput name="Text:" />
+  </PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
+
+
 
 
 # VTK 三维可视化
@@ -2145,8 +4831,106 @@ Column组件可以垂直排列多个元素。
 
 与直接使用 `VTK` 相比，在 Panel 中使用它有一些区别。由于 VTK 面板处理对象的渲染和与视图的交互，我们不需要调用 `vtkRenderWindow` 的 `Render` 方法（这会弹出传统的 VTK 窗口），也不需要指定 `vtkRenderWindowInteractor`。
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnVTK :object="ren_win" :width="500" :height="500" />
+</template>
+<script lang='py'>
+import vtk
+from vtk.util.colors import tomato
+
+# 创建一个具有八个周向面的多边形圆柱体模型
+cylinder = vtk.vtkCylinderSource()
+cylinder.SetResolution(8)
+
+# 映射器负责将几何体推送到图形库中
+# 它还可以进行颜色映射（如果定义了标量或其他属性）
+cylinder_mapper = vtk.vtkPolyDataMapper()
+cylinder_mapper.SetInputConnection(cylinder.GetOutputPort())
+
+# actor 是一种分组机制：除了几何体（映射器），它还有属性、变换矩阵和/或纹理映射
+# 这里我们设置它的颜色并旋转 -22.5 度
+cylinder_actor = vtk.vtkActor()
+cylinder_actor.SetMapper(cylinder_mapper)
+cylinder_actor.GetProperty().SetColor(tomato)
+# 我们必须将 ScalarVisibilty 设置为 0 以使用 tomato 颜色
+cylinder_mapper.SetScalarVisibility(0)
+cylinder_actor.RotateX(30.0)
+cylinder_actor.RotateY(-45.0)
+
+# 创建图形结构。渲染器渲染到渲染窗口中
+ren = vtk.vtkRenderer()
+ren_win = vtk.vtkRenderWindow()
+ren_win.AddRenderer(ren)
+
+# 将 actor 添加到渲染器，设置背景和大小
+ren.AddActor(cylinder_actor)
+ren.SetBackground(0.1, 0.2, 0.4)
+</script>
+
+```
+
 
 我们还可以向场景添加其他 actor，然后调用 `synchronize` 方法来更新组件：
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnVTK :object="ren_win" :width="500" :height="500" ref="vtk_pane_ref" />
+  <PnButton @click="add_sphere()">添加球体</PnButton>
+</template>
+<script lang='py'>
+from vuepy import ref
+import vtk
+from vtk.util.colors import tomato
+
+vtk_pane_ref = ref(None)
+
+# 创建一个具有八个周向面的多边形圆柱体模型
+cylinder = vtk.vtkCylinderSource()
+cylinder.SetResolution(8)
+
+# 映射器负责将几何体推送到图形库中
+cylinder_mapper = vtk.vtkPolyDataMapper()
+cylinder_mapper.SetInputConnection(cylinder.GetOutputPort())
+
+# actor 是一种分组机制
+cylinder_actor = vtk.vtkActor()
+cylinder_actor.SetMapper(cylinder_mapper)
+cylinder_actor.GetProperty().SetColor(tomato)
+cylinder_mapper.SetScalarVisibility(0)
+cylinder_actor.RotateX(30.0)
+cylinder_actor.RotateY(-45.0)
+
+# 创建图形结构
+ren = vtk.vtkRenderer()
+ren_win = vtk.vtkRenderWindow()
+ren_win.AddRenderer(ren)
+
+# 将 actor 添加到渲染器，设置背景
+ren.AddActor(cylinder_actor)
+ren.SetBackground(0.1, 0.2, 0.4)
+
+def add_sphere():
+    sphere = vtk.vtkSphereSource()
+    
+    sphere_mapper = vtk.vtkPolyDataMapper()
+    sphere_mapper.SetInputConnection(sphere.GetOutputPort())
+    
+    sphere_actor = vtk.vtkActor()
+    sphere_actor.SetMapper(sphere_mapper)
+    sphere_actor.GetProperty().SetColor(tomato)
+    sphere_mapper.SetScalarVisibility(0)
+    sphere_actor.SetPosition(0.5, 0.5, 0.5)
+    
+    ren.AddActor(sphere_actor)
+    vtk_pane = vtk_pane_ref.value.unwrap()
+    vtk_pane.reset_camera()
+    vtk_pane.synchronize()
+</script>
+
+```
+
 
 ## 与 PyVista 集成
 
@@ -2156,10 +4940,66 @@ Column组件可以垂直排列多个元素。
 
 例如，上面的 VTK 示例可以使用 PyVista 重写如下：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnVTK :object="plotter.ren_win" :width="500" :height="500" />
+</template>
+<script lang='py'>
+import pyvista as pv
+from vtk.util.colors import tomato
+
+# 创建 PyVista plotter
+plotter = pv.Plotter()
+plotter.background_color = (0.1, 0.2, 0.4)
+
+# 创建并添加对象到 PyVista plotter
+pvcylinder = pv.Cylinder(resolution=10, direction=(0, 1, 0))
+cylinder_actor = plotter.add_mesh(pvcylinder, color=tomato, smooth_shading=True)
+cylinder_actor.RotateX(30.0)
+cylinder_actor.RotateY(-45.0)
+</script>
+
+```
+
 
 ## 导出场景
 
 场景可以导出，生成的文件可以由官方的 vtk-js 场景导入器加载：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnVTK :object="plotter.ren_win" :width="500" :height="500" ref="vtk_pane_ref" />
+  <PnButton @click="export_scene()">导出场景</PnButton>
+  <div v-if="filename.value">导出的文件：{{ filename.value }}</div>
+</template>
+<script lang='py'>
+import os
+import pyvista as pv
+from vuepy import ref
+from vtk.util.colors import tomato
+
+filename = ref("")
+vtk_pane_ref = ref(None)
+
+# 创建 PyVista plotter
+plotter = pv.Plotter()
+plotter.background_color = (0.1, 0.2, 0.4)
+
+# 创建并添加对象到 PyVista plotter
+pvcylinder = pv.Cylinder(resolution=8, direction=(0, 1, 0))
+cylinder_actor = plotter.add_mesh(pvcylinder, color=tomato, smooth_shading=True)
+cylinder_actor.RotateX(30.0)
+cylinder_actor.RotateY(-45.0)
+
+def export_scene():
+    vtk_pane = vtk_pane_ref.value.unwrap()
+    exported_filename = vtk_pane.export_scene(filename='vtk_example')
+    filename.value = os.path.join(os.getcwd(), exported_filename)
+</script>
+
+```
 
 
 ## 高级用法和交互性
@@ -2167,6 +5007,33 @@ Column组件可以垂直排列多个元素。
 ### 键盘绑定和方向部件
 
 `PnVTK` 组件支持键盘绑定和方向部件，以增强用户交互体验：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnVTK 
+    :object="plotter.ren_win" 
+    :width="500" 
+    :height="500" 
+    :enable_keybindings="True"
+    :orientation_widget="True" />
+</template>
+<script lang='py'>
+import pyvista as pv
+from vtk.util.colors import tomato
+
+# 创建 PyVista plotter
+plotter = pv.Plotter()
+plotter.background_color = (0.1, 0.2, 0.4)
+
+# 创建并添加对象到 PyVista plotter
+pvcylinder = pv.Cylinder(resolution=8, direction=(0, 1, 0))
+cylinder_actor = plotter.add_mesh(pvcylinder, color=tomato, smooth_shading=True)
+cylinder_actor.RotateX(30.0)
+cylinder_actor.RotateY(-45.0)
+</script>
+
+```
 
 
 键盘绑定允许用户使用以下键:
@@ -2178,6 +5045,47 @@ Column组件可以垂直排列多个元素。
 ## 添加坐标轴
 
 使用 `axes` 参数可以在 3D 视图中显示坐标轴：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnVTK 
+    :object="plotter.ren_win" 
+    :width="500" 
+    :height="500" 
+    :axes="axes" />
+</template>
+<script lang='py'>
+import numpy as np
+import pyvista as pv
+from vtk.util.colors import tomato
+
+# 创建 PyVista plotter
+plotter = pv.Plotter()
+plotter.background_color = (0.1, 0.2, 0.4)
+
+# 创建并添加对象到 PyVista plotter
+pvcylinder = pv.Cylinder(resolution=8, direction=(0, 1, 0))
+cylinder_actor = plotter.add_mesh(pvcylinder, color=tomato, smooth_shading=True)
+cylinder_actor.RotateX(30.0)
+cylinder_actor.RotateY(-45.0)
+
+# 定义坐标轴
+axes = {
+    'origin': [-5, 5, -2],
+    'xticker': {'ticks': np.linspace(-5, 5, 5).tolist()},
+    'yticker': {'ticks': np.linspace(-5, 5, 5).tolist()},
+    'zticker': {'ticks': np.linspace(-2, 2, 5).tolist(), 
+                'labels': [''] + [str(int(item)) for item in np.linspace(-2, 2, 5)[1:]]},
+    'fontsize': 12,
+    'digits': 1,
+    'show_grid': True,
+    'grid_opacity': 0.5,
+    'axes_opacity': 1.0
+}
+</script>
+
+```
 
 
 ## API
@@ -2241,13 +5149,129 @@ Column组件可以垂直排列多个元素。
 
 最简单的创建`PnVTKVolume`组件的方法是使用3D NumPy数组。通过设置spacing参数可以产生一个长方体而不是立方体。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnVTKVolume :object="data_matrix" 
+               :width="800" 
+               :height="600" 
+               :spacing="(3, 2, 1)" 
+               interpolation="nearest"
+               :edge_gradient="0"
+               :sampling="0" />
+</template>
+
+<script lang='py'>
+import numpy as np
+
+# Create a 3D volume data
+data_matrix = np.zeros([75, 75, 75], dtype=np.uint8)
+data_matrix[0:35, 0:35, 0:35] = 50
+data_matrix[25:55, 25:55, 25:55] = 100
+data_matrix[45:74, 45:74, 45:74] = 150
+</script>
+
+```
+
 
 或者，该组件也可以从`vtkImageData`对象构建。这种类型的对象可以直接使用vtk或pyvista模块构建：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnVTKVolume :object="vol" 
+               :height="600" 
+               sizing_mode="stretch_width"
+               :display_slices="True" />
+</template>
+
+<script lang='py'>
+import pyvista as pv
+from pyvista import examples
+
+# Download a volumetric dataset
+vol = examples.download_head()
+</script>
+
+```
 
 
 ## 交互控制
 
 `PnVTKVolume`组件公开了许多选项，可以从Python和JavaScript更改。尝试交互式地测试这些参数的效果：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnCol>
+      <PnVTKVolume :object="vol" 
+                   :height="600" 
+                   :display_slices="display_slices.value"
+                   :slice_i="slice_i.value"
+                   :slice_j="slice_j.value"
+                   :slice_k="slice_k.value"
+                   :ambient="ambient.value"
+                   :diffuse="diffuse.value"
+                   :specular="specular.value"
+                   :display_slices="display_slices.value" />
+    </PnCol>
+    <PnCol>
+      <PnCheckbox v-model="display_slices.value" name="Display Slices" />
+      <PnIntSlider v-model="slice_i.value" 
+                name="Slice I" 
+                :start="0" 
+                :end="vol.dimensions[0]-1" 
+                :step="1" />
+      <PnIntSlider v-model="slice_j.value" 
+                name="Slice J" 
+                :start="0" 
+                :end="vol.dimensions[1]-1" 
+                :step="1" />
+      <PnIntSlider v-model="slice_k.value" 
+                name="Slice K" 
+                :start="0" 
+                :end="vol.dimensions[2]-1" 
+                :step="1" />
+      <PnFloatSlider v-model="ambient.value" 
+                name="Ambient" 
+                :start="0" 
+                :end="1" 
+                :step="0.1" />
+      <PnFloatSlider v-model="diffuse.value" 
+                name="Diffuse" 
+                :start="0" 
+                :end="1" 
+                :step="0.1" />
+      <PnFloatSlider v-model="specular.value" 
+                name="Specular" 
+                :start="0" 
+                :end="1" 
+                :step="0.1" />
+    </PnCol>
+  </PnRow>
+</template>
+
+<script lang='py'>
+import pyvista as pv
+from pyvista import examples
+from vuepy import ref
+
+# Download a volumetric dataset
+vol = examples.download_head()
+
+# Control parameters
+display_slices = ref(True)
+slice_i = ref(vol.dimensions[0]//2)
+slice_j = ref(vol.dimensions[1]//2)
+slice_k = ref(vol.dimensions[2]//2)
+ambient = ref(0.2)
+diffuse = ref(0.7)
+specular = ref(0.3)
+
+</script>
+
+```
 
 
 ## API
@@ -2322,10 +5346,58 @@ Column组件可以垂直排列多个元素。
 
 `PnAudio` 组件可以通过指向远程音频文件的 URL 或本地音频文件构建（在这种情况下，数据被嵌入）：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnAudio name="Audio" :object="url" />
+</template>
+<script lang='py'>
+url = 'https://ccrma.stanford.edu/~jos/mp3/pno-cs.mp3'
+</script>
+
+```
+
 
 ## 控制播放
 
 播放器可以使用其自身的控件控制，也可以通过 Python 代码控制。要在代码中暂停或取消暂停，请使用 `paused` 属性：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnAudio name="Audio" :object="url" ref="audio_ref" />
+  <PnRow>
+    <PnButton @click="play()">播放</PnButton>
+    <PnButton @click="pause()">暂停</PnButton>
+    <PnButton @click="set_time()">跳至5秒</PnButton>
+    <PnButton @click="set_volume()">设置音量50%</PnButton>
+  </PnRow>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+url = 'https://ccrma.stanford.edu/~jos/mp3/pno-cs.mp3'
+
+audio_ref = ref(None)
+
+def play():
+    audio = audio_ref.value.unwrap()
+    audio.paused = False
+
+def pause():
+    audio = audio_ref.value.unwrap()
+    audio.paused = True
+    
+def set_time():
+    audio = audio_ref.value.unwrap()
+    audio.time = 5.0
+    
+def set_volume():
+    audio = audio_ref.value.unwrap()
+    audio.volume = 50
+</script>
+
+```
 
 
 ## NumPy 数组输入
@@ -2333,6 +5405,33 @@ Column组件可以垂直排列多个元素。
 当提供 NumPy 数组或 Torch 张量时，应指定 `sample_rate`。
 
 在此示例中，我们绘制了一个频率调制信号：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnAudio :object="waveform_quiet" :sample_rate="sps" />
+</template>
+<script lang='py'>
+import numpy as np
+
+# Samples per second
+sps = 44100
+# Duration in seconds
+duration = 10
+
+modulator_frequency = 2.0
+carrier_frequency = 120.0
+modulation_index = 2.0
+
+time = np.arange(sps*duration) / sps
+modulator = np.sin(2.0 * np.pi * modulator_frequency * time) * modulation_index
+carrier = np.sin(2.0 * np.pi * carrier_frequency * time)
+waveform = np.sin(2. * np.pi * (carrier_frequency * time + modulator))
+    
+waveform_quiet = waveform * 0.3
+</script>
+
+```
 
 
 ## API
@@ -2384,20 +5483,104 @@ Column组件可以垂直排列多个元素。
 
 `PnVideo` 组件可以通过 URL 指向远程视频文件或本地视频文件（在这种情况下，数据将被嵌入）：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnVideo 
+    object="https://assets.holoviz.org/panel/samples/video_sample.mp4" 
+    :width="640" 
+    :loop="True" />
+</template>
+
+```
+
 
 ## 控制视频播放
 
 可以通过播放器自身的控件以及使用组件属性来控制视频播放。例如，通过修改 `paused` 属性来暂停或恢复播放：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnVideo 
+    :object="video_url" 
+    :width="640" 
+    :loop="True"
+    :paused="is_paused.value" 
+  />
+  <PnButton @click="toggle_play()">{{ play_button_text.value }}</PnButton>
+</template>
+<script lang='py'>
+from vuepy import ref, computed
+
+video_url = "https://assets.holoviz.org/panel/samples/video_sample.mp4"
+is_paused = ref(True)
+
+def toggle_play():
+    is_paused.value = not is_paused.value
+
+play_button_text = computed(lambda: "播放" if is_paused.value else "暂停")
+</script>
+
+```
 
 
 ## 音量控制
 
 可以通过设置 `volume` 属性来控制视频的音量：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnVideo 
+    object="https://assets.holoviz.org/panel/samples/video_sample.mp4" 
+    :width="640" 
+    :volume="volume.value" 
+  />
+  <PnRow>
+    <PnMD>音量：</PnMD>
+    <PnIntSlider v-model="volume.value" :start="0" :end="100" />
+  </PnRow>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+volume = ref(50)
+</script>
+
+```
+
 
 ## 访问当前播放时间
 
 可以通过 `time` 属性读取和设置当前播放时间（以秒为单位）：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnCol>
+  <PnVideo 
+    v-model:time='current_time.value'
+    object="https://assets.holoviz.org/panel/samples/video_sample.mp4" 
+    :width="640" 
+  />
+  <PnRow>
+    <PnMD>当前时间：{{ current_time.value }} 秒</PnMD>
+    <PnButton @click="jump_to_middle()">跳转到中间</PnButton>
+  </PnRow>
+</PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+current_time = ref(0)
+
+def jump_to_middle():
+    # 获取视频总时长（这里假设为30秒）
+    current_time.value = 15
+</script>
+
+```
 
 
 ## API
@@ -2453,10 +5636,48 @@ Column组件可以垂直排列多个元素。
 
 `PnFolium` 组件使用 `folium` 提供的内置 HTML 表示来渲染地图：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnFolium :object="m" :width='400' :height="400" />
+</template>
+<script lang='py'>
+import folium
+
+m = folium.Map(location=[52.51, 13.39], zoom_start=12)
+</script>
+
+```
+
 
 ## 更新地图
 
 与任何其他组件一样，可以通过设置 `object` 参数来更新 `PnFolium` 组件的视图：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnFolium :object="m" :width='400' :height="400" ref="folium_pane" />
+  <PnButton @click="add_marker()">添加标记</PnButton>
+</template>
+<script lang='py'>
+from vuepy import ref
+import folium
+
+folium_pane = ref(None)
+m = folium.Map(location=[52.51, 13.39], zoom_start=12)
+
+def add_marker():
+    # Add a marker to the map
+    folium.Marker(
+        [52.516, 13.381], popup="<i>Brandenburg Gate</i>", tooltip="Click me!"
+    ).add_to(m)
+    
+    # Update the Folium pane
+    folium_pane.value.unwrap().object = m
+</script>
+
+```
 
 
 ## API
@@ -2505,18 +5726,70 @@ Column组件可以垂直排列多个元素。
 
 `PnSVG` 组件可以指向任何本地或远程 `.svg` 文件。如果给定以 `http` 或 `https` 开头的 URL，则 `embed` 参数决定图像是嵌入还是链接到：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnSVG 
+    object="https://panel.holoviz.org/_static/logo_stacked.svg" 
+    link_url="https://panel.holoviz.org" 
+    :width="300" />
+</template>
+
+```
+
 
 ## 调整大小
 
 我们可以通过设置特定的固定 `width` 或 `height` 来调整图像的大小：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnSVG 
+    object="https://panel.holoviz.org/_static/logo_stacked.svg" 
+    :width="150" />
+</template>
+
+```
+
 
 与任何其他组件一样，`PnSVG` 组件可以通过设置 `object` 参数来更新：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnCol>
+  <PnSVG 
+    :object="svg_url.value" 
+    :width="150" 
+  />
+  <PnButton @click="update_svg()">更新 SVG</PnButton>
+</PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+svg_url = ref("https://panel.holoviz.org/_static/logo_stacked.svg")
+
+def update_svg():
+    svg_url.value = "https://panel.holoviz.org/_static/jupyterlite.svg"
+</script>
+
+```
 
 
 ## 响应式 SVG
 
 您也可以使用 *响应式* `sizing_mode`，如 `'stretch_width'`：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnSVG 
+    object="https://assets.holoviz.org/panel/samples/svg_sample2.svg" 
+    sizing_mode="stretch_width" />
+</template>
+
+```
 
 
 请注意，默认情况下图像的宽高比是固定的，要覆盖此行为，请设置 `fixed_aspect=false` 或提供固定的 `width` 和 `height` 值。
@@ -2524,6 +5797,29 @@ Column组件可以垂直排列多个元素。
 ## 编码选项
 
 SVG 图像可以使用 base64 编码进行嵌入。使用 `encode` 参数可以控制是否对 SVG 进行编码：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnRow>
+    <PnColumn>
+      <PnMD>## encode=true（默认）</PnMD>
+      <PnSVG 
+        object="https://panel.holoviz.org/_static/logo_stacked.svg" 
+        :encode="True"
+        :width="200" />
+    </PnColumn>
+    <PnColumn>
+      <PnMD>## encode=false</PnMD>
+      <PnSVG 
+        object="https://panel.holoviz.org/_static/logo_stacked.svg" 
+        :encode="False"
+        :width="200" />
+    </PnColumn>
+  </PnRow>
+</template>
+
+```
 
 
 当启用编码时，SVG 链接可能无法工作，而禁用编码会阻止图像缩放正常工作。
@@ -2588,16 +5884,97 @@ SVG 图像可以使用 base64 编码进行嵌入。使用 `encode` 参数可以�
 
 `PnHoloViews` 组件将任何 `HoloViews` 对象自动转换为可显示的面板，同时保持其所有交互功能：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnHoloViews :object="box" :height="300" :width="500" />
+</template>
+<script lang='py'>
+import numpy as np
+import holoviews as hv
+
+data = {"group": np.random.randint(0, 10, 100), "value": np.random.randn(100)}
+box = hv.Scatter(data, kdims="group", vdims="value").sort().opts()
+</script>
+
+```
+
 
 通过设置组件的 `object` 可以像所有其他组件对象一样更新图表：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnHoloViews :object="plot" :height="300" :width="500" ref='hv_pane' />
+  <PnButton @click="update_plot()">更新为小提琴图</PnButton>
+</template>
+<script lang='py'>
+import numpy as np
+import holoviews as hv
+from vuepy import ref
+
+hv_pane = ref(None)
+
+data = {"group": np.random.randint(0, 10, 100), "value": np.random.randn(100)}
+box = hv.Scatter(data, kdims="group", vdims="value").sort().opts()
+plot = box
+
+def update_plot():
+    nonlocal plot
+    plot = hv.Violin(box).opts(violin_color='Group', responsive=True, height=300)
+    hv_pane.value.unwrap().object = plot
+</script>
+
+```
+
 
 您也可以显示 [hvPlot](https://hvplot.holoviz.org/)（和 [GeoViews](https://geoviews.org/)）对象，因为它们是 `HoloViews` 对象：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnHoloViews :object="plot" :height="300" :width="500" />
+</template>
+<script lang='py'>
+import numpy as np
+import pandas as pd
+import hvplot.pandas
+
+data = {"group": np.random.randint(0, 10, 100), "value": np.random.randn(100)}
+df = pd.DataFrame(data)
+plot = df.hvplot.box(by="group", y="value", responsive=True, height=300)
+</script>
+
+```
 
 
 您还可以显示 [`HoloMap`](https://holoviews.org/reference/containers/bokeh/HoloMap.html) 和 [`DynamicMap`](https://holoviews.org/reference/containers/bokeh/DynamicMap.html) 对象。
 
 [HoloViews](https://holoviews.org/)（框架）如果 [`HoloMap`](https://holoviews.org/reference/containers/bokeh/HoloMap.html) 或 [DynamicMap](https://holoviews.org/reference/containers/bokeh/DynamicMap.html) 声明了任何键维度，它原生渲染带有小部件的图表。这种方法高效地仅更新图表内的数据，而不是完全替换图表。
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnHoloViews :object="dmap" :width='300' :height='300'/>
+</template>
+<script lang='py'>
+import numpy as np
+import pandas as pd
+import hvplot.pandas
+import holoviews as hv
+import holoviews.plotting.bokeh
+
+def sine(frequency=1.0, amplitude=1.0, function='sin'):
+    xs = np.arange(200)/200*20.0
+    ys = amplitude*getattr(np, function)(frequency*xs)
+    return pd.DataFrame(dict(y=ys), index=xs).hvplot(height=250, responsive=True)
+
+# todo have no controls
+dmap = hv.DynamicMap(sine, kdims=['frequency', 'amplitude', 'function']).redim.range(
+    frequency=(0.1, 10), amplitude=(1, 10)).redim.values(function=['sin', 'cos', 'tan'])
+</script>
+
+```
 
 
 ## 后端选择
@@ -2608,10 +5985,46 @@ SVG 图像可以使用 base64 编码进行嵌入。使用 `encode` 参数可以�
 
 Bokeh 是默认的绘图后端，所以通常您不必指定它。但让我们在这里展示它是如何工作的：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnHoloViews :object="plot" backend='bokeh' sizing_mode='stretch_width' :height="300" />
+</template>
+<script lang='py'>
+import numpy as np
+import pandas as pd
+import hvplot.pandas
+
+data = {"group": np.random.randint(0, 10, 100), "value": np.random.randn(100)}
+df = pd.DataFrame(data)
+plot = df.hvplot.scatter(x="group", y="value")
+</script>
+
+```
+
 
 ### Matplotlib
 
 Matplotlib 后端允许生成用于打印和出版的图形。如果你想允许响应式大小调整，你可以设置 `format='svg'`，然后使用标准的响应式 `sizing_mode` 设置：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnHoloViews :object="plot" backend='matplotlib' format='svg'
+               sizing_mode='stretch_both' :center="False" />
+</template>
+<script lang='py'>
+import numpy as np
+import pandas as pd
+import hvplot.pandas
+hvplot.extension("matplotlib")
+
+data = {"group": np.random.randint(0, 10, 100), "value": np.random.randn(100)}
+df = pd.DataFrame(data)
+plot = df.hvplot.scatter(x="group", y="value")
+</script>
+
+```
 
 
 ### Plotly
@@ -2620,20 +6033,116 @@ Matplotlib 后端允许生成用于打印和出版的图形。如果你想允许
 
 如果您使用的是 `hvPlot`，您可以使用 `hvplot.extension("plotly")` 来代替：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnHoloViews :object="plot" backend='plotly' :height="300" />
+</template>
+<script lang='py'>
+import numpy as np
+import pandas as pd
+import hvplot.pandas
+hvplot.extension("plotly")
+
+data = {"group": np.random.randint(0, 10, 100), "value": np.random.randn(100)}
+df = pd.DataFrame(data)
+plot = df.hvplot.scatter(x="group", y="value", height=300, responsive=True)
+</script>
+
+```
+
 
 ### 动态后端切换
 
 您还可以通过小部件动态更改绘图后端：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnColumn>
+    <PnRadioButtonGroup v-model="backend.value" 
+                        :options="['bokeh', 'matplotlib', 'plotly']" 
+                        button_type="primary" button_style="outline" />
+    <PnHoloViews :object="plot" :backend="backend.value" 
+                 sizing_mode="stretch_width" :height="300" />
+  </PnColumn>
+</template>
+<script lang='py'>
+import numpy as np
+import pandas as pd
+import hvplot.pandas
+from vuepy import ref
+import holoviews as hv
+hv.extension("bokeh", "matplotlib", "plotly")
+
+data = {
+    "group": np.random.randint(0, 10, 100),
+    "value": np.random.randn(100),
+}
+df = pd.DataFrame(data)
+plot = df.hvplot.scatter(x="group", y="value", height=300, 
+                         responsive=True, 
+                         title="Try changing the backend")
+backend = ref('bokeh')
+</script>
+
+```
 
 
 ## 链接坐标轴
 
 默认情况下，具有共享键或值维度的图表的坐标轴是链接的。您可以通过将 `linked_axes` 参数设置为 `False` 来删除链接：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnColumn>
+    <PnHoloViews :object="not_linked_plot" backend='bokeh' 
+                 sizing_mode='stretch_width' :height="200" :linked_axes="False" />
+    <PnHoloViews :object="linked_plot" backend='bokeh' 
+                 sizing_mode='stretch_width' :height="200" />
+    <PnHoloViews :object="linked_plot" backend='bokeh' 
+                 sizing_mode='stretch_width' :height="200" />
+  </PnColumn>
+</template>
+<script lang='py'>
+import numpy as np
+import pandas as pd
+import hvplot.pandas
+import holoviews as hv
+hv.extension("bokeh")
+
+data = {"group": np.random.randint(0, 10, 100), "value": np.random.randn(100)}
+df = pd.DataFrame(data)
+not_linked_plot = df.hvplot.scatter(x="group", y="value", responsive=True, title="Not Linked Axes")\
+    .opts(active_tools=['box_zoom'])
+linked_plot = df.hvplot.scatter(x="group", y="value", responsive=True, title="Linked Axes")\
+    .opts(active_tools=['box_zoom'])
+</script>
+
+```
+
 
 ## 主题
 
 您可以更改 `theme`：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnHoloViews :object="plot" :height="300" theme="night_sky" />
+</template>
+<script lang='py'>
+import numpy as np
+import pandas as pd
+import hvplot.pandas
+
+data = {"group": np.random.randint(0, 10, 100), "value": np.random.randn(100)}
+df = pd.DataFrame(data)
+plot = df.hvplot.scatter(x="group", y="value", height=300, responsive=True)
+</script>
+
+```
 
 
 ## 布局和小部件参数
@@ -2643,6 +6152,39 @@ Matplotlib 后端允许生成用于打印和出版的图形。如果你想允许
 ### 居中
 
 您可以通过 `center` 参数将图表居中：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+    <PnHoloViews :object='plot' :center="True" sizing_mode="fixed" />
+<!--
+  <PnCol>
+    <PnMarkdown>center=True, sizing_mode='fixed'</PnMarkdown>
+
+    <PnMarkdown>center=True, sizing_mode='stretch_width'</PnMarkdown>
+    <PnHoloViews :object="plot" :center="True" sizing_mode="stretch_width" />
+
+    <PnMarkdown>center=False, sizing_mode='fixed'</PnMarkdown>
+    <PnHoloViews :object="plot" :center="False" sizing_mode="fixed" />
+
+    <PnMarkdown>center=False, sizing_mode='stretch_width'</PnMarkdown>
+    <PnHoloViews :object="plot" :center="False" sizing_mode="stretch_width" />
+  </PnCol>
+-->
+</template>
+<script lang='py'>
+import pandas as pd
+import hvplot.pandas
+
+df = pd.DataFrame({
+    "group": [1, 2, 3, 4, 5],
+    "value": [10, 20, 30, 20, 10]
+})
+# todo center
+plot = df.hvplot.scatter(x="group", y="value", height=100, width=400)
+</script>
+
+```
 
 
 ## API
@@ -2773,24 +6315,135 @@ ipywidgets 支持有一些限制，因为它整合了两个截然不同的生态
 
 `PnLaTeX` 组件将渲染任何具有 `_repr_latex_` 方法的对象、[SymPy](https://www.sympy.org/en/index.html) 表达式或包含 LaTeX 的任何字符串。任何 LaTeX 内容都应该包装在 `$...$` 或 `\(...\)` 分隔符中，例如：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnLatex 
+    object="supports two delimiters: $\frac{1}{n}$ and \(\frac{1}{n}\)" 
+    :styles="{'font-size': '18pt'}" />
+</template>
+
+```
+
 
 为 LaTeX 字符串添加前缀 `r` 很重要，这样可以使字符串成为*原始*字符串，不会转义 `\\` 字符：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCol>
+    <PnLatex :object="rs" :styles="{'font-size': '18pt'}"/>
+    <PnLatex :object="s" :styles="{'font-size': '18pt'}"/>  <!-- 不起作用 -->
+  </PnCol>
+</template>
+<script lang='py'>
+rs = r'$\frac{1}{n}$'
+s = '$\frac{1}{n}$'
+</script>
+
+```
 
 
 与其他组件一样，`PnLaTeX` 组件可以动态更新：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnCol>
+  <PnLatex :object="latex_formula.value" />
+  <PnButton @click="update_formula()">更新公式</PnButton>
+</PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+latex_formula = ref(r'The LaTeX pane supports two delimiters: $LaTeX$ and \(LaTeX\)')
+
+def update_formula():
+    latex_formula.value = r'$\sum_{j}{\sum_{i}{a*w_{j, i}}}$'
+</script>
+
+```
+
 
 如果两个渲染器都已加载，我们可以覆盖默认渲染器：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnLaTeX 
+    object="The LaTeX pane supports two delimiters: $LaTeX$ and \(LaTeX\)" 
+    renderer="mathjax"
+    :styles="{'font-size': '18pt'}" />
+</template>
+
+```
 
 
 ## 复杂公式示例
 
 `PnLaTeX` 组件可以渲染复杂的数学公式：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnLaTeX :object="maxwell" style="font-size: 24pt" />
+    <PnSpacer :width="50" />
+    <PnLaTeX :object="cross_product" style="font-size: 24pt" />
+    <PnSpacer :width="50" />
+    <PnLaTeX :object="cauchy_schwarz" style="font-size: 24pt" />
+  </PnRow>
+</template>
+<script lang='py'>
+maxwell = r"""
+$\begin{aligned}
+  \nabla \times \vec{\mathbf{B}} -\, \frac1c\, \frac{\partial\vec{\mathbf{E}}}{\partial t} & = \frac{4\pi}{c}\vec{\mathbf{j}} \\
+  \nabla \cdot \vec{\mathbf{E}} & = 4 \pi \rho \\
+  \nabla \times \vec{\mathbf{E}}\, +\, \frac1c\, \frac{\partial\vec{\mathbf{B}}}{\partial t} & = \vec{\mathbf{0}} \\
+  \nabla \cdot \vec{\mathbf{B}} & = 0
+\end{aligned}
+$"""
+
+cauchy_schwarz = r"""
+$\left( \sum_{k=1}^n a_k b_k \right)^2 \leq \left( \sum_{k=1}^n a_k^2 \right) \left( \sum_{k=1}^n b_k^2 \right)$
+"""
+
+cross_product = r"""
+$\mathbf{V}_1 \times \mathbf{V}_2 =  \begin{vmatrix}
+\mathbf{i} & \mathbf{j} & \mathbf{k} \\
+\frac{\partial X}{\partial u} &  \frac{\partial Y}{\partial u} & 0 \\
+\frac{\partial X}{\partial v} &  \frac{\partial Y}{\partial v} & 0
+\end{vmatrix}
+$"""
+</script>
+
+```
+
 
 ## SymPy 集成
 
 可以渲染 SymPy 表达式：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnColumn>
+    <PnMarkdown>
+    # SymPy 表达式渲染：
+    </PnMarkdown>
+    <PnLaTeX :object="expression" style="font-size: 20px" />
+  </PnColumn>
+</template>
+<script lang='py'>
+import sympy as sp
+
+# 使用 SymPy 定义符号和符号表达式
+x = sp.symbols('x')
+expression = sp.integrate(sp.sin(x)**2, x)
+expression_latex = sp.latex(expression) # \frac{x}{2} - ...
+</script>
+
+```
 
 
 ## API
@@ -2843,11 +6496,116 @@ ipywidgets 支持有一些限制，因为它整合了两个截然不同的生态
 
 创建一个简单的 Matplotlib 图表并显示：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnMatplotlib :object="fig" :dpi="144" />
+</template>
+<script lang='py'>
+import numpy as np
+from matplotlib.figure import Figure
+from matplotlib import cm
+
+Y, X = np.mgrid[-3:3:100j, -3:3:100j]
+U = -1 - X**2 + Y
+V = 1 + X - Y**2
+
+fig = Figure(figsize=(4, 3))
+ax = fig.subplots()
+
+strm = ax.streamplot(X, Y, U, V, color=U, linewidth=2, cmap=cm.autumn)
+fig.colorbar(strm.lines)
+</script>
+
+```
+
 
 通过修改图表并使用组件对象的 `param.trigger('object')` 方法，我们可以轻松更新图表：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnCol>
+  <PnMatplotlib :object="fig" :dpi="144" ref="mpl_pane" />
+  <PnButton @click="update_cmap()">更新颜色映射</PnButton>
+</PnCol>
+</template>
+<script lang='py'>
+import numpy as np
+from matplotlib.figure import Figure
+from matplotlib import cm
+from vuepy import ref
+
+mpl_pane = ref(None)
+
+Y, X = np.mgrid[-3:3:100j, -3:3:100j]
+U = -1 - X**2 + Y
+V = 1 + X - Y**2
+
+fig = Figure(figsize=(4, 3))
+ax = fig.subplots()
+
+strm = ax.streamplot(X, Y, U, V, color=U, linewidth=2, cmap=cm.autumn)
+fig.colorbar(strm.lines)
+
+def update_cmap():
+    strm.lines.set_cmap(cm.viridis)
+    mpl_pane.value.unwrap().param.trigger('object')
+</script>
+
+```
+
 
 与所有其他模型一样，`PnMatplotlib` 组件也可以通过直接设置 `object` 来更新：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnCol>
+  <PnMatplotlib :object="fig" :dpi="144" ref="mpl_pane" />
+  <PnButton @click="update_fig()">更新为3D图表</PnButton>
+</PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+import numpy as np
+from matplotlib.figure import Figure
+from matplotlib import cm
+from mpl_toolkits.mplot3d import axes3d
+
+mpl_pane = ref(None)
+
+Y, X = np.mgrid[-3:3:100j, -3:3:100j]
+U = -1 - X**2 + Y
+V = 1 + X - Y**2
+
+fig = Figure(figsize=(4, 3))
+ax = fig.subplots()
+
+strm = ax.streamplot(X, Y, U, V, color=U, linewidth=2, cmap=cm.autumn)
+fig.colorbar(strm.lines)
+
+def update_fig():
+    fig3d = Figure(figsize=(8, 6))
+    ax = fig3d.add_subplot(111, projection='3d')
+    
+    X, Y, Z = axes3d.get_test_data(0.05)
+    ax.plot_surface(X, Y, Z, rstride=8, cstride=8, alpha=0.3)
+    cset = ax.contourf(X, Y, Z, zdir='z', offset=-100, cmap=cm.coolwarm)
+    cset = ax.contourf(X, Y, Z, zdir='x', offset=-40, cmap=cm.coolwarm)
+    cset = ax.contourf(X, Y, Z, zdir='y', offset=40, cmap=cm.coolwarm)
+    
+    ax.set_xlabel('X')
+    ax.set_xlim(-40, 40)
+    ax.set_ylabel('Y')
+    ax.set_ylim(-40, 40)
+    ax.set_zlabel('Z')
+    ax.set_zlim(-100, 100)
+    
+    mpl_pane.value.unwrap().object = fig3d
+</script>
+
+```
 
 
 ## 使用 Matplotlib pyplot 接口
@@ -2856,10 +6614,73 @@ ipywidgets 支持有一些限制，因为它整合了两个截然不同的生态
 
 **您可以使用 `matplotlib.pyplot` 接口，但随后必须像下面所示特别关闭图形！**
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnMatplotlib :object="create_voltage_figure()" :dpi="144" :tight="True" />
+</template>
+<script lang='py'>
+import matplotlib.pyplot as plt
+import numpy as np
+
+def create_voltage_figure(figsize=(4,3)):
+    t = np.arange(0.0, 2.0, 0.01)
+    s = 1 + np.sin(2 * np.pi * t)
+    
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.plot(t, s)
+    
+    ax.set(xlabel='time (s)', ylabel='voltage (mV)',
+          title='Voltage')
+    ax.grid()
+    
+    plt.close(fig)  # 关闭图形！
+    return fig
+</script>
+
+```
+
 
 ## 修复裁剪问题
 
 如果您发现图形在边缘被裁剪，可以设置 `tight=true`：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnMarkdown>
+     ## ❌ tight=false
+    </PnMarkdown>
+    <PnMatplotlib :object="create_voltage_figure()" :dpi="144" :tight="False" />
+  </PnRow>
+  <PnRow>
+    <PnMarkdown>
+     ## ✔️ tight=true
+    </PnMarkdown>
+    <PnMatplotlib :object="create_voltage_figure()" :dpi="144" :tight="True" />
+  </PnROw>
+</template>
+<script lang='py'>
+import matplotlib.pyplot as plt
+import numpy as np
+
+def create_voltage_figure(figsize=(4,3)):
+    t = np.arange(0.0, 2.0, 0.01)
+    s = 1 + np.sin(2 * np.pi * t)
+    
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.plot(t, s)
+    
+    ax.set(xlabel='time (s)', ylabel='voltage (mV)',
+          title='Voltage')
+    ax.grid()
+    
+    plt.close(fig)  # 关闭图形！
+    return fig
+</script>
+
+```
 
 
 ## 响应式图表
@@ -2872,16 +6693,142 @@ ipywidgets 支持有一些限制，因为它整合了两个截然不同的生态
 
 让我们先使用默认的 `'png'` 格式和 `sizing_mode="stretch_width"` 显示：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnMatplotlib :object="fig" :tight="True" sizing_mode="stretch_width" 
+                style="background: pink" />
+</template>
+<script lang='py'>
+import matplotlib.pyplot as plt
+import numpy as np
+
+def create_voltage_figure(figsize=(6,1)):
+    t = np.arange(0.0, 2.0, 0.01)
+    s = 1 + np.sin(2 * np.pi * t)
+    
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.plot(t, s)
+    
+    ax.set(xlabel='time (s)', ylabel='voltage (mV)',
+          title='Voltage')
+    ax.grid()
+    
+    plt.close(fig)
+    return fig
+
+fig = create_voltage_figure(figsize=(6,1))
+</script>
+
+```
+
 
 如果您的窗口宽度较大，您会在两侧看到一些大的粉色区域。如果减小窗口宽度，您会看到图表自适应调整大小。
 
 使用 `'svg'` 格式可以使图形占据全宽：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnMatplotlib :object="fig" :tight="True" format="svg" 
+                sizing_mode="stretch_width" />
+</template>
+<script lang='py'>
+import matplotlib.pyplot as plt
+import numpy as np
+
+def create_voltage_figure(figsize=(6,1)):
+    t = np.arange(0.0, 2.0, 0.01)
+    s = 1 + np.sin(2 * np.pi * t)
+    
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.plot(t, s)
+    
+    ax.set(xlabel='time (s)', ylabel='voltage (mV)',
+          title='Voltage')
+    ax.grid()
+    
+    plt.close(fig)
+    return fig
+
+fig = create_voltage_figure(figsize=(6,1))
+</script>
+
+```
+
 
 但这可能会使图形太高。让我们尝试使用固定的 `height`：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnMatplotlib 
+    :object="fig" 
+    :tight="True" 
+    :height="150" 
+    format="svg" 
+    sizing_mode="stretch_width" 
+    style="background: pink" />
+</template>
+<script lang='py'>
+import matplotlib.pyplot as plt
+import numpy as np
+
+def create_voltage_figure(figsize=(6,1)):
+    t = np.arange(0.0, 2.0, 0.01)
+    s = 1 + np.sin(2 * np.pi * t)
+    
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.plot(t, s)
+    
+    ax.set(xlabel='时间 (s)', ylabel='电压 (mV)',
+          title='电压')
+    ax.grid()
+    
+    plt.close(fig)
+    return fig
+
+fig = create_voltage_figure(figsize=(6,1))
+</script>
+
+```
+
 
 但也许我们希望图形占据全宽。让我们将 `fixed_aspect` 更改为 `false`：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnMatplotlib 
+    :object="fig" 
+    :tight="True" 
+    :height="150" 
+    format="svg" 
+    :fixed_aspect="False" 
+    sizing_mode="stretch_width" />
+</template>
+<script lang='py'>
+import matplotlib.pyplot as plt
+import numpy as np
+
+def create_voltage_figure(figsize=(6,1)):
+    t = np.arange(0.0, 2.0, 0.01)
+    s = 1 + np.sin(2 * np.pi * t)
+    
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.plot(t, s)
+    
+    ax.set(xlabel='time (s)', ylabel='voltage (mV)',
+          title='voltage')
+    ax.grid()
+    
+    plt.close(fig)
+    return fig
+
+fig = create_voltage_figure(figsize=(6,1))
+</script>
+
+```
 
 
 总之，通过使用适当组合的 `format`、`fixed_aspect` 和 `sizing_mode` 值，您应该能够实现所需的响应式大小调整。
@@ -2890,11 +6837,50 @@ ipywidgets 支持有一些限制，因为它整合了两个截然不同的生态
 
 我们建议创建一个 Matplotlib `Figure` 并将其提供给 Seaborn：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnMatplotlib :object="fig" :tight="True" />
+</template>
+<script lang='py'>
+import pandas as pd
+import numpy as np
+import seaborn as sns
+from matplotlib.figure import Figure
+
+sns.set_theme()
+
+df = pd.DataFrame(np.random.rand(10, 10), columns=[chr(65+i) for i in range(10)], index=[chr(97+i) for i in range(10)])
+
+fig = Figure(figsize=(2, 2))
+ax = fig.add_subplot(111)
+sns.heatmap(df, ax=ax)
+</script>
+
+```
+
 
 您也可以直接使用 Seaborn，但请记住手动关闭 `Figure` 以避免内存泄漏：
 
 
 ## 使用 Pandas.plot
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnMatplotlib :object="fig" :height="300" />
+</template>
+<script lang='py'>
+import pandas as pd
+from matplotlib.figure import Figure
+
+df = pd.DataFrame({'a': range(10)})
+fig = Figure(figsize=(4, 2))
+ax = fig.add_subplot(111)
+ax = df.plot.barh(ax=ax)
+</script>
+
+```
+
 
 ## API
 
@@ -3040,20 +7026,148 @@ ipywidgets 支持有一些限制，因为它整合了两个截然不同的生态
 让我们创建一个基本示例：
 
 创建后，`PnPlotly` 组件可以通过分配新的图形对象来更新：
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnButton @click="update_fig()">Update</PnButton>
+  <PnPlotly :object="fig.value"/>
+</template>
+<script lang='py'>
+from vuepy import ref
+import numpy as np
+import plotly.graph_objs as go
+
+xx = np.linspace(-3.5, 3.5, 100)
+yy = np.linspace(-3.5, 3.5, 100)
+x, y = np.meshgrid(xx, yy)
+z = np.exp(-((x - 1) ** 2) - y**2) - (x**3 + y**4 - x / 5) * np.exp(-(x**2 + y**2))
+
+surface = go.Surface(z=z)
+fig = go.Figure(data=[surface])
+
+fig.update_layout(
+    title="Plotly 3D",
+    width=500,
+    height=500,
+    margin=dict(t=50, b=50, r=50, l=50),
+)
+fig = ref(fig)
+
+def update_fig():
+    new_fig = go.Figure(data=[go.Surface(z=np.sin(z+1))])
+    new_fig.update_layout(
+        title="Update Plotly 3D",
+        width=500,
+        height=500,
+        margin=dict(t=50, b=50, r=50, l=50),
+    )
+    fig.value = new_fig
+</script>
+
+```
+
 
 ## 布局示例
 
 `PnPlotly` 组件支持任意复杂度的布局和子图，允许显示即使是深度嵌套的 Plotly 图形：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnPlotly :object="fig_layout" />
+</template>
+<script lang='py'>
+import numpy as np
+import plotly.graph_objs as go
+from plotly import subplots
+
+heatmap = go.Heatmap(
+    z=[[1, 20, 30],
+       [20, 1, 60],
+       [30, 60, 1]],
+    showscale=False)
+
+y0 = np.random.randn(50)
+y1 = np.random.randn(50)+1
+
+box_1 = go.Box(y=y0)
+box_2 = go.Box(y=y1)
+data = [heatmap, box_1, box_2]
+
+fig_layout = subplots.make_subplots(
+    rows=2, cols=2, specs=[[{}, {}], [{'colspan': 2}, None]],
+    subplot_titles=('first subplot','second subplot', 'third subplot')
+)
+
+fig_layout.append_trace(box_1, 1, 1)
+fig_layout.append_trace(box_2, 1, 2)
+fig_layout.append_trace(heatmap, 2, 1)
+
+fig_layout['layout'].update(height=600, width=600, title='i <3 subplots')
+</script>
+
+```
 
 
 ## 响应式图表
 
 通过在 Plotly 布局上使用 `autosize` 选项和 `PnPlotly` 组件的响应式 `sizing_mode` 参数，可以使 Plotly 图表具有响应性：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnCol name="## A responsive plot" sizing_mode="stretch_width">
+    <PnPlotly :object="fig_responsive" :height="300" sizing_mode="stretch_width" />
+  </PnCol>
+</template>
+<script lang='py'>
+import pandas as pd
+import plotly.express as px
+
+data = pd.DataFrame([
+    ('Monday', 7), ('Tuesday', 4), ('Wednesday', 9), ('Thursday', 4),
+    ('Friday', 4), ('Saturday', 4), ('Sunday', 4)], columns=['Day', 'Orders']
+)
+
+fig_responsive = px.line(data, x="Day", y="Orders")
+fig_responsive.update_traces(mode="lines+markers", marker=dict(size=10), line=dict(width=4))
+fig_responsive.layout.autosize = True
+</script>
+
+```
+
 
 ## 图表配置
 
 您可以通过 `config` 参数设置 [Plotly 配置选项](https://plotly.com/javascript/configuration-options/)。让我们尝试配置 `scrollZoom`：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnCol name="## A responsive and scroll zoomable plot" 
+         sizing_mode="stretch_width">
+    <PnPlotly 
+      :object="fig_responsive" 
+      :config="{'scrollZoom': True}" 
+      :height="300" 
+      sizing_mode="stretch_width" />
+  </PnCol>
+</template>
+<script lang='py'>
+import pandas as pd
+import plotly.express as px
+
+data = pd.DataFrame([
+    ('Monday', 7), ('Tuesday', 4), ('Wednesday', 9), ('Thursday', 4),
+    ('Friday', 4), ('Saturday', 4), ('Sunday', 4)], columns=['Day', 'Orders']
+)
+
+fig_responsive = px.line(data, x="Day", y="Orders")
+fig_responsive.update_traces(mode="lines+markers", marker=dict(size=10), line=dict(width=4))
+fig_responsive.layout.autosize = True
+</script>
+
+```
 
 
 尝试在图表上用鼠标滚动！
@@ -3064,10 +7178,102 @@ ipywidgets 支持有一些限制，因为它整合了两个截然不同的生态
 
 请注意，增量更新只有在将 `Figure` 定义为字典时才会高效，因为 Plotly 会复制轨迹，这意味着原地修改它们没有效果。修改数组将仅发送该数组（使用二进制协议），从而实现快速高效的更新。
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnPlotly :object="fig_patch" ref="plotly_pane_patch" />
+  <PnRow>
+    <PnButton @click="update_z()">更新数据</PnButton>
+    <PnButton @click="update_layout()">更新布局</PnButton>
+    <PnButton @click="reset()">重置</PnButton>
+  </PnRow>
+</template>
+<script lang='py'>
+import numpy as np
+import plotly.graph_objs as go
+from vuepy import ref
+
+xx = np.linspace(-3.5, 3.5, 100)
+yy = np.linspace(-3.5, 3.5, 100)
+x, y = np.meshgrid(xx, yy)
+z = np.exp(-((x - 1) ** 2) - y**2) - (x**3 + y**4 - x / 5) * np.exp(-(x**2 + y**2))
+
+surface = go.Surface(z=z)
+layout = go.Layout(
+    title='Plotly 3D 图表',
+    autosize=False,
+    width=500,
+    height=500,
+    margin=dict(t=50, b=50, r=50, l=50)
+)
+
+fig_patch = dict(data=[surface], layout=layout)
+plotly_pane_patch = ref(None)
+
+def update_z():
+    surface.z = np.sin(z+1)
+    plotly_pane_patch.value.unwrap().object = fig_patch
+    
+def update_layout():
+    fig_patch['layout']['width'] = 800
+    plotly_pane_patch.value.unwrap().object = fig_patch
+    
+def reset():
+    surface.z = z
+    fig_patch['layout']['width'] = 500
+    plotly_pane_patch.value.unwrap().object = fig_patch
+</script>
+
+```
+
 
 ## 事件处理
 
 `PnPlotly` 组件提供对 [Plotly 事件](https://plotly.com/javascript/plotlyjs-events/)的访问，如点击、悬停和选择(使用`Box Select`、`Lasso Select`工具)等：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnPlotly :object="fig" ref="plotly_ref" 
+            @click='on_click'
+            @selected='on_selected'
+  />
+</template>
+<script lang='py'>
+import numpy as np
+import plotly.express as px
+from vuepy import ref, onMounted
+
+# 创建一些示例数据
+df = px.data.iris()
+
+# 创建散点图
+fig = px.scatter(
+    df, x="sepal_width", y="sepal_length", 
+    color="species", size="petal_length",
+    hover_data=["petal_width"]
+)
+
+# 事件数据引用
+click_data = ref({})
+hover_data = ref({})
+plotly_ref = ref(None)
+
+def on_click(event):
+    if not event:
+        return
+    print(event.new['points']) # [{'curveNumber': 2, 'pointNumber': 31, 
+                               #   'pointIndex': 31, 'x': 3.8, 'y': 7.9, 
+                               #   'marker.size': 6.4, 'customdata': [2]}]
+    click_data.value = event.new['points']
+    
+def on_selected(event):
+    if not event:
+        return
+    print(event.new['points']) # [{'curveNumber': 2, 'pointNumber': 31, ...
+</script>
+
+```
 
 
 ## API
@@ -3132,13 +7338,58 @@ ipywidgets 支持有一些限制，因为它整合了两个截然不同的生态
 
 `PnPDF` 组件可以指向任何本地或远程 `.pdf` 文件。如果给定以 `http` 或 `https` 开头的 URL，则 `embed` 参数决定 PDF 是嵌入还是链接到：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnPDF 
+    object="https://assets.holoviz.org/panel/samples/pdf_sample.pdf" 
+    :width="700" 
+    :height="1000" />
+</template>
+
+```
+
 
 与任何其他组件一样，可以通过设置 `object` 参数来更新 `PnPDF` 组件：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnCol>
+  <PnPDF 
+    :object="pdf_url.value" 
+    :width="700" 
+    :height="1000" 
+  />
+  <PnButton @click="update_pdf()">更新 PDF</PnButton>
+</PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+pdf_url = ref("https://assets.holoviz.org/panel/samples/pdf_sample.pdf")
+
+def update_pdf():
+    pdf_url.value = "https://assets.holoviz.org/panel/samples/pdf_sample2.pdf"
+</script>
+
+```
 
 
 ## 设置起始页
 
 使用 `start_page` 参数，您可以指定加载页面时 PDF 文件的起始页：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnPDF 
+    object="https://assets.holoviz.org/panel/samples/pdf_sample2.pdf" 
+    :start_page="2"
+    :width="700" 
+    :height="1000" />
+</template>
+
+```
 
 
 ## API
@@ -3197,28 +7448,160 @@ ipywidgets 支持有一些限制，因为它整合了两个截然不同的生态
 
 让我们看几个例子：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnReactiveExpr :object="rx_model" />
+</template>
+<script lang='py'>
+import panel as pn
+
+def model(n):
+    return f"🤖 {n}x2 等于 {n*2}"
+
+n = pn.widgets.IntSlider(value=2, start=0, end=10)
+rx_model = pn.rx(model)(n=n)
+</script>
+
+```
+
 
 在底层，Panel 确保上面的*响应式表达式*被渲染在 `PnReactiveExpr` 组件中。您也可以显式地这样做：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnReactiveExpr :object="rx_model" />
+</template>
+<script lang='py'>
+import panel as pn
+
+def model(n):
+    return f"🤖 {n}x2 等于 {n*2}"
+
+n = pn.widgets.IntSlider(value=2, start=0, end=10)
+rx_model = pn.rx(model)(n=n)
+</script>
+
+```
 
 
 响应式表达式从不是"死胡同"。您始终可以更新和更改*响应式表达式*。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnReactiveExpr :object="expr" />
+</template>
+<script lang='py'>
+import panel as pn
+
+def model(n):
+    return f"🤖 {n}x2 等于 {n*2}"
+
+n = pn.widgets.IntSlider(value=2, start=0, end=10)
+expr = pn.rx(model)(n=n) + "\n\n🧑 谢谢"
+</script>
+
+```
+
 
 您还可以组合*响应式表达式*：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnReactiveExpr :object="expr" />
+</template>
+<script lang='py'>
+import panel as pn
+
+x = pn.widgets.IntSlider(value=2, start=0, end=10, name="x")
+y = pn.widgets.IntSlider(value=2, start=0, end=10, name="y")
+
+expr = x.rx()*"⭐" + y.rx()*"⭐"
+</script>
+
+```
 
 
 ## 布局选项
 
 您可以更改 `widget_location`：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnReactiveExpr :object="expr" widget_location="top" />
+</template>
+<script lang='py'>
+import panel as pn
+
+x = pn.widgets.IntSlider(value=2, start=0, end=10, name="x")
+y = pn.widgets.IntSlider(value=2, start=0, end=10, name="y")
+
+expr = x.rx()*"⭐" + "\n\n" + y.rx()*"❤️"
+</script>
+
+```
+
 
 您可以将 `widget_layout` 更改为 `Row`：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnReactiveExpr :object="expr" :widget_layout="PnRow" />
+</template>
+<script lang='py'>
+import panel as pn
+
+x = pn.widgets.IntSlider(value=2, start=0, end=10, name="x")
+y = pn.widgets.IntSlider(value=2, start=0, end=10, name="y")
+
+expr = x.rx()*"⭐" + "\n\n" + y.rx()*"❤️"
+PnRow = pn.Row
+</script>
+
+```
 
 
 您可以水平 `center` 输出：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnReactiveExpr :object="expr" :center="True" />
+</template>
+<script lang='py'>
+import panel as pn
+
+x = pn.widgets.IntSlider(value=2, start=0, end=10, name="x")
+y = pn.widgets.IntSlider(value=2, start=0, end=10, name="y")
+
+expr = x.rx()*"⭐" + "\n\n" + y.rx()*"❤️"
+</script>
+
+```
+
 
 通过设置 `show_widgets=False` 可以隐藏小部件：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnReactiveExpr :object="expr" :show_widgets="False" />
+</template>
+<script lang='py'>
+import panel as pn
+
+x = pn.widgets.IntSlider(value=2, start=0, end=10, name="x")
+y = pn.widgets.IntSlider(value=2, start=0, end=10, name="y")
+
+expr = x.rx()*"⭐" + "\n\n" + y.rx()*"❤️"
+</script>
+
+```
 
 
 ## 响应式表达式作为引用
@@ -3235,8 +7618,57 @@ ipywidgets 支持有一些限制，因为它整合了两个截然不同的生态
 
 让我们通过一个稍微复杂一点的例子来展示，构建一个表达式来动态加载一些数据并从中采样 N 行：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnReactiveExpr :object="df_rx" />
+</template>
+<script lang='py'>
+import pandas as pd
+import panel as pn
+
+dataset = pn.widgets.Select(name='选择数据集', options={
+    'penguins': 'https://datasets.holoviz.org/penguins/v1/penguins.csv',
+    'stocks': 'https://datasets.holoviz.org/stocks/v1/stocks.csv'
+})
+nrows = pn.widgets.IntSlider(value=5, start=0, end=20, name='N 行')
+
+# 加载当前选择的数据集并从中采样 nrows
+df_rx = pn.rx(pd.read_csv)(dataset).sample(n=nrows)
+</script>
+
+```
+
 
 现在我们有了一个符合我们需求的表达式，可以将其用作引用来响应式地更新 `Tabulator` 小部件的 `value`：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+    <PnCol>
+      <PnSelect v-model="dataset.value" name='选择数据集' :options="options" />
+      <PnIntSlider v-model="nrows.value" :start="0" :end="20" name="N 行" />
+    </PnCol>
+    <PnTabulator :value="df_rx.value" :page_size="5" pagination="remote" />
+</template>
+<script lang='py'>
+import pandas as pd
+import panel as pn
+from vuepy import ref, computed
+
+dataset = ref('https://datasets.holoviz.org/stocks/v1/stocks.csv')
+nrows = ref(5)
+options = {'penguins': 'https://datasets.holoviz.org/penguins/v1/penguins.csv',
+           'stocks': 'https://datasets.holoviz.org/stocks/v1/stocks.csv'}
+
+# 创建响应式表达式
+# df_rx = pn.rx(lambda url, n: pd.read_csv(url).sample(n=n))(url=dataset, n=nrows)
+@computed
+def df_rx():
+    return pd.read_csv(dataset.value).sample(n=nrows.value)
+</script>
+
+```
 
 
 ## API
@@ -3293,13 +7725,41 @@ ipywidgets 支持有一些限制，因为它整合了两个截然不同的生态
 
 `PnPNG` 组件可以指向任何本地或远程 `.png` 文件。如果给定以 `http` 或 `https` 开头的 URL，则 `embed` 参数决定图像是嵌入还是链接到：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnPNG object="https://assets.holoviz.org/panel/samples/png_sample.png" />
+</template>
+
+```
+
 
 ## 调整大小
 
 我们可以通过设置特定的固定 `width` 或 `height` 来调整图像的大小：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnPNG 
+    object="https://assets.holoviz.org/panel/samples/png_sample.png"
+    :width="400" />
+</template>
+
+```
+
 
 或者，我们可以使用 `sizing_mode` 来调整宽度和高度：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnPNG 
+    object="https://assets.holoviz.org/panel/samples/png_sample2.png"
+    sizing_mode="scale_width" />
+</template>
+
+```
 
 
 请注意，默认情况下，图像的宽高比是固定的，因此即使在响应式调整大小模式下，图像旁边或下方也可能有空隙。要覆盖此行为，请设置 `fixed_aspect=false` 或提供固定的 `width` 和 `height` 值。
@@ -3307,6 +7767,17 @@ ipywidgets 支持有一些限制，因为它整合了两个截然不同的生态
 ## 设置链接 URL
 
 使用 `link_url` 参数，您可以使图像可点击并链接到其他网站：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnPNG 
+    object="https://assets.holoviz.org/panel/samples/png_sample.png"
+    link_url="https://panel.holoviz.org/"
+    :width="400" />
+</template>
+
+```
 
 
 ## API
@@ -3362,35 +7833,298 @@ ipywidgets 支持有一些限制，因为它整合了两个截然不同的生态
 
 要在代码块中启用代码高亮显示，需要安装 `pip install pygments`
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnMarkdown :width="500">
+# Markdown 示例
+
+这个示例文本来自 [The Markdown Guide](https://www.markdownguide.org)!
+
+## 基本语法
+
+这些是 John Gruber 原始设计文档中概述的元素。所有 Markdown 应用程序都支持这些元素。
+
+### 标题
+
+# H1
+## H2
+### H3
+
+### 粗体
+
+**粗体文本**
+
+### 斜体
+
+*斜体文本*
+
+### 引用块
+
+> 引用块
+
+### 有序列表
+
+1. 第一项
+2. 第二项
+3. 第三项
+
+### 无序列表
+
+- 第一项
+- 第二项
+- 第三项
+
+### 代码
+
+`代码`
+
+### 水平分割线
+
+---
+
+### 链接
+
+[Markdown 指南](https://www.markdownguide.org)
+
+### 图像
+
+![替代文本](https://www.markdownguide.org/assets/images/tux.png)
+
+## 扩展语法
+
+这些元素通过添加额外的功能来扩展基本语法。并非所有 Markdown 应用程序都支持这些元素。
+
+### 表格
+
+| 语法 | 描述 |
+| ----------- | ----------- |
+| 标题 | 标题 |
+| 段落 | 文本 |
+
+### 围栏代码块
+
+```
+{
+  "firstName": "John",
+  "lastName": "Smith",
+  "age": 25
+}
+```
+
+### 脚注
+
+这里有一个带有脚注的句子。[^1]
+
+[^1]: 这是脚注。
+
+### 定义列表
+
+术语
+: 该术语的一些定义
+
+### 删除线
+
+~~地球是平的。~~
+
+### 任务列表
+
+- [x] 写新闻稿
+- [ ] 更新网站
+- [ ] 联系媒体
+
+### 表情符号
+
+太有趣了！😂
+
+(另见 [复制和粘贴表情符号](https://www.markdownguide.org/extended-syntax/#copying-and-pasting-emoji))
+"""
+</PnMarkdown>
+</template>
+
+```
+
 还可以通过`object`设置内容。
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnMarkdown :object="markdown_content" :width="500" />
+</template>
+<script lang='py'>
+markdown_content = """
+# Markdown 示例
+
+这个示例文本来自 [The Markdown Guide](https://www.markdownguide.org)!
+"""
+</script>
+
+```
+
 ## 动态内容
 
 vuepy 的响应式特性可以与 `Markdown` 组件的无缝集成，`Slider` 调整时，`Markdown` 内容中的值会实时更新，
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnCol>
+  <PnIntSlider v-model='val.value' :end='10'/>
+  <PnMD :width="500">
+
+# h1
+slider value: {{ val.value }}
+
+  </PnMD>
+</PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+val = ref(1)
+
+</script>
+
+```
+
 
 ## 样式
 
 如果您想控制从 Markdown 源生成的 HTML 的行为，通常可以通过向此组件的 `style` 参数传递参数来实现。例如，您可以在 Markdown 表格周围添加蓝色边框，如下所示：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnMarkdown style="border: 4px solid blue">
+| 语法 | 描述 |
+| ----------- | ----------- |
+| 标题 | 标题 |
+| 段落 | 文本 |
+  </PnMarkdown>
+</template>
+
+```
 
 
 但是，以这种方式指定的样式只会应用于最外层的 Div，目前没有任何方法以这种方式将样式应用于 HTML 的特定内部元素。在这种情况下，我们无法使用 `style` 参数来控制生成表格的行或标题的样式。
 
 如果我们想更改生成的 HTML 的特定内部元素，我们可以通过提供 HTML/CSS &lt;style&gt; 部分来实现。例如，我们可以按如下方式更改标题和数据的边框厚度，但请注意，更改将应用于后续的 Markdown，包括笔记本上下文中的其他单元格：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnMarkdown :object="styled_table_md" />
+</template>
+<script lang='py'>
+styled_table_md = """
+<style>
+table, th, td {
+  border: 5px solid black;
+}
+</style>
+| 语法 | 描述 |
+| ----------- | ----------- |
+| 标题 | 标题 |
+| 段落 | 文本 |
+"""
+</script>
+
+```
+
 
 如果您只想为特定的 Markdown 文本更改样式，您可以通过添加可以用样式表针对的 CSS 类来轻松实现这一点。这里我们添加了 `special_table` 类，然后表格使用红色边框：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnMarkdown :object="special_md" :stylesheets="[css]" />
+</template>
+<script lang='py'>
+css = """
+div.special_table + table * {
+  border: 1px solid red;
+}
+"""
+
+special_md = """
+<div class="special_table"></div>
+
+| 语法 | 描述 |
+| ----------- | ----------- |
+| 标题 | 标题 |
+| 段落 | 文本 |
+"""
+</script>
+
+```
 
 
 ## 渲染器
 
 自 1.0 版本以来，Panel 使用 [`markdown-it`](https://markdown-it-py.readthedocs.io/en/latest/) 作为默认的 markdown 渲染器。如果您想恢复之前的默认值 `'markdown'` 或切换到 `MyST` 风格的 Markdown，可以通过 `renderer` 参数设置它。例如，这里我们使用 'markdown-it' 和 'markdown' 渲染一个任务列表：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnMarkdown renderer='markdown-it'>
+markdown-it  
+- [ ] 鸡蛋
+- [x] 面粉
+- [x] 牛奶
+    </PnMarkdown>
+    <PnMarkdown renderer='markdown'>
+markdown  
+
+- [ ] 鸡蛋
+- [x] 面粉
+- [x] 牛奶
+    </PnMarkdown>
+  </PnRow>
+</template>
+
+```
+
 
 ## LaTeX 支持
 
 `PnMarkdown` 组件也支持数学渲染，方法是用 `$$` 分隔符封装要渲染的字符串。要启用 LaTeX 渲染，您必须在 `pn.extension` 调用中显式加载 'mathjax' 扩展。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnMarkdown :object="latex_md" :width="800" />
+
+  <PnMarkdown :width="800">
+Markdown 组件支持用双 $ 分隔符封装的字符串的数学渲染：$$\sum_{j}{\sum_{i}{a*w_{j, i}}}$$
+  </PnMarkdown>
+</template>
+<script lang='py'>
+import panel as pn
+pn.extension('mathjax')
+
+latex_md = r"""
+Markdown 组件支持用双 $ 分隔符封装的字符串的数学渲染：$$\sum_{j}{\sum_{i}{a*w_{j, i}}}$$
+"""
+</script>
+
+```
+
 
 请注意使用 `r` 前缀创建字符串作为*原始*字符串。Python 原始字符串将反斜杠字符 (\\) 视为文字字符。例如，这不起作用：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <p>without r</p>
+  <PnMarkdown :object="bad_latex" />
+  <p>with r</p>
+  <PnMarkdown :object="good_latex" />
+</template>
+<script lang='py'>
+bad_latex = "$$\frac{1}{n}$$"
+good_latex = r"$$\frac{1}{n}$$"
+</script>
+
+```
 
 
 ## API
@@ -3449,13 +8183,88 @@ vuepy 的响应式特性可以与 `Markdown` 组件的无缝集成，`Slider` �
 
 `PnPlaceholder`组件可以接受任何Panel组件作为其参数，包括其他panes。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnPlaceholder object="Hello" />
+</template>
+
+```
+
 
 使用`PnPlaceholder`的好处是它允许您替换窗格的内容，而不受特定类型组件的限制。这意味着您可以用任何其他窗格类型替换占位符，包括图表、图像和小部件。
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnCol>
+  <PnPlaceholder :object="message.value" />
+  <PnRow>
+    <PnButton @click="updateText()">Update Text</PnButton>
+    <PnButton @click="updateInput()">Update Input</PnButton>
+    <PnButton @click="resetContent()">Reset</PnButton>
+  </PnRow>
+</PnCol>
+</template>
+
+<script lang='py'>
+from vuepy import ref
+
+message = ref("Hello")
+
+def updateText():
+    # placeholder.value.update("Hello again!")
+    message.value = "Hello again!"
+    
+def updateInput():
+    from panel.widgets import TextInput
+    # placeholder.value.update(TextInput(value="Type something..."))
+    message.value = TextInput(value="Type something...")
+    
+def resetContent():
+    # placeholder.value.object = "Hello"
+    message.value = "Hello"
+</script>
+
+```
 
 
 ## 临时替换内容
 
 如果你想临时替换内容，可以使用上下文管理器。
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnCol>
+  <PnPlaceholder ref="placeholder_ref" object="⏳ Idle" 
+                 :stylesheets="[':host { font-size: 24pt }']" />
+  <PnButton @click="runProcess()">Run Process</PnButton>
+</PnCol>
+</template>
+
+<script lang='py'>
+from vuepy import ref
+import asyncio
+import time
+
+placeholder_ref = ref(None)
+
+async def runProcess():
+    placeholder = placeholder_ref.value.unwrap()
+    with placeholder:
+        placeholder.update("🚀 Starting...")
+        # time.sleep(1)
+        await asyncio.sleep(1)
+        placeholder.update("🏃 Running...")
+        # time.sleep(1)
+        await asyncio.sleep(1)
+        placeholder.update("✅ Complete!")
+        # time.sleep(1)
+        await asyncio.sleep(1)
+</script>
+
+```
 
 
 ## API
@@ -3505,8 +8314,230 @@ vuepy 的响应式特性可以与 `Markdown` 组件的无缝集成，`Slider` �
 
 让我们从一个非常简单的例子开始：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnTextual :object="example_app" :width="600" :height="400" />
+</template>
+<script lang='py'>
+from textual.app import App, ComposeResult
+from textual.containers import Container, Horizontal
+from textual.widgets import Button, Footer, Header, Static
+
+QUESTION = "您想了解 Textual CSS 吗？"
+
+class ExampleApp(App):
+    def compose(self) -> ComposeResult:
+        yield Header()
+        yield Footer()
+        yield Container(
+            Static(QUESTION, classes="question"),
+            Horizontal(
+                Button("是", variant="success"),
+                Button("否", variant="error"),
+                classes="buttons",
+            ),
+            id="dialog",
+        )
+
+example_app = ExampleApp()
+</script>
+
+```
+
 
 这对于简单的应用程序和更复杂的应用程序都适用。作为示例，这里我们嵌入了 Textual 文档中的计算器示例应用程序：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnTextual :object="calculator" :height="600" :width="400" />
+</template>
+<script lang='py'>
+from decimal import Decimal
+
+from textual import events, on
+from textual.app import App, ComposeResult
+from textual.containers import Container
+from textual.css.query import NoMatches
+from textual.reactive import var
+from textual.widgets import Button, Digits
+
+from pathlib import Path
+import requests
+
+def _download_file_if_not_exists(url: str, local_path: str) -> Path:
+    local_file_path = Path(local_path)
+
+    if not local_file_path.exists():
+        response = requests.get(url)
+        response.raise_for_status()
+        local_file_path.write_bytes(response.content)
+
+    return local_file_path
+
+
+file_url = "https://raw.githubusercontent.com/holoviz/panel/main/examples/assets/calculator.tcss"
+local_file_path = "calculator.tcss"
+calculator_tcss = _download_file_if_not_exists(file_url, local_file_path)
+
+
+class CalculatorApp(App):
+    """一个可用的'桌面'计算器。"""
+
+    CSS_PATH = calculator_tcss.absolute()
+
+    numbers = var("0")
+    show_ac = var(True)
+    left = var(Decimal("0"))
+    right = var(Decimal("0"))
+    value = var("")
+    operator = var("plus")
+
+    NAME_MAP = {
+        "asterisk": "multiply",
+        "slash": "divide",
+        "underscore": "plus-minus",
+        "full_stop": "point",
+        "plus_minus_sign": "plus-minus",
+        "percent_sign": "percent",
+        "equals_sign": "equals",
+        "minus": "minus",
+        "plus": "plus",
+    }
+
+    def watch_numbers(self, value: str) -> None:
+        """当 numbers 更新时调用。"""
+        self.query_one("#numbers", Digits).update(value)
+
+    def compute_show_ac(self) -> bool:
+        """计算是显示 AC 还是 C 按钮"""
+        return self.value in ("", "0") and self.numbers == "0"
+
+    def watch_show_ac(self, show_ac: bool) -> None:
+        """当 show_ac 更改时调用。"""
+        self.query_one("#c").display = not show_ac
+        self.query_one("#ac").display = show_ac
+
+    def compose(self) -> ComposeResult:
+        """添加我们的按钮。"""
+        with Container(id="calculator"):
+            yield Digits(id="numbers")
+            yield Button("AC", id="ac", variant="primary")
+            yield Button("C", id="c", variant="primary")
+            yield Button("+/-", id="plus-minus", variant="primary")
+            yield Button("%", id="percent", variant="primary")
+            yield Button("÷", id="divide", variant="warning")
+            yield Button("7", id="number-7", classes="number")
+            yield Button("8", id="number-8", classes="number")
+            yield Button("9", id="number-9", classes="number")
+            yield Button("×", id="multiply", variant="warning")
+            yield Button("4", id="number-4", classes="number")
+            yield Button("5", id="number-5", classes="number")
+            yield Button("6", id="number-6", classes="number")
+            yield Button("-", id="minus", variant="warning")
+            yield Button("1", id="number-1", classes="number")
+            yield Button("2", id="number-2", classes="number")
+            yield Button("3", id="number-3", classes="number")
+            yield Button("+", id="plus", variant="warning")
+            yield Button("0", id="number-0", classes="number")
+            yield Button(".", id="point")
+            yield Button("=", id="equals", variant="warning")
+
+    def on_key(self, event: events.Key) -> None:
+        """当用户按下键时调用。"""
+
+        def press(button_id: str) -> None:
+            """按下一个按钮，如果它存在的话。"""
+            try:
+                self.query_one(f"#{button_id}", Button).press()
+            except NoMatches:
+                pass
+
+        key = event.key
+        if key.isdecimal():
+            press(f"number-{key}")
+        elif key == "c":
+            press("c")
+            press("ac")
+        else:
+            button_id = self.NAME_MAP.get(key)
+            if button_id is not None:
+                press(self.NAME_MAP.get(key, key))
+
+    @on(Button.Pressed, ".number")
+    def number_pressed(self, event: Button.Pressed) -> None:
+        """按下了数字。"""
+        assert event.button.id is not None
+        number = event.button.id.partition("-")[-1]
+        self.numbers = self.value = self.value.lstrip("0") + number
+
+    @on(Button.Pressed, "#plus-minus")
+    def plus_minus_pressed(self) -> None:
+        """按下 + / -"""
+        self.numbers = self.value = str(Decimal(self.value or "0") * -1)
+
+    @on(Button.Pressed, "#percent")
+    def percent_pressed(self) -> None:
+        """按下 %"""
+        self.numbers = self.value = str(Decimal(self.value or "0") / Decimal(100))
+
+    @on(Button.Pressed, "#point")
+    def pressed_point(self) -> None:
+        """按下 ."""
+        if "." not in self.value:
+            self.numbers = self.value = (self.value or "0") + "."
+
+    @on(Button.Pressed, "#ac")
+    def pressed_ac(self) -> None:
+        """按下 AC"""
+        self.value = ""
+        self.left = self.right = Decimal(0)
+        self.operator = "plus"
+        self.numbers = "0"
+
+    @on(Button.Pressed, "#c")
+    def pressed_c(self) -> None:
+        """按下 C"""
+        self.value = ""
+        self.numbers = "0"
+
+    def _do_math(self) -> None:
+        """执行数学运算：LEFT OPERATOR RIGHT"""
+        try:
+            if self.operator == "plus":
+                self.left += self.right
+            elif self.operator == "minus":
+                self.left -= self.right
+            elif self.operator == "divide":
+                self.left /= self.right
+            elif self.operator == "multiply":
+                self.left *= self.right
+            self.numbers = str(self.left)
+            self.value = ""
+        except Exception:
+            self.numbers = "Error"
+
+    @on(Button.Pressed, "#plus,#minus,#divide,#multiply")
+    def pressed_op(self, event: Button.Pressed) -> None:
+        """按下了算术运算之一。"""
+        self.right = Decimal(self.value or "0")
+        self._do_math()
+        assert event.button.id is not None
+        self.operator = event.button.id
+
+    @on(Button.Pressed, "#equals")
+    def pressed_equals(self) -> None:
+        """按下 ="""
+        if self.value:
+            self.right = Decimal(self.value)
+        self._do_math()
+
+
+calculator = CalculatorApp()
+</script>
+
+```
 
 
 ## API
@@ -3555,8 +8586,30 @@ vuepy 的响应式特性可以与 `Markdown` 组件的无缝集成，`Slider` �
 
 `PnGIF` 组件可以指向任何本地或远程的 `.gif` 文件。如果给定以 `http` 或 `https` 开头的 URL，`embed` 参数决定图像是嵌入还是链接，可以通过设置特定的固定 `width` 或 `height` 来调整图像的大小：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnGif :object="url" :width="100" />
+</template>
+<script lang='py'>
+url = 'https://upload.wikimedia.org/wikipedia/commons/d/de/Ajax-loader.gif'
+</script>
+
+```
+
 
 或者，我们可以使用 `sizing_mode` 来调整宽度和高度：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnGif :object="url" sizing_mode="stretch_width" />
+</template>
+<script lang='py'>
+url = 'https://upload.wikimedia.org/wikipedia/commons/b/b1/Loading_icon.gif'
+</script>
+
+```
 
 
 请注意，默认情况下，图像的宽高比是固定的，因此即使在响应式调整大小模式下，图像旁边或下方也可能有空隙。要覆盖此行为，请设置 `fixed_aspect=False` 或提供固定的 `width` 和 `height` 值。
@@ -3612,13 +8665,45 @@ vuepy 的响应式特性可以与 `Markdown` 组件的无缝集成，`Slider` �
 
 `PnJPG` 组件可以指向任何本地或远程 `.jpg` 文件。如果给定以 `http` 或 `https` 开头的 URL，则 `embed` 参数决定图像是嵌入还是链接到：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnJpg 
+    object="https://assets.holoviz.org/panel/samples/jpeg_sample.jpg"
+    link_url="https://blog.holoviz.org/panel_0.13.0.html"
+    :width="800" />
+</template>
+
+```
+
 
 ## 调整大小
 
 我们可以通过设置特定的固定 `width` 或 `height` 来调整图像的大小：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnJpg 
+    object="https://assets.holoviz.org/panel/samples/jpeg_sample.jpg"
+    :width="400" />
+</template>
+
+```
+
 
 或者，我们可以使用 `sizing_mode` 来调整宽度和高度：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnJpg 
+    object="https://assets.holoviz.org/panel/samples/jpeg_sample2.jpg"
+    link_url="https://blog.holoviz.org/panel_0.14.html"
+    sizing_mode="scale_both" />
+</template>
+
+```
 
 
 请注意，默认情况下，图像的宽高比是固定的，因此即使在响应式调整大小模式下，图像旁边或下方也可能有空隙。要覆盖此行为，请设置 `fixed_aspect=false` 或提供固定的 `width` 和 `height` 值。
@@ -3674,14 +8759,56 @@ vuepy 的响应式特性可以与 `Markdown` 组件的无缝集成，`Slider` �
 
 `PnWebP`组件可以指向任何本地或远程的`.webp`文件。如果给定的URL以`http`或`https`开头，`embed`参数决定图像是嵌入还是链接：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnWebP object="https://assets.holoviz.org/panel/samples/webp_sample.webp" />
+</template>
+
+```
+
 
 我们可以通过设置特定的固定`width`或`height`来调整图像的大小：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnWebP object="https://assets.holoviz.org/panel/samples/webp_sample.webp" :width="400" />
+</template>
+
+```
 
 
 或者，我们可以使用`sizing_mode`来调整宽度和高度：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnWebP object="https://assets.holoviz.org/panel/samples/webp_sample2.webp" 
+          sizing_mode="scale_width" />
+</template>
+
+```
+
 
 请注意，默认情况下，图像的宽高比是固定的，因此即使在响应式尺寸模式下，图像的旁边或下方也可能存在间隙。要覆盖此行为，请设置`fixed_aspect=False`或提供固定的`width`和`height`值。
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnWebP object="https://assets.holoviz.org/panel/samples/webp_sample2.webp" 
+             :fixed_aspect="False"
+             :width="300"
+             :height="150" />
+    <PnWebP object="https://assets.holoviz.org/panel/samples/webp_sample2.webp" 
+             :fixed_aspect="True"
+             :width="300"
+             :height="150" />
+  </PnRow>
+</template>
+
+```
 
 
 ## API
@@ -3730,6 +8857,32 @@ vuepy 的响应式特性可以与 `Markdown` 组件的无缝集成，`Slider` �
 
 `PnPerspective` 组件将指定为字典列表或数组以及 pandas DataFrame 的数据列呈现为交互式表格：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnPerspective :object="df" :width="700" :height='300'/>
+</template>
+<script lang='py'>
+import pandas as pd
+import numpy as np
+import random
+from datetime import datetime, timedelta
+
+# 创建示例数据
+data = {
+    'int': [random.randint(-10, 10) for _ in range(9)],
+    'float': [random.uniform(-10, 10) for _ in range(9)],
+    'date': [(datetime.now() + timedelta(days=i)).date() for i in range(9)],
+    'datetime': [(datetime.now() + timedelta(hours=i)) for i in range(9)],
+    'category': ['类别 A', '类别 B', '类别 C', '类别 A', '类别 B',
+             '类别 C', '类别 A', '类别 B', '类别 C',],
+    'link': ['https://panel.holoviz.org/', 'https://discourse.holoviz.org/', 'https://github.com/holoviz/panel']*3,
+}
+df = pd.DataFrame(data)
+</script>
+
+```
+
 
 试着与 `PnPerspective` 组件交互：
 
@@ -3740,8 +8893,68 @@ vuepy 的响应式特性可以与 `Markdown` 组件的无缝集成，`Slider` �
 
 默认情况下会显示 `index`。如果您默认不想显示它，可以提供要显示的 `columns` 列表：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnPerspective :object="df" :columns="list(df.columns)" 
+                 :width="700" :height='300'/>
+</template>
+<script lang='py'>
+import pandas as pd
+import numpy as np
+import random
+from datetime import datetime, timedelta
+
+# 创建示例数据
+data = {
+    'int': [random.randint(-10, 10) for _ in range(9)],
+    'float': [random.uniform(-10, 10) for _ in range(9)],
+    'date': [(datetime.now() + timedelta(days=i)).date() for i in range(9)],
+    'datetime': [(datetime.now() + timedelta(hours=i)) for i in range(9)],
+    'category': ['类别 A', '类别 B', '类别 C', '类别 A', '类别 B',
+             '类别 C', '类别 A', '类别 B', '类别 C',],
+    'link': ['https://panel.holoviz.org/', 'https://discourse.holoviz.org/', 'https://github.com/holoviz/panel']*3,
+}
+df = pd.DataFrame(data)
+</script>
+
+```
+
 
 您也可以通过 `settings` 参数隐藏*配置菜单*：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnPerspective 
+    :object="df" 
+    :columns="['float']" 
+    :group_by="['category']" 
+    plugin="d3_y_bar" 
+    :settings="False"
+    :width="400" 
+    :height="300" />
+</template>
+<script lang='py'>
+import pandas as pd
+import numpy as np
+import random
+from datetime import datetime, timedelta
+
+# 创建示例数据
+data = {
+    'int': [random.randint(-10, 10) for _ in range(9)],
+    'float': [random.uniform(-10, 10) for _ in range(9)],
+    'date': [(datetime.now() + timedelta(days=i)).date() for i in range(9)],
+    'datetime': [(datetime.now() + timedelta(hours=i)) for i in range(9)],
+    'category': ['类别 A', '类别 B', '类别 C', '类别 A', '类别 B',
+             '类别 C', '类别 A', '类别 B', '类别 C',],
+    'link': ['https://panel.holoviz.org/', 'https://discourse.holoviz.org/', 'https://github.com/holoviz/panel']*3,
+}
+df = pd.DataFrame(data)
+</script>
+
+```
 
 
 通过点击左上角的 3 个垂直点，尝试切换*配置菜单*与 `PnPerspective` 组件交互。
@@ -3753,6 +8966,47 @@ vuepy 的响应式特性可以与 `Markdown` 组件的无缝集成，`Slider` �
 ![perspective_edit](https://panel.holoviz.org/assets/perspective_edit.png)
 
 您还可以通过 `columns_config` 参数以编程方式配置*列*配置：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnPerspective 
+    :object="df" 
+    :columns="list(df.columns)" 
+    :width="700"
+    :height='300'
+    :columns_config="columns_config" />
+</template>
+<script lang='py'>
+import pandas as pd
+import numpy as np
+import random
+from datetime import datetime, timedelta
+
+# 创建示例数据
+data = {
+    'int': [random.randint(-10, 10) for _ in range(9)],
+    'float': [random.uniform(-10, 10) for _ in range(9)],
+    'date': [(datetime.now() + timedelta(days=i)).date() for i in range(9)],
+    'datetime': [(datetime.now() + timedelta(hours=i)) for i in range(9)],
+    'category': ['类别 A', '类别 B', '类别 C', '类别 A', '类别 B',
+             '类别 C', '类别 A', '类别 B', '类别 C',],
+    'link': ['https://panel.holoviz.org/', 'https://discourse.holoviz.org/', 'https://github.com/holoviz/panel']*3,
+}
+df = pd.DataFrame(data)
+
+# 列配置
+columns_config = {
+    'int': {'number_fg_mode': 'color', 'neg_fg_color': '#880808', 'pos_fg_color': '#008000', "fixed": 0},
+    'float': {'number_fg_mode': "bar", 'neg_fg_color': '#880808', 'pos_fg_color': '#008000', 'fg_gradient': 7.93,  },
+    'category': {'string_color_mode': 'series', 'format': 'italics'},
+    'date': {"dateStyle": "short", "datetime_color_mode": "foreground", "color": "#008000"},
+    'datetime': {"timeZone": "Asia/Shanghai", "dateStyle": "full", "timeStyle": "full", "datetime_color_mode": "background", "color": "#880808"},
+    'link': {'format': 'link', 'string_color_mode': 'foreground', 'color': '#008000'},
+}
+</script>
+
+```
 
 
 请注意：
@@ -3767,19 +9021,202 @@ vuepy 的响应式特性可以与 `Markdown` 组件的无缝集成，`Slider` �
 
 如果您的数据不是时区感知的，您可以将它们设置为时区感知。我的服务器时区是 'cet'，我可以按如下方式使它们感知时区：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnColumn>
+    <PnTabulator :value="df_aware.head(3)" />
+    <PnPerspective :object="df_aware" :columns="list(df.columns)" 
+                   :width="700" :height='300' />
+  </PnColumn>
+</template>
+<script lang='py'>
+import pandas as pd
+import numpy as np
+import random
+from datetime import datetime, timedelta
+
+# 创建示例数据
+data = {
+    'int': [random.randint(-10, 10) for _ in range(9)],
+    'float': [random.uniform(-10, 10) for _ in range(9)],
+    'date': [(datetime.now() + timedelta(days=i)).date() for i in range(9)],
+    'datetime': [(datetime.now() + timedelta(hours=i)) for i in range(9)],
+    'category': ['类别 A', '类别 B', '类别 C', '类别 A', '类别 B',
+             '类别 C', '类别 A', '类别 B', '类别 C',],
+    'link': ['https://panel.holoviz.org/', 'https://discourse.holoviz.org/', 'https://github.com/holoviz/panel']*3,
+}
+df = pd.DataFrame(data)
+
+# 创建时区感知副本
+df_aware = df.copy(deep=True)
+df_aware['datetime'] = df_aware['datetime'].dt.tz_localize("cet")
+</script>
+
+```
+
 
 如上节所示，您可以强制日期时间以特定时区显示：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnPerspective 
+    :object="df_aware" 
+    :width="700"
+    :height='300'
+    :columns="list(df.columns)" 
+    :plugin_config="plugin_config" />
+</template>
+<script lang='py'>
+import pandas as pd
+import numpy as np
+import random
+from datetime import datetime, timedelta
+
+# 创建示例数据
+data = {
+    'int': [random.randint(-10, 10) for _ in range(9)],
+    'float': [random.uniform(-10, 10) for _ in range(9)],
+    'date': [(datetime.now() + timedelta(days=i)).date() for i in range(9)],
+    'datetime': [(datetime.now() + timedelta(hours=i)) for i in range(9)],
+    'category': ['类别 A', '类别 B', '类别 C', '类别 A', '类别 B',
+             '类别 C', '类别 A', '类别 B', '类别 C',],
+    'link': ['https://panel.holoviz.org/', 'https://discourse.holoviz.org/', 'https://github.com/holoviz/panel']*3,
+}
+df = pd.DataFrame(data)
+
+# 创建时区感知副本
+df_aware = df.copy(deep=True)
+df_aware['datetime'] = df_aware['datetime'].dt.tz_localize("cet")
+
+# 插件配置
+plugin_config = {'columns': {'datetime': {"timeZone": "Europe/London", "timeStyle": "full"}}}
+</script>
+
+```
 
 
 ## 流式处理和补丁更新
 
 `PnPerspective` 组件还支持 `stream` 和 `patch` 方法，使我们能够高效地更新数据：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnPerspective 
+    ref="stream_perspective"
+    :object="df_stream" 
+    plugin="d3_y_line" 
+    :columns="['A', 'B', 'C', 'D']" 
+    theme="pro-dark"
+    sizing_mode="stretch_width" 
+    :height="500" 
+    :margin="0" />
+  <PnCol>
+    <PnNumberInput v-model="period.value" name="更新频率(毫秒)" />
+    <PnIntInput v-model="rollover.value" name="保留的数据点数量" />
+    <PnButton @click='start_stream()'>开始流式处理</PnButton>
+    <PnButton @click='stop_stream()'>停止流式处理</PnButton>
+  </PnCol>
+</template>
+<script lang='py'>
+import pandas as pd
+import numpy as np
+from vuepy import ref
+import panel as pn
+
+# 创建示例数据
+df_stream = pd.DataFrame(np.random.randn(400, 4), columns=list('ABCD')).cumsum()
+
+# 流式处理控制
+period = ref(50)
+rollover = ref(500)
+streaming = ref(False)
+callback = None
+stream_perspective = ref(None)
+
+def stream():
+    print('xxx')
+    data = df_stream.iloc[-1] + np.random.randn(4)
+    perspective = strestream_perspective.value.unwrap()
+    perspective.stream(data, rollover.value)
+
+def start_stream():
+    nonlocal callback
+    streaming.value = True
+    print('xxxxx')
+    callback = pn.state.add_periodic_callback(stream, period.value)
+
+def stop_stream():
+    nonlocal callback
+    streaming.value = False
+    if callback and callback.running:
+        callback.stop()
+</script>
+
+```
+
 
 或者，我们也可以使用 `patch` 方法更新数据：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnPerspective 
+    ref="perspective_ref"
+    :object="mixed_df" 
+    :columns="list(mixed_df)" 
+    :height="500" />
+  <PnButton @click="patch_data()">修补数据</PnButton>
+</template>
+<script lang='py'>
+import pandas as pd
+import numpy as np
+from vuepy import ref
+
+perspective_ref = ref(None)
+
+# 创建混合类型数据
+mixed_df = pd.DataFrame({'A': np.arange(10), 'B': np.random.rand(10), 'C': [f'foo{i}' for i in range(10)]})
+
+def patch_data():
+    perspective = perspective_ref.value.unwrap()
+    # 修补 'A' 列的第 0 行和 'C' 列的前两行
+    perspective.patch({'A': [(0, 3)], 'C': [(slice(0, 1), 'bar')]})
+</script>
+
+```
+
 
 通过流式处理您想要可见的数据并将 rollover 设置为等于新数据的行数，可以实现删除行。通过这种方式，有效地删除旧行。目前不支持以类似于修补的方式按索引删除特定行。
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnPerspective 
+    ref="perspective_ref"
+    :object="data" 
+    :height="500" />
+  <PnButton @click="stream_smaller()">流式处理更小的数据集</PnButton>
+</template>
+<script lang='py'>
+import pandas as pd
+import numpy as np
+from vuepy import ref
+
+perspective_ref = ref(None)
+
+# 创建简单数据
+data = {'A': np.arange(2)}
+
+def stream_smaller():
+    perspective = perspective_ref.value.unwrap()
+    smaller_data = {'A': np.arange(5)}
+    perspective.stream(smaller_data, rollover=5)
+</script>
+
+```
 
 
 ## 列配置选项
@@ -3864,16 +9301,62 @@ vuepy 的响应式特性可以与 `Markdown` 组件的无缝集成，`Slider` �
 
 `PnImage` 组件可以指向任何本地或远程图像文件。如果给定以 `http` 或 `https` 开头的 URL，则 `embed` 参数决定图像是嵌入还是链接到：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnCol>
+      <PnImage object="https://assets.holoviz.org/panel/samples/jpeg_sample.jpeg" />
+    </PnCol>
+    <PnCol>
+      <PnImage object="https://assets.holoviz.org/panel/samples/png_sample.png" />
+    </PnCol>
+    <PnCol>
+      <PnImage object="https://assets.holoviz.org/panel/samples/webp_sample.webp" />
+    </PnCol>
+  </PnRow>
+</template>
+
+```
+
 
 ## 调整大小
 
 我们可以通过设置特定的固定 `width` 或 `height` 来调整图像的大小：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnImage object="https://assets.holoviz.org/panel/samples/png_sample.png" :width="400" />
+</template>
+
+```
+
 
 或者，我们可以使用 `sizing_mode` 来调整宽度和高度：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnImage object="https://assets.holoviz.org/panel/samples/png_sample2.png" 
+           sizing_mode="scale_width" />
+</template>
+
+```
+
 
 您可以通过使用 `caption` 为图像添加标题：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnImage 
+    object="https://assets.holoviz.org/panel/samples/png_sample2.png" 
+    sizing_mode="scale_width" 
+    caption="世界地图" />
+</template>
+
+```
 
 
 请注意，默认情况下，图像的宽高比是固定的，因此即使在响应式调整大小模式下，图像旁边或下方也可能有空隙。要覆盖此行为，请设置 `fixed_aspect=false` 或提供固定的 `width` 和 `height` 值。
@@ -3881,6 +9364,26 @@ vuepy 的响应式特性可以与 `Markdown` 组件的无缝集成，`Slider` �
 ## PIL 图像支持
 
 Image 组件将渲染任何定义了 `_repr_[png | jpeg | svg]_` 方法的组件，包括 PIL 图像：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnImage :object="pil_image" />
+</template>
+<script lang='py'>
+from PIL import Image, ImageDraw
+
+im = Image.new(mode='RGB', size=(256, 256))
+
+draw = ImageDraw.Draw(im)
+draw.line((0, 0) + im.size, fill=128, width=5)
+draw.line((0, im.size[1], im.size[0], 0), fill=128, width=5)
+draw.rectangle([(96, 96), (160, 160)], fill=(0, 0, 128), width=10)
+
+pil_image = im
+</script>
+
+```
 
 
 ## API
@@ -4006,25 +9509,284 @@ Image 组件将渲染任何定义了 `_repr_[png | jpeg | svg]_` 方法的组件
 
 我们可以为特定参数自定义小部件类型：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnParam :object="athlete.param" :widgets="widgets"/>
+  <hr/>
+  <PnParam :object="athlete.param">
+    <template #weight>
+      <PnLiteralInput name='Weight' />
+    </template>
+    <template #birthday>
+      <PnDatePicker name='Birthday' />
+    </template>
+  </PnParam>
+</template>
+<script lang='py'>
+import param
+import datetime
+import panel as pn
+
+DATE_BOUNDS = (datetime.date(1900, 1, 1), datetime.datetime.now().date())
+
+
+class Athlete(param.Parameterized):
+    name_ = param.String(default="P.A. Nelson")
+    birthday = param.Date(default=datetime.date(1976, 9, 17), bounds=DATE_BOUNDS)
+    weight = param.Number(default=82, bounds=(20, 300))
+
+athlete = Athlete()
+
+import ipywidgets as iw
+# 自定义小部件
+widgets = {
+    "birthday": pn.widgets.DatePicker, 
+    "weight": pn.widgets.LiteralInput(),
+}
+</script>
+
+```
+
 
 ## 展开子对象
 
 我们可以通过 `expand` 参数默认展开子对象：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnParam 
+    :object="athlete.param" 
+    :expand="True" />
+</template>
+<script lang='py'>
+import param
+import datetime
+import panel as pn
+
+DATE_BOUNDS = (datetime.date(1900, 1, 1), datetime.datetime.now().date())
+
+class PowerCurve(param.Parameterized):
+    one_hour_date = param.Date(default=datetime.date(2017, 8, 6), bounds=DATE_BOUNDS)
+
+class Athlete(param.Parameterized):
+    weight = param.Number(default=82, bounds=(20, 300))
+    power_curve = param.ClassSelector(class_=PowerCurve, default=PowerCurve())
+
+athlete = Athlete()
+</script>
+
+```
 
 
 ## 选择特定参数和自定义布局
 
 我们可以选择只显示特定参数，并自定义布局：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnParam 
+    :object="athlete.param"
+    :widgets="widgets"
+    :parameters="['name_', 'birthday', 'weight']"
+    :show_name="False"
+    :default_layout="PnRow"
+    :width="600" />
+  <hr/>
+  <PnParam 
+    :object="athlete.param"
+    :parameters="['name_', 'birthday', 'weight']"
+    :show_name="False"
+    :default_layout="PnRow"
+    :width="600">
+    <template #weight>
+      <PnLiteralInput name='Weight' :width=100 />
+    </template>
+    <template #birthday>
+      <PnDatePicker name='Birthday' />
+    </template>
+  </PnParam>
+</template>
+<script lang='py'>
+import param
+import datetime
+import panel as pn
+
+DATE_BOUNDS = (datetime.date(1900, 1, 1), datetime.datetime.now().date())
+
+class Athlete(param.Parameterized):
+    name_ = param.String(default="P.A. Nelson")
+    birthday = param.Date(default=datetime.date(1976, 9, 17), bounds=DATE_BOUNDS)
+    weight = param.Number(default=82, bounds=(20, 300))
+
+athlete = Athlete()
+
+# 自定义小部件
+widgets = {
+    "birthday": pn.widgets.DatePicker,
+    "weight": {"type": pn.widgets.LiteralInput, "width": 100}
+}
+
+# 导入布局组件
+PnRow = pn.Column
+</script>
+
+```
+
 
 ## 滑块控件的连续更新禁用
 
 当函数运行时间较长并且依赖于某个参数时，实时反馈可能成为负担，而不是有帮助。因此，如果参数使用的是滑块控件，可以通过设置 `throttled` 关键字为 `True` 来仅在释放鼠标按钮后才执行函数。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnParam :object="model.param" :widgets="widgets" />
+</template>
+<script lang='py'>
+import param
+import panel as pn
+
+class Model(param.Parameterized):
+    without_throttled_enabled = param.Range(
+        default=(100, 250),
+        bounds=(0, 250),
+    )
+
+    with_throttled_enabled = param.Range(
+        default=(100, 250),
+        bounds=(0, 250),
+    )
+
+    @param.depends("without_throttled_enabled", "with_throttled_enabled")
+    def result(self):
+        return f"无节流: {self.without_throttled_enabled}, 有节流: {self.with_throttled_enabled}"
+
+model = Model()
+
+widgets = {
+    "without_throttled_enabled": pn.widgets.IntRangeSlider,
+    "with_throttled_enabled": {
+        "type": pn.widgets.IntRangeSlider,
+        "throttled": True,
+    },
+}
+</script>
+
+```
+
 
 ## 组合参数控件与结果显示
 
 可以组合参数控件与计算结果显示：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCol>
+    <PnMarkdown>### 运动员</PnMarkdown>
+    <PnParam 
+      :object="athlete.param"
+      :widgets="athlete_widgets"
+      :parameters="['name_', 'birthday', 'weight']"
+      :show_name="False"
+      :default_layout="PnRow"
+      :width="600" />
+    
+    <PnMarkdown>#### 功率曲线</PnMarkdown>
+    <PnRow>
+      <PnParam 
+        :object="athlete.power_curve.param"
+        :default_layout="grid_layout"
+        :show_name="False"
+        :widgets="power_curve_widgets" />
+    </PnRow>
+    <PnDisplay :obj="athlete.power_curve.plot()" />
+  </PnCol>
+</template>
+<script lang='py'>
+import param
+import datetime
+import pandas as pd
+import hvplot.pandas
+import panel as pn
+
+DATE_BOUNDS = (datetime.date(1900, 1, 1), datetime.datetime.now().date())
+
+class PowerCurve(param.Parameterized):
+    ten_sec = param.Number(default=1079)
+    ten_sec_date = param.Date(default=datetime.date(2018, 8, 21), bounds=DATE_BOUNDS)
+    one_min = param.Number(default=684)
+    one_min_date = param.Date(default=datetime.date(2017, 8, 31), bounds=DATE_BOUNDS)
+    ten_min = param.Number(default=419)
+    ten_min_date = param.Date(default=datetime.date(2017, 9, 22), bounds=DATE_BOUNDS)
+    twenty_min = param.Number(default=398)
+    twenty_min_date = param.Date(default=datetime.date(2017, 9, 22), bounds=DATE_BOUNDS)
+    one_hour = param.Number(default=319)
+    one_hour_date = param.Date(default=datetime.date(2017, 8, 6), bounds=DATE_BOUNDS)
+    
+    @param.depends("ten_sec", "one_min", "ten_min", "twenty_min", "one_hour")
+    def plot(self):
+        data = {
+            "duration": [10 / 60, 1, 10, 20, 60],
+            "power": [self.ten_sec, self.one_min, self.ten_min, self.twenty_min, self.one_hour],
+        }
+        dataframe = pd.DataFrame(data)
+        line_plot = dataframe.hvplot.line(
+            x="duration", y="power", line_color="#007BFF", line_width=3, responsive=True,
+        )
+        scatter_plot = dataframe.hvplot.scatter(
+            x="duration", y="power", marker="o", size=6, color="#007BFF", responsive=True
+        )
+        fig = line_plot * scatter_plot
+        gridstyle = {"grid_line_color": "black", "grid_line_width": 0.1}
+        fig = fig.opts(
+            min_height=400,
+            toolbar=None,
+            yticks=list(range(0, 1600, 200)),
+            ylim=(0, 1500),
+            gridstyle=gridstyle,
+            show_grid=True,
+        )
+        return fig
+
+class Athlete(param.Parameterized):
+    name_ = param.String(default="P.A. Nelson")
+    birthday = param.Date(default=datetime.date(1976, 9, 17), bounds=DATE_BOUNDS)
+    weight = param.Number(default=82, bounds=(20, 300))
+    power_curve = param.ClassSelector(class_=PowerCurve, default=PowerCurve())
+
+athlete = Athlete()
+
+# 自定义小部件
+athlete_widgets = {
+    "birthday": pn.widgets.DatePicker,
+    "weight": {"type": pn.widgets.LiteralInput, "width": 100}
+}
+
+power_curve_widgets = {
+    "ten_sec_date": pn.widgets.DatePicker, 
+    "one_min_date": pn.widgets.DatePicker, 
+    "ten_min_date": pn.widgets.DatePicker,
+    "twenty_min_date": pn.widgets.DatePicker, 
+    "one_hour_date": pn.widgets.DatePicker
+}
+
+# 导入布局组件
+PnRow = pn.Row
+PnColumn = pn.Column
+
+# 创建一个新的网格布局类
+def new_class(cls, **kwargs):
+    "创建一个覆盖参数默认值的新类。"
+    return type(type(cls).__name__, (cls,), kwargs)
+
+grid_layout = new_class(pn.GridBox, ncols=2)
+</script>
+
+```
 
 
 ## API
@@ -4083,10 +9845,79 @@ Image 组件将渲染任何定义了 `_repr_[png | jpeg | svg]_` 方法的组件
 
 `PnJSON` 组件可用于渲染任意 JSON 对象的树视图，这些对象可以定义为字符串或 JSON 可序列化的 Python 对象。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnJson :object="json_obj" name="JSON" />
+</template>
+<script lang='py'>
+json_obj = {
+    'boolean': False,
+    'dict': {'a': 1, 'b': 2, 'c': 3},
+    'int': 1,
+    'float': 3.1,
+    'list': [1, 2, 3],
+    'null': None,
+    'string': '一个字符串',
+}
+</script>
+
+```
+
 
 ## 控制选项
 
 `PnJson` 组件公开了许多可以从 Python 和 Javascript 更改的选项。尝试交互式地体验这些参数的效果：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnCol>
+      <PnCheckbox v-model="hover_preview.value" name="悬停预览" />
+      <PnIntSlider v-model="depth.value" name='展开深度' :start="-1" :end="5" />
+      <PnRadioButtonGroup v-model="theme.value" :options="['light', 'dark']" name="主题" />
+    </PnCol>
+    <PnCol>
+      <PnJson 
+        :object="json_obj" 
+        :hover_preview="hover_preview.value" 
+        :depth="depth.value"
+        :theme="theme.value" />
+    </PnCol>
+  </PnRow>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+json_obj = {
+    'boolean': False,
+    'dict': {
+        'a': 1, 
+        'b': 2, 
+        'c': 3,
+        'nested': {
+            'd': 4,
+            'e': 5,
+            'f': {
+                'g': 6,
+                'h': 7
+            }
+        }
+    },
+    'int': 1,
+    'float': 3.1,
+    'list': [1, 2, 3],
+    'null': None,
+    'string': '一个字符串',
+}
+
+hover_preview = ref(True)
+depth = ref(1)
+theme = ref('light')
+</script>
+
+```
 
 
 ## API
@@ -4138,21 +9969,195 @@ Image 组件将渲染任何定义了 `_repr_[png | jpeg | svg]_` 方法的组件
 
 让我们尝试 `PnECharts` 组件对 ECharts 规范的原始形式（即字典）的支持，例如，这里我们声明一个柱状图：
 
+```vue
+<!-- --plugins vpanel --show-code --codege-backend='panel' -->
+<template>
+  <PnECharts :object="echart_bar" :height="480" :width="640" />
+</template>
+<script lang='py'>
+echart_bar = {
+    'title': {
+        'text': 'ECharts entry example'
+    },
+    'tooltip': {},
+    'legend': {
+        'data': ['Sales']
+    },
+    'xAxis': {
+        'data': ["shirt", "cardign", "chiffon shirt", "pants", "heels", "socks"]
+    },
+    'yAxis': {},
+    'series': [{
+        'name': 'Sales',
+        'type': 'bar',
+        'data': [5, 20, 36, 10, 10, 20]
+    }],
+}
+</script>
+
+```
+
 
 与所有其他组件一样，`PnECharts` 组件的 `object` 可以更新，要么是就地更新并触发更新：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnECharts :object="echart_bar" :height="480" :width="640" ref="echart_pane_ref" />
+  <PnButton @click="change_to_line()">更改为折线图</PnButton>
+  <PnButton @click="change_to_bar()">更改为柱状图</PnButton>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+echart_pane_ref = ref(None)
+
+echart_bar = {
+    'title': {
+        'text': 'ECharts entry example'
+    },
+    'tooltip': {},
+    'legend': {
+        'data': ['Sales']
+    },
+    'xAxis': {
+        'data': ["shirt", "cardign", "chiffon shirt", "pants", "heels", "socks"]
+    },
+    'yAxis': {},
+    'series': [{
+        'name': 'Sales',
+        'type': 'bar',
+        'data': [5, 20, 36, 10, 10, 20]
+    }],
+}
+
+def change_to_line():
+    echart_bar['series'] = [dict(echart_bar['series'][0], type='line')]
+    echart_pane_ref.value.unwrap().param.trigger('object')
+    
+def change_to_bar():
+    echart_bar['series'] = [dict(echart_bar['series'][0], type='bar')]
+    echart_pane_ref.value.unwrap().param.trigger('object')
+</script>
+
+```
+
 
 ECharts 规范也可以通过声明宽度或高度以匹配容器来进行响应式调整大小：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnECharts :object="responsive_spec" :width='600' :height="400" />
+</template>
+<script lang='py'>
+echart_bar = {
+    'title': {
+        'text': 'ECharts entry example'
+    },
+    'tooltip': {},
+    'legend': {
+        'data': ['Sales']
+    },
+    'xAxis': {
+        'data': ["shirt", "cardign", "chiffon shirt", "pants", "heels", "socks"]
+    },
+    'yAxis': {},
+    'series': [{
+        'name': 'Sales',
+        'type': 'bar',
+        'data': [5, 20, 36, 10, 10, 20]
+    }],
+}
+
+# todo 没有显示
+responsive_spec = dict(echart_bar, responsive=True)
+</script>
+
+```
 
 
 ## PyECharts 支持
 
 ECharts 组件还支持 pyecharts。例如，我们可以直接将 `pyecharts.charts.Bar` 图表传递给 `PnECharts` 组件：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCol>
+    <PnIntSlider v-model="bar1.value" name='Bar 1' :start="1" :end="100" />
+    <PnIntSlider v-model="bar2.value" name='Bar 2' :start="1" :end="100" />
+  </PnCol>
+  <PnECharts :object="plot.value" :width="500" :height="250" />
+</template>
+<script lang='py'>
+from vuepy import ref, computed
+from pyecharts.charts import Bar
+
+bar1 = ref(50)
+bar2 = ref(50)
+
+@computed
+def plot():
+    my_plot = (Bar()
+               .add_xaxis(['Helicoptors', 'Planes'])
+               .add_yaxis('Total In Flight', [bar1.value, bar2.value])
+               )
+    return my_plot
+</script>
+
+```
+
 
 ## 仪表盘示例
 
 ECharts 库支持各种图表类型，由于图表使用 JSON 数据结构表示，我们可以轻松更新数据，然后发出更改事件以更新图表：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnColumn>
+    <PnIntSlider v-model='value.value' name='Value' 
+                 :start="0" :end="100" ref='slider_ref'/>
+    <PnECharts :object="gauge" :width="400" :height="400" 
+               ref="gauge_pane_ref" />
+  </PnColumn>
+</template>
+<script lang='py'>
+from vuepy import ref, watch, onMounted
+
+value = ref(50)
+gauge_pane_ref = ref(None)
+slider_ref = ref(None)
+
+gauge = {
+    'tooltip': {
+        'formatter': '{a} <br/>{b} : {c}%'
+    },
+    'series': [
+        {
+            'name': 'Gauge',
+            'type': 'gauge',
+            'detail': {'formatter': '{value}%'},
+            'data': [{'value': 50, 'name': 'Value'}]
+        }
+    ]
+}
+
+@onMounted
+def update_gauge():
+    gauge_pane = gauge_pane_ref.value.unwrap()
+    slider = slider_ref.value.unwrap()
+    slider.jscallback(
+        args={'gauge': gauge_pane}, 
+        value="""
+            gauge.data.series[0].data[0].value = cb_obj.value
+            gauge.properties.data.change.emit()
+        """
+    )
+</script>
+
+```
 
 
 ## 事件处理
@@ -4164,6 +10169,46 @@ ECharts 库支持各种图表类型，由于图表使用 JSON 数据结构表示
 ### Python 事件处理
 
 让我们从一个简单的点击事件开始，我们想从 Python 监听这个事件。要添加事件监听器，只需使用事件类型（在本例中为 'click'）和 Python 处理程序调用 `on_event` 方法：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+<PnRow>
+  <PnECharts :object="echart_bar" :height="480" :width="640" 
+             @click='on_click' />
+  <PnJson :object="event_data.value" name="JSON" />
+</PnRow>
+</template>
+<script lang='py'>
+from vuepy import shallowRef
+
+
+echart_bar = {
+    'title': {
+        'text': 'ECharts entry example'
+    },
+    'tooltip': {},
+    'legend': {
+        'data': ['Sales']
+    },
+    'xAxis': {
+        'data': ["shirt", "cardign", "chiffon shirt", "pants", "heels", "socks"]
+    },
+    'yAxis': {},
+    'series': [{
+        'name': 'Sales',
+        'type': 'line',
+        'data': [5, 20, 36, 10, 10, 20]
+    }],
+}
+
+event_data = shallowRef({})
+
+def on_click(event):
+    event_data.value = event.data
+</script>
+
+```
 
 
 尝试单击折线上的点。点击后检查 `event_data.value` 时，您应该看到类似以下内容的数据。
@@ -4178,6 +10223,42 @@ ECharts 库支持各种图表类型，由于图表使用 JSON 数据结构表示
 ### JavaScript 事件处理
 
 相同的概念适用于 JavaScript，但这里我们传入 JavaScript 代码片段。命名空间允许您访问事件数据 `cb_data` 和 ECharts 图表本身作为 `cb_obj`。这样，您可以访问事件并自己操作图表：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnECharts :object="echart_bar" :height="480" :width="640" 
+             @jsclick='on_jsclick()' />
+</template>
+<script lang='py'>
+from vuepy import ref, onMounted
+
+echart_pane_ref = ref(None)
+echart_bar = {
+    'title': {
+        'text': 'ECharts entry example'
+    },
+    'tooltip': {},
+    'legend': {
+        'data': ['Sales']
+    },
+    'xAxis': {
+        'data': ["shirt", "cardign", "chiffon shirt", "pants", "heels", "socks"]
+    },
+    'yAxis': {},
+    'series': [{
+        'name': 'Sales',
+        'type': 'line',
+        'data': [5, 20, 36, 10, 10, 20]
+    }],
+}
+
+def on_jsclick():
+    return "alert(`Clicked on point: ${cb_data.dataIndex + 1}`)"
+
+</script>
+
+```
 
 
 ## API
@@ -4231,8 +10312,108 @@ ECharts 库支持各种图表类型，由于图表使用 JSON 数据结构表示
 
 `PnHTML` 组件接受整个 HTML5 规范，包括任何嵌入的脚本标签（这些标签将被执行）。它还支持 `styles` 字典来控制渲染 HTML 内容的 `<div>` 标签的样式。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnHTML :object="html_content" :styles="styles" />
+</template>
+<script lang='py'>
+styles = {
+    'background-color': '#F6F6F6', 
+    'border': '2px solid black',
+    'border-radius': '5px', 
+    'padding': '10px'
+}
+
+html_content = """
+<h1>这是一个 HTML 面板</h1>
+
+<code>
+x = 5;<br>
+y = 6;<br>
+z = x + y;
+</code>
+
+<br>
+<br>
+
+<table>
+  <tr>
+    <th>名字</th>
+    <th>姓氏</th> 
+    <th>年龄</th>
+  </tr>
+  <tr>
+    <td>张</td>
+    <td>三</td> 
+    <td>50</td>
+  </tr>
+  <tr>
+    <td>李</td>
+    <td>四</td> 
+    <td>94</td>
+  </tr>
+</table>
+"""
+</script>
+
+```
+
 
 要更新 `object` 或 `styles`，我们可以直接设置它：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnHTML :object="html_content" :styles="dict(styles.value)"/>
+  <PnButton @click="update_style()">更新样式</PnButton>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+styles = ref({
+    'background-color': '#F6F6F6', 
+    'border': '2px solid black',
+    'border-radius': '5px', 
+    'padding': '10px'
+})
+
+html_content = """
+<h1>这是一个 HTML 面板</h1>
+
+<code>
+x = 5;<br>
+y = 6;<br>
+z = x + y;
+</code>
+
+<br>
+<br>
+
+<table>
+  <tr>
+    <th>名字</th>
+    <th>姓氏</th> 
+    <th>年龄</th>
+  </tr>
+  <tr>
+    <td>张</td>
+    <td>三</td> 
+    <td>50</td>
+  </tr>
+  <tr>
+    <td>李</td>
+    <td>四</td> 
+    <td>94</td>
+  </tr>
+</table>
+"""
+
+def update_style():
+    styles.value['border'] = '2px solid red'
+</script>
+
+```
 
 
 ## HTML 文档
@@ -4240,6 +10421,43 @@ ECharts 库支持各种图表类型，由于图表使用 JSON 数据结构表示
 `PnHTML` 组件设计用于显示*基本* HTML 内容。它不适合渲染包含 JavaScript 或其他动态元素的完整 HTML 文档。
 
 要显示完整的 HTML 文档，您可以转义 HTML 内容并将其嵌入在 [`iframe`](https://www.w3schools.com/html/html_iframe.asp) 中。以下是实现方式：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnHTML :object="iframe_html" :height="350" sizing_mode="stretch_width" />
+</template>
+<script lang='py'>
+import html
+import numpy as np
+import pandas as pd
+import hvplot.pandas
+from io import StringIO
+
+# 设置随机种子以便结果可重现
+np.random.seed(1)
+
+# 创建时间序列数据框
+idx = pd.date_range("1/1/2000", periods=1000)
+df = pd.DataFrame(np.random.randn(1000, 4), index=idx, columns=list("ABCD")).cumsum()
+
+# 使用 hvplot 绘制数据
+plot = df.hvplot()
+
+# 保存图表。这里使用 StringIO 对象而不是保存到磁盘
+plot_file = StringIO()
+hvplot.save(plot, plot_file)
+plot_file.seek(0)  # 移动到 StringIO 对象的开头
+
+# 读取 HTML 内容并转义
+html_content = plot_file.read()
+escaped_html = html.escape(html_content)
+
+# 创建嵌入转义 HTML 的 iframe 并显示它
+iframe_html = f'<iframe srcdoc="{escaped_html}" style="height:100%; width:100%" frameborder="0"></iframe>'
+</script>
+
+```
 
 
 这种方法确保嵌入的 HTML 安全地隔离在 iframe 中，防止任何脚本直接在 Panel 环境中执行。这种方法特别适用于嵌入需要自己独立 HTML 结构的丰富内容，如交互式可视化。
@@ -4299,13 +10517,108 @@ ECharts 库支持各种图表类型，由于图表使用 JSON 数据结构表示
 
 要显示 `vega` 和 `vega-lite` 规范，只需直接构造一个 `PnVega` 组件：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnVega :object="vegalite" :height="240" />
+</template>
+<script lang='py'>
+vegalite = {
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "data": {"url": "https://raw.githubusercontent.com/vega/vega/master/docs/data/barley.json"},
+  "mark": "bar",
+  "encoding": {
+    "x": {"aggregate": "sum", "field": "yield", "type": "quantitative"},
+    "y": {"field": "variety", "type": "nominal"},
+    "color": {"field": "site", "type": "nominal"}
+  }
+}
+</script>
+
+```
+
 
 与所有其他组件一样，`PnVega` 组件的 `object` 可以更新：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnCol>
+  <PnVega :object="dict(chart.value)" />
+  <PnButton @click="update_chart()">更新图表</PnButton>
+</PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+chart = ref({
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "data": {"url": "https://raw.githubusercontent.com/vega/vega/master/docs/data/barley.json"},
+  "mark": "bar",
+  "encoding": {
+    "x": {"aggregate": "sum", "field": "yield", "type": "quantitative"},
+    "y": {"field": "variety", "type": "nominal"},
+    "color": {"field": "site", "type": "nominal"}
+  }
+})
+
+def update_chart():
+    chart.value.mark = 'area'
+</script>
+
+```
 
 
 ### 响应式大小调整
 
 `vega-lite` 规范还可以通过将宽度或高度声明为匹配容器来进行响应式大小调整：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnVega :object="responsive_spec" />
+</template>
+<script lang='py'>
+responsive_spec = {
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "data": {
+    "url": "https://raw.githubusercontent.com/vega/vega/master/docs/data/disasters.csv"
+  },
+  "width": "container",
+  "title": "响应式图表",
+  "transform": [
+    {"filter": "datum.Entity !== 'All natural disasters'"}
+  ],
+  "mark": {
+    "type": "circle",
+    "opacity": 0.8,
+    "stroke": "black",
+    "strokeWidth": 1
+  },
+  "encoding": {
+    "x": {
+        "field": "Year",
+        "type": "quantitative",
+        "axis": {"labelAngle": 90},
+        "scale": {"zero": False}
+    },
+    "y": {
+        "field": "Entity",
+        "type": "nominal",
+        "axis": {"title": ""}
+    },
+    "size": {
+      "field": "Deaths",
+      "type": "quantitative",
+      "legend": {"title": "全球年度死亡人数", "clipHeight": 30},
+      "scale": {"range": [0, 5000]}
+    },
+    "color": {"field": "Entity", "type": "nominal", "legend": None}
+  }
+}
+</script>
+
+```
 
 
 请注意，`vega` 规范不支持将 `width` 和 `height` 设置为 `container`。
@@ -4314,16 +10627,123 @@ ECharts 库支持各种图表类型，由于图表使用 JSON 数据结构表示
 
 为了方便起见，我们支持将 Pandas DataFrame 作为 `data` 的 `values`：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnVega :object="dataframe_spec" />
+</template>
+<script lang='py'>
+import pandas as pd
+
+dataframe_spec = {
+    "title": "从 Pandas DataFrame 创建的简单条形图",
+    'config': {
+        'mark': {'tooltip': None},
+        'view': {'height': 200, 'width': 500}
+    },
+    'data': {'values': pd.DataFrame({'x': ['A', 'B', 'C', 'D', 'E'], 'y': [5, 3, 6, 7, 2]})},
+    'mark': 'bar',
+    'encoding': {'x': {'type': 'ordinal', 'field': 'x'},
+                 'y': {'type': 'quantitative', 'field': 'y'}},
+    '$schema': 'https://vega.github.io/schema/vega-lite/v3.2.1.json'
+}
+</script>
+
+```
+
 
 ## Altair
 
 定义 Vega 图表的一种更便捷的方式是使用 [altair](https://altair-viz.github.io)，它在 vega-lite 之上提供了声明式 API。`PnVega` 组件在传入 Altair 图表时会自动渲染 Vega-Lite 规范：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnVega :object="chart" />
+</template>
+<script lang='py'>
+import altair as alt
+from vega_datasets import data
+
+cars = data.cars()
+
+chart = alt.Chart(cars).mark_circle(size=60).encode(
+    x='Horsepower',
+    y='Miles_per_Gallon',
+    color='Origin',
+    tooltip=['Name', 'Origin', 'Horsepower', 'Miles_per_Gallon']
+).interactive()
+</script>
+
+```
+
 
 Altair 图表也可以通过更新组件的 `object` 来更新：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnCol>
+  <PnVega :object="chart.value" />
+  <PnButton @click="update_chart()">更新图表</PnButton>
+</PnCol>
+</template>
+<script lang='py'>
+import altair as alt
+from vega_datasets import data
+from vuepy import ref
+
+cars = data.cars()
+
+chart = ref(alt.Chart(cars).mark_circle(size=60).encode(
+    x='Horsepower',
+    y='Miles_per_Gallon',
+    color='Origin',
+    tooltip=['Name', 'Origin', 'Horsepower', 'Miles_per_Gallon']
+).interactive())
+
+def update_chart():
+    # refs['altair_pane'].object = chart.mark_circle(size=100)
+    chart.value = chart.value.mark_circle(size=200)
+</script>
+
+```
+
 
 Altair 支持的所有常规布局和组合操作符也可以渲染：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnVega :object="combined_chart" />
+</template>
+<script lang='py'>
+import altair as alt
+
+penguins_url = "https://raw.githubusercontent.com/vega/vega/master/docs/data/penguins.json"
+
+chart1 = alt.Chart(penguins_url).mark_point().encode(
+    x=alt.X('Beak Length (mm):Q', scale=alt.Scale(zero=False)),
+    y=alt.Y('Beak Depth (mm):Q', scale=alt.Scale(zero=False)),
+    color='Species:N'
+).properties(
+    height=300,
+    width=300,
+)
+
+chart2 = alt.Chart(penguins_url).mark_bar().encode(
+    x='count()',
+    y=alt.Y('Beak Depth (mm):Q', bin=alt.Bin(maxbins=30)),
+    color='Species:N'
+).properties(
+    height=300,
+    width=100
+)
+
+combined_chart = chart1 | chart2
+</script>
+
+```
 
 
 ## 选择
@@ -4338,12 +10758,80 @@ Altair 支持的所有常规布局和组合操作符也可以渲染：
 
 作为一个例子，我们可以在图表中添加一个 Altair `selection_interval` 选择：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnVega :object="chart" :debounce="10" ref='vega'/>
+  <PnColumn>
+    <h3>选择数据：</h3>
+    <PnJSON :object="selection_data.value" />
+  </PnColumn>
+</template>
+<script lang='py'>
+import altair as alt
+from vuepy import ref, onMounted
+
+penguins_url = "https://raw.githubusercontent.com/vega/vega/master/docs/data/penguins.json"
+
+brush = alt.selection_interval(name='brush')  # 区间类型的选择
+
+chart = alt.Chart(penguins_url).mark_point().encode(
+    x=alt.X('Beak Length (mm):Q', scale=alt.Scale(zero=False)),
+    y=alt.Y('Beak Depth (mm):Q', scale=alt.Scale(zero=False)),
+    color=alt.condition(brush, 'Species:N', alt.value('lightgray'))
+).properties(
+    width=250,
+    height=250
+).add_params(
+    brush
+)
+
+selection_data = ref(None)
+vega = ref(None)
+
+
+@onMounted
+def on_render():
+    vega_pane = vega.value.unwrap()
+    
+    def on_selection_change(event):
+        print(event)
+        selection_data.value = event.new
+        
+    # todo
+    vega_pane.param.watch(on_selection_change, 'selection')
+    
+</script>
+
+```
+
 
 请注意，我们指定了一个单一的 `debounce` 值，如果我们声明多个选择，可以通过将其指定为字典来为每个命名事件声明一个去抖动值，例如 `debounce={'brush': 10, ...}`。
 
 ## 主题
 
 可以使用 `theme` 参数为图表应用主题：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnVega :object="chart" theme="dark" />
+</template>
+<script lang='py'>
+import altair as alt
+from vega_datasets import data
+
+cars = data.cars()
+
+chart = alt.Chart(cars).mark_circle(size=60).encode(
+    x='Horsepower',
+    y='Miles_per_Gallon',
+    color='Origin',
+    tooltip=['Name', 'Origin', 'Horsepower', 'Miles_per_Gallon']
+).interactive()
+</script>
+
+```
 
 
 ## API
@@ -4398,13 +10886,139 @@ Altair 支持的所有常规布局和组合操作符也可以渲染：
 
 `PnStreamz` 组件使用默认的 Panel 解析方式来确定如何渲染 Stream 返回的对象。默认情况下，该组件只有在显示时才会监视 `Stream`，我们可以通过设置 `always_watch=True` 让它在创建后立即开始监视流：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnStreamz :object="stream_map.value" :always_watch="True"/>
+</template>
+<script lang='py'>
+from vuepy import ref, onMounted
+from streamz import Stream
+
+def increment(x):
+    return x + 1
+
+source = Stream()
+stream_map = ref(source.map(increment))
+
+# 注意：为了确保流的静态渲染显示内容
+# 我们设置 always_watch=True 并在显示前发出一个事件
+@onMounted
+def emit():
+    source.emit(1)
+</script>
+
+```
+
 
 现在我们可以定义一个周期性回调，它在 `Stream` 上发出递增的计数：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnStreamz :object="stream_map" :always_watch="True" ref="streamz_pane" />
+  <PnButton @click="start_emit()">开始发送数据</PnButton>
+  <PnButton @click="stop_emit()">停止发送数据</PnButton>
+</template>
+<script lang='py'>
+from vuepy import ref, onMounted
+from streamz import Stream
+import panel as pn
+
+def increment(x):
+    return x + 1
+
+source = Stream()
+stream_map = source.map(increment)
+streamz_pane = ref(None)
+
+# 为了确保流的静态渲染显示内容
+@onMounted
+def emit():
+    source.emit(1)
+
+count = 1
+callback = None
+
+def emit_count():
+    nonlocal count
+    count += 1
+    source.emit(count)
+
+def start_emit():
+    nonlocal callback
+    if callback is None or not callback.running:
+        callback = pn.state.add_periodic_callback(emit_count, period=100)
+
+def stop_emit():
+    nonlocal callback
+    if callback and callback.running:
+        callback.stop()
+</script>
+
+```
 
 
 ## 复杂数据流
 
 `PnStreamz` 组件可以用于流式传输任何类型的数据。例如，我们可以创建一个 streamz DataFrame，将数据累积到滑动窗口中，然后将其映射到 Altair `line_plot` 函数：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnStreamz 
+    :object="altair_stream" 
+    :height="350" 
+    :sizing_mode="'stretch_width'" 
+    :always_watch="True" 
+    ref="altair_pane" />
+  <PnButton @click="start_emit()">开始发送数据</PnButton>
+  <PnButton @click="stop_emit()">停止发送数据</PnButton>
+</template>
+<script lang='py'>
+from vuepy import ref
+import numpy as np
+import altair as alt
+import pandas as pd
+from datetime import datetime
+from streamz.dataframe import DataFrame as sDataFrame
+import panel as pn
+
+altair_pane = ref(None)
+
+# 创建一个 streamz DataFrame
+df = sDataFrame(example=pd.DataFrame({'y': []}, index=pd.DatetimeIndex([])))
+
+def line_plot(data):
+    return alt.Chart(pd.concat(data).reset_index()).mark_line().encode(
+        x='index',
+        y='y',
+    ).properties(width="container")
+
+# 创建累积数据的流，使用滑动窗口，并映射到图表函数
+altair_stream = df.cumsum().stream.sliding_window(50).map(line_plot)
+
+# 初始数据
+for i in range(20):
+    df.emit(pd.DataFrame({'y': [np.random.randn()]}, index=pd.DatetimeIndex([datetime.now()])))
+
+callback = None
+
+def emit():
+    df.emit(pd.DataFrame({'y': [np.random.randn()]}, index=pd.DatetimeIndex([datetime.now()])))
+
+def start_emit():
+    nonlocal callback
+    if callback is None or not callback.running:
+        callback = pn.state.add_periodic_callback(emit, period=500)
+
+def stop_emit():
+    nonlocal callback
+    if callback and callback.running:
+        callback.stop()
+</script>
+
+```
 
 
 ## API
@@ -4455,14 +11069,62 @@ Altair 支持的所有常规布局和组合操作符也可以渲染：
 
 `PnAlert` 支持 Markdown 和 HTML 语法：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnAlert>
+## Alert
+This is a warning!
+  </PnAlert>
+</template>
+
+```
+
 ## 不同类型
 
 `PnAlert` 组件有多种 `alert_type` 选项，用于控制警告消息的颜色：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCol sizing_mode='stretch_width' >
+    <PnAlert :alert_type='alert_type' v-for='alert_type in alert_types'>
+    {{ message.replace('{alert_type}', alert_type) }}
+    </PnAlert>
+  </PnCol>
+</template>
+<script lang='py'>
+alert_types = ['primary', 'secondary', 'success', 'danger', 'warning', 'info', 'light', 'dark']
+message = "This is a **{alert_type}** alert with [an example link](https://panel.holoviz.org/). Give it a click if you like."
+</script>
+
+```
 
 
 ## 长文本消息
 
 它也可以用于较长的消息：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnAlert alert_type="success">{{ long_text }}</PnAlert>
+</template>
+<script lang='py'>
+long_text = """
+### Well done!
+
+Aww yeah, you successfully read this important alert message. 
+This example text is going to run a bit longer so that you 
+can see how spacing within an alert works with this kind of content.
+
+---
+
+Did you notice the use of the divider?
+"""
+</script>
+
+```
 
 
 ## API
@@ -4583,18 +11245,120 @@ Reacton 也可以与 ipyvuetify 结合使用，创建更美观的界面：
 
 构造 `PnVTKJS` 组件最简单的方法是给它一个 vtk.js 文件，它将序列化并嵌入到图表中。`PnVTKJS` 组件还支持 Bokeh 提供的常规尺寸选项，包括响应式尺寸模式：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnVTK 
+    object="https://raw.githubusercontent.com/Kitware/vtk-js/master/Data/StanfordDragon.vtkjs"
+    sizing_mode="stretch_width" 
+    :height="400" 
+    :enable_keybindings="True" 
+    :orientation_widget="True" />
+</template>
+
+```
+
 
 与所有其他组件一样，`PnVTKJS` 组件可以通过替换 `object` 来更新：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnVTK
+    :object="vtkjs_url.value" 
+    sizing_mode="stretch_width" 
+    :height="400" 
+    :enable_keybindings="True" 
+    :orientation_widget="True"
+  />
+  <PnButton @click="update_object()">更换 3D 模型</PnButton>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+vtkjs_url = ref("https://raw.githubusercontent.com/Kitware/vtk-js/master/Data/StanfordDragon.vtkjs")
+
+def update_object():
+    vtkjs_url.value = "https://raw.githubusercontent.com/Kitware/vtk-js-datasets/master/data/vtkjs/TBarAssembly.vtkjs"
+</script>
+
+```
 
 
 ## 相机控制
 
 一旦显示了 VTKJS 组件，它将自动将相机状态与组件对象同步。相机参数仅在交互结束时更新。我们可以在相应的参数上读取相机状态：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnVTK 
+    object="https://raw.githubusercontent.com/Kitware/vtk-js/master/Data/StanfordDragon.vtkjs"
+    :sizing_mode="'stretch_width'" 
+    :height="400" 
+    :enable_keybindings="True" 
+    :orientation_widget="True"
+    ref="vtk_pane_ref" />
+  <PnButton @click="read_camera()">读取相机状态</PnButton>
+  <PnJSON v-if="camera_state.value" :object="camera_state.value" :depth="1" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+vtk_pane_ref = ref(None)
+camera_state = ref(None)
+
+def read_camera():
+    vtk_pane = vtk_pane_ref.value.unwrap()
+    if vtk_pane.camera:
+        camera_state.value = vtk_pane.camera
+</script>
+
+```
+
 
 这种技术也使得可以将两个或多个 VTKJS 组件的相机链接在一起：
 
 还可以在 Python 中修改相机状态并触发更新：
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnRow>
+    <PnVTK 
+      object="https://raw.githubusercontent.com/Kitware/vtk-js/master/Data/StanfordDragon.vtkjs"
+      :height="400" 
+      :sizing_mode="'stretch_width'"
+      ref="dragon1_ref" />
+    <PnVTK 
+      object="https://raw.githubusercontent.com/Kitware/vtk-js/master/Data/StanfordDragon.vtkjs"
+      :height="400" 
+      :sizing_mode="'stretch_width'"
+      ref="dragon2_ref" />
+  </PnRow>
+  <PnButton @click="change_view_angle()">改变视角</PnButton>
+</template>
+<script lang='py'>
+from vuepy import ref, onMounted
+
+dragon1_ref = ref(None)
+dragon2_ref = ref(None)
+
+@onMounted
+def on_render():
+    dragon1 = dragon1_ref.value.unwrap()
+    dragon2 = dragon2_ref.value.unwrap()
+    # 双向链接两个组件的相机
+    dragon1.jslink(dragon2, camera='camera', bidirectional=True)
+    
+def change_view_angle():
+    dragon1 = dragon1_ref.value.unwrap()
+    if dragon1.camera:
+        dragon1.camera['viewAngle'] = 50
+        dragon1.param.trigger('camera')
+</script>
+
+```
+
 
 ## API
 
@@ -4652,8 +11416,50 @@ Reacton 也可以与 ipyvuetify 结合使用，创建更美观的界面：
 
 `PnStr`组件可以显示任何文本字符串，并保持其原始格式。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnStr object="This is a raw string which will not be formatted in any way except for the applied style." 
+         :styles="{'font-size': '12pt'}" />
+</template>
+
+```
+
 
 与其他组件一样，`PnStr`组件可以通过设置其`object`参数进行更新。如前所述，非字符串类型会自动转换为字符串：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnCol>
+  <PnStr :object="content.value" :styles="{'font-size': '14pt'}" />
+  <PnRow>
+    <PnButton @click="updateToString()">Display String</PnButton>
+    <PnButton @click="updateToNumber()">Display Number</PnButton>
+    <PnButton @click="updateToObject()">Display Object</PnButton>
+  </PnRow>
+</PnCol>
+</template>
+
+<script lang='py'>
+from vuepy import ref
+
+content = ref('This is a raw string which will not be formatted in any way except for the applied style.')
+
+def updateToString():
+    content.value = 'Updated raw string content'
+    
+def updateToNumber():
+    content.value = 1.3234232
+    
+def updateToObject():
+    class TestObject:
+        def __repr__(self):
+            return "TestObject(custom_repr)"
+    content.value = TestObject()
+</script>
+
+```
 
 
 ## API
@@ -4696,8 +11502,77 @@ Reacton 也可以与 ipyvuetify 结合使用，创建更美观的界面：
 
 `PnVizzu`组件可以根据`config`定义如何绘制数据（以列字典或DataFrame的形式定义）：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnVizzu :object="data" 
+           :config="{'geometry': 'rectangle', 'x': 'Name', 
+                     'y': 'Weight', 'title': 'Weight by person'}"
+           :duration="400" 
+           :height="400" 
+           sizing_mode="stretch_width" 
+           :tooltip="True" />
+</template>
+
+<script lang='py'>
+import numpy as np
+
+# Create sample data
+data = {
+    'Name': ['Alice', 'Bob', 'Ted', 'Patrick', 'Jason', 'Teresa', 'John'],
+    'Weight': 50+np.random.randint(0, 10, 7)*10
+}
+</script>
+
+```
+
 
 Vizzu的主要卖点之一是在数据或`config`更新时的动态动画。例如，如果我们更改"geometry"，可以看到动画在两种状态之间平滑过渡。
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnVizzu ref="vizzu_ref" 
+           :object="data" 
+           :config="config.value"
+           :duration="400" 
+           :height="400" 
+           sizing_mode="stretch_width" 
+           :tooltip="True" />
+  <PnRow>
+    <PnButton @click="changeToCircle()">Change to Circle</PnButton>
+    <PnButton @click="changeToArea()">Change to Area</PnButton>
+    <PnButton @click="changeToRectangle()">Change to Rectangle</PnButton>
+  </PnRow>
+</template>
+
+<script lang='py'>
+import numpy as np
+from vuepy import ref
+
+# Create sample data
+data = {
+    'Name': ['Alice', 'Bob', 'Ted', 'Patrick', 'Jason', 'Teresa', 'John'],
+    'Weight': 50+np.random.randint(0, 10, 7)*10
+}
+
+config = ref({'geometry': 'rectangle', 'x': 'Name', 'y': 'Weight', 
+              'title': 'Weight by person'})
+vizzu_ref = ref(None)
+
+def changeToCircle():
+    config.value = {**config.value, 'geometry': 'circle'}
+    
+def changeToArea():
+    config.value = {**config.value, 'geometry': 'area'}
+    
+def changeToRectangle():
+    vizzu = vizzu_ref.value.unwrap()
+    vizzu.animate({'geometry': 'rectangle'})
+    config.value = vizzu.config
+</script>
+
+```
 
 
 ## 列类型
@@ -4711,15 +11586,141 @@ Vizzu的主要卖点之一是在数据或`config`更新时的动态动画。例�
 
 下面的示例演示了这种情况，这里我们希望将"index"视为独立变量，并使用`column_types={'index': 'dimension'}`覆盖默认推断的类型：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnVizzu :object="df" 
+           :column_types="{'index': 'dimension'}" 
+           :config="{'x': 'index', 'y': 'Y', 'geometry': 'line'}"
+           :height="300" 
+           sizing_mode="stretch_width" />
+</template>
+
+<script lang='py'>
+import numpy as np
+import pandas as pd
+
+# Create sample data
+df = pd.DataFrame(np.random.randn(50), columns=list('Y')).cumsum()
+</script>
+
+```
+
 
 ## 预设
 
 Vizzu提供了各种[预设图表类型](https://lib.vizzuhq.com/latest/examples/presets/)。在`PnVizzu`组件中，您可以通过在`config`中提供`'preset'`作为键来使用这些预设。在下面的示例中，我们动态创建一个`config`，根据`RadioButtonGroup`切换`preset`：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnRadioButtonGroup 
+        v-model="chart_type.value" 
+        :options="{'Stream': 'stream', 'Bar': 'stackedColumn'}" 
+        align="center" />
+  </PnRow>
+  <PnVizzu :object="agg"
+           :config="getConfig()"
+           :column_types="{'p_year': 'dimension'}"
+           :height="500"
+           sizing_mode="stretch_width"
+           :style="{
+             'plot': {
+               'xAxis': {
+                 'label': {
+                   'angle': '-45deg'
+                 }
+               }
+             }
+           }" />
+</template>
+
+<script lang='py'>
+import pandas as pd
+from vuepy import ref
+
+# Load data
+windturbines = pd.read_csv('https://datasets.holoviz.org/windturbines/v1/windturbines.csv')
+agg = windturbines.groupby(['p_year', 't_manu'])[['p_cap']]\
+      .sum().sort_index(level=0).reset_index()
+
+# Chart type selection
+chart_type = ref('stream')
+
+def getConfig():
+    return {
+        'preset': chart_type.value, 
+        'x': 'p_year', 
+        'y': 'p_cap', 
+        'stackedBy': 't_manu'
+    }
+</script>
+
+```
+
 
 ## 交互控制
 
 `PnVizzu`组件公开了许多选项，可以从Python和JavaScript更改。尝试交互式地测试这些参数的效果：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnVizzu ref="vizzu_ref" 
+           :object="data" 
+           :config="dict(config.value)"
+           :duration="duration.value" 
+           :height="400" 
+           sizing_mode="stretch_width" 
+           :tooltip="tooltip.value" />
+  <PnRow>
+    <PnCol>
+      <PnCheckbox v-model="tooltip.value" name="Show Tooltip" />
+      <PnIntSlider v-model="duration.value" 
+                   name="Animation Duration" 
+                   :start="100" 
+                   :end="2000" 
+                   :step="100" />
+    </PnCol>
+    <PnCol>
+      <PnButton @click="changeToCircle()">Change to Circle</PnButton>
+      <PnButton @click="changeToArea()">Change to Area</PnButton>
+      <PnButton @click="changeToRectangle()">Change to Rectangle</PnButton>
+    </PnCol>
+  </PnRow>
+</template>
+
+<script lang='py'>
+import numpy as np
+from vuepy import ref
+
+# Create sample data
+data = {
+    'Name': ['Alice', 'Bob', 'Ted', 'Patrick', 'Jason', 'Teresa', 'John'],
+    'Weight': 50+np.random.randint(0, 10, 7)*10
+}
+
+# Control parameters
+tooltip = ref(True)
+duration = ref(400)
+vizzu_ref = ref(None)
+config = ref({
+    'geometry': 'rectangle', 'x': 'Name', 'y': 
+    'Weight', 'title': 'Weight by person'
+})
+
+def changeToCircle():
+    config.value.geometry = 'circle'
+    
+def changeToArea():
+    config.value.geometry = 'area'
+    
+def changeToRectangle():
+    config.value.geometry = 'rectangle'
+</script>
+
+```
 
 
 ## API
@@ -4773,15 +11774,175 @@ Vizzu提供了各种[预设图表类型](https://lib.vizzuhq.com/latest/examples
 
 下面是一个使用 Bokeh 创建饼图并将其显示在 Panel 中的示例：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnBokeh :object="p" theme="dark_minimal" />
+</template>
+<script lang='py'>
+import pandas as pd
+from math import pi
+from bokeh.palettes import Category20c
+from bokeh.plotting import figure
+from bokeh.transform import cumsum
+
+x = {
+    'United States': 157,
+    'United Kingdom': 93,
+    'Japan': 89,
+    'China': 63,
+    'Germany': 44,
+    'India': 42,
+    'Italy': 40,
+    'Australia': 35,
+    'Brazil': 32,
+    'France': 31,
+    'Taiwan': 31,
+    'Spain': 29
+}
+
+data = pd.Series(x).reset_index(name='value').rename(columns={'index':'country'})
+data['angle'] = data['value']/data['value'].sum() * 2*pi
+data['color'] = Category20c[len(x)]
+
+p = figure(height=350, title="Pie Chart", toolbar_location=None,
+           tools="hover", tooltips="@country: @value", x_range=(-0.5, 1.0))
+
+r = p.wedge(x=0, y=1, radius=0.4,
+        start_angle=cumsum('angle', include_zero=True), end_angle=cumsum('angle'),
+        line_color="white", fill_color='color', legend_field='country', source=data)
+
+p.axis.axis_label=None
+p.axis.visible=False
+p.grid.grid_line_color = None
+</script>
+
+```
+
 
 ## 更新 Bokeh 对象
 
 要使用实时服务器更新图表，我们可以简单地修改底层模型。如果我们在 Jupyter notebook 中工作，我们还必须在组件上调用 `pn.io.push_notebook` 辅助函数，或者明确使用 `bokeh_pane.param.trigger('object')` 触发事件：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnBokeh :object="p" ref="bokeh_pane_ref" />
+  <PnButton @click="update_colors()">更新颜色</PnButton>
+  <PnButton @click="replace_with_div()">替换为文本</PnButton>
+</template>
+<script lang='py'>
+import pandas as pd
+from math import pi
+from bokeh.palettes import Category20c, Category20
+from bokeh.plotting import figure
+from bokeh.transform import cumsum
+from bokeh.models import Div
+
+from vuepy import ref
+
+bokeh_pane_ref = ref(None)
+
+x = {
+    'United States': 157,
+    'United Kingdom': 93,
+    'Japan': 89,
+    'China': 63,
+    'Germany': 44
+}
+
+data = pd.Series(x).reset_index(name='value').rename(columns={'index':'country'})
+data['angle'] = data['value']/data['value'].sum() * 2*pi
+data['color'] = Category20c[len(x)]
+
+p = figure(height=350, title="Pie Chart", toolbar_location=None,
+           tools="hover", tooltips="@country: @value", x_range=(-0.5, 1.0))
+
+r = p.wedge(x=0, y=1, radius=0.4,
+        start_angle=cumsum('angle', include_zero=True), end_angle=cumsum('angle'),
+        line_color="white", fill_color='color', legend_field='country', source=data)
+
+p.axis.axis_label=None
+p.axis.visible=False
+p.grid.grid_line_color = None
+
+def update_colors():
+    bokeh_pane = bokeh_pane_ref.value.unwrap()
+    r.data_source.data['color'] = Category20[len(x)]
+    bokeh_pane.param.trigger('object')
+    
+def replace_with_div():
+    bokeh_pane = bokeh_pane_ref.value.unwrap()
+    bokeh_pane.object = Div(text='<h2>This text replaced the pie chart</h2>')
+</script>
+
+```
+
 
 ## 交互式 Bokeh 应用
 
 使用 Panel 渲染 Bokeh 对象的另一个很好的特性是回调将像在服务器上一样工作。因此，您可以简单地将现有的 Bokeh 应用程序包装在 Panel 中，它将可以渲染并开箱即用，无论是在 notebook 中还是作为独立应用程序提供服务：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnBokeh :object="app" />
+</template>
+<script lang='py'>
+import numpy as np
+from bokeh.layouts import column, row
+from bokeh.models import ColumnDataSource, Slider, TextInput
+from bokeh.plotting import figure
+
+# Set up data
+N = 200
+x = np.linspace(0, 4*np.pi, N)
+y = np.sin(x)
+source = ColumnDataSource(data=dict(x=x, y=y))
+
+# Set up plot
+plot = figure(height=400, width=400, title="my sine wave",
+              tools="crosshair,pan,reset,save,wheel_zoom",
+              x_range=[0, 4*np.pi], y_range=[-2.5, 2.5])
+
+plot.line('x', 'y', source=source, line_width=3, line_alpha=0.6)
+
+# todo to vuepy component
+# Set up widgets
+text = TextInput(title="title", value='my sine wave')
+offset = Slider(title="offset", value=0.0, start=-5.0, end=5.0, step=0.1)
+amplitude = Slider(title="amplitude", value=1.0, start=-5.0, end=5.0, step=0.1)
+phase = Slider(title="phase", value=0.0, start=0.0, end=2*np.pi)
+freq = Slider(title="frequency", value=1.0, start=0.1, end=5.1, step=0.1)
+
+# Set up callbacks
+def update_title(attrname, old, new):
+    plot.title.text = text.value
+
+text.on_change('value', update_title)
+
+def update_data(attrname, old, new):
+    # Get the current slider values
+    a = amplitude.value
+    b = offset.value
+    w = phase.value
+    k = freq.value
+
+    # Generate the new curve
+    x = np.linspace(0, 4*np.pi, N)
+    y = a*np.sin(k*x + w) + b
+
+    source.data = dict(x=x, y=y)
+
+for w in [offset, amplitude, phase, freq]:
+    w.on_change('value', update_data)
+
+# Set up layouts and add to document
+inputs = column(text, offset, amplitude, phase, freq)
+app = row(inputs, plot, width=800)
+</script>
+
+```
 
 
 ## API
@@ -4831,15 +11992,86 @@ StaticText组件显示文本值但不允许编辑它，适用于展示只读信�
 
 静态文本组件提供了一种简单的方式来显示不可编辑的文本内容。
 
+```vue
+<template>
+  <PnStaticText 
+    name="静态文本" 
+    value="这是一个不可编辑的文本内容"
+  />
+</template>
+
+```
+
 
 ## 动态内容
 
 静态文本组件可以与响应式数据结合使用，以显示动态更新的内容。
 
+```vue
+<template>
+  <PnCol>
+    <PnStaticText 
+      name="计数器值" 
+      :value="f'当前计数: {counter.value}'"
+    />
+    <PnButton 
+      name="增加计数" 
+      button_type="primary" 
+      @click="increment()"
+    />
+  </PnCol>
+</template>
+<script lang='py'>
+import panel as pn
+from vuepy import ref
+
+counter = ref(0)
+
+def increment():
+    counter.value += 1
+</script>
+
+```
+
 
 ## 样式自定义
 
 可以通过样式参数自定义静态文本的外观。
+
+```vue
+<template>
+  <PnCol>
+    <PnStaticText 
+      name="标准样式" 
+      value="默认样式的静态文本"
+    />
+    
+    <PnStaticText 
+      name="自定义颜色" 
+      value="红色文本内容"
+      style="color: red"
+    />
+    
+    <PnStaticText 
+      value="无标题但有背景色的文本"
+      style="background: #e8f4f8; padding: 10px; border-radius: 5px"
+    />
+    
+    <PnStaticText 
+      name="大字体" 
+      value="这是一个字体较大的文本"
+      style="font-size: 24px; font-weight: bold"
+    />
+  </PnCol>
+</template>
+<script lang='py'>
+import panel as pn
+from vuepy import ref
+
+pn.extension()
+</script>
+
+```
 
 
 ## API
@@ -4883,10 +12115,65 @@ StaticText组件显示文本值但不允许编辑它，适用于展示只读信�
 ## 基本用法
 
 基本的图标按钮使用：[tabler-icons.io](https://tabler-icons.io/) 图标
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnColumn>
+    <!-- Basic icons -->
+    <PnButtonIcon icon="heart" name="favorite" :toggle_duration='1000' />
+    <PnButtonIcon icon="heart" size='20px' />
+    <PnButtonIcon icon="clipboard" active_icon='check'>copy</PnButtonIcon>
+    <PnButtonIcon icon="download" v-model:clicks='count.value'>
+     + {{ count.value }}
+    </PnButtonIcon>
+    
+    <!-- With events -->
+    <PnButtonIcon icon="refresh" active_icon="check" @click="handle_refresh" />
+  </PnColumn>
+</template>
+
+<script lang="py">
+import asyncio
+from vuepy import ref
+
+count = ref(0)
+
+def handle_refresh(event):
+    print("Refreshing...")
+</script>
+
+```
+
 
 ## 使用SVG图标
 
 可以使用SVG字符串作为图标：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnButtonIcon name='svg icon' :toggle_duration='1000' size='25px'>
+    <template #icon>
+      <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-ad-off" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <path d="M9 5h10a2 2 0 0 1 2 2v10m-2 2h-14a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2" />
+      <path d="M7 15v-4a2 2 0 0 1 2 -2m2 2v4" />
+      <path d="M7 13h4" />
+      <path d="M17 9v4" />
+      <path d="M16.115 12.131c.33 .149 .595 .412 .747 .74" />
+      <path d="M3 3l18 18" />
+      </svg>
+    </template>
+    <template #active-icon>
+     <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-ad-filled" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+     <path d="M19 4h-14a3 3 0 0 0 -3 3v10a3 3 0 0 0 3 3h14a3 3 0 0 0 3 -3v-10a3 3 0 0 0 -3 -3zm-10 4a3 3 0 0 1 2.995 2.824l.005 .176v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-1h-2v1a1 1 0 0 1 -1.993 .117l-.007 -.117v-4a3 3 0 0 1 3 -3zm0 2a1 1 0 0 0 -.993 .883l-.007 .117v1h2v-1a1 1 0 0 0 -1 -1zm8 -2a1 1 0 0 1 .993 .883l.007 .117v6a1 1 0 0 1 -.883 .993l-.117 .007h-1.5a2.5 2.5 0 1 1 .326 -4.979l.174 .029v-2.05a1 1 0 0 1 .883 -.993l.117 -.007zm-1.41 5.008l-.09 -.008a.5 .5 0 0 0 -.09 .992l.09 .008h.5v-.5l-.008 -.09a.5 .5 0 0 0 -.318 -.379l-.084 -.023z" stroke-width="0" fill="currentColor" />
+     </svg>
+    </template>
+  </PnButtonIcon>
+</template>
+
+```
 
 ## 自定义 css style
 
@@ -4895,6 +12182,31 @@ StaticText组件显示文本值但不允许编辑它，适用于展示只读信�
 * `border` 设置组件的边框
 * `size`  设置大小
 * ...
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnButtonIcon name="height 60px" :height="60" />
+  <PnButtonIcon name="width 30px" :width="30" />
+  <PnButtonIcon name='border: 5px solid red;' style='border: 5px solid #FAEBD7;'/>
+  <PnButtonIcon :icon="custom_icon" size="2.5em" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+custom_icon = """
+<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-bulb" 
+     width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" 
+     fill="none" stroke-linecap="round" stroke-linejoin="round">
+   <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+   <path d="M3 12h1m8 -9v1m8 8h1m-15.4 -6.4l.7 .7m12.1 -.7l-.7 .7"></path>
+   <path d="M9 16a5 5 0 1 1 6 0a3.5 3.5 0 0 0 -1 3a2 2 0 0 1 -4 0a3.5 3.5 0 0 0 -1 -3"></path>
+   <path d="M9.7 17l4.6 0"></path>
+</svg>
+"""
+</script>
+
+```
+
 
 ## API
 
@@ -4943,20 +12255,92 @@ StaticText组件显示文本值但不允许编辑它，适用于展示只读信�
 
 基本的整数范围滑块使用：
 
+```vue
+<template>
+  <PnIntRangeSlider name="整数范围滑块" 
+                   :start="0" 
+                   :end="10" 
+                   :value="(2, 8)"
+                   :step="1"
+                   @change="update_value" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+value = ref((2, 8))
+
+def update_value(event):
+    print(event.new) # (3, 9)
+</script>
+
+```
+
 
 ## 自定义步长
 
 可以设置`step`参数来控制值的间隔：
+
+```vue
+<template>
+  <PnIntRangeSlider name="步长为2" 
+                   :start="0" 
+                   :end="20" 
+                   :value="(4, 12)"
+                   :step="2" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+value = ref((4, 12))
+</script>
+
+```
 
 
 ## 垂直方向
 
 滑块可以设置为垂直方向显示：
 
+```vue
+<template>
+  <PnRow>
+    <PnIntRangeSlider name="垂直范围滑块" 
+                     orientation="vertical"
+                     :value="(30, 70)"
+                     :height="300" />
+  </PnRow>
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
+
 
 ## 滑块颜色和方向
 
 可以自定义滑块条的颜色和方向：
+
+```vue
+<template>
+  <PnIntRangeSlider name="蓝色范围滑块" 
+                   bar_color="#3498db"
+                   :start="0" 
+                   :end="100" 
+                   :value="(20, 80)"
+                   :step="10" />
+  <PnIntRangeSlider name="从右到左" 
+                   direction="rtl"
+                   :start="0" 
+                   :end="100" 
+                   :value="(20, 80)" 
+                   :step="10" />
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
 
 
 ## API
@@ -5007,15 +12391,66 @@ StaticText组件显示文本值但不允许编辑它，适用于展示只读信�
 
 基本的播放器使用：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+ <PnCol :height='150'>
+  <PnPlayer name="Player" 
+           :start="0" 
+           :end="10" 
+           :step="1"
+           v-model='current_value.value'/>
+ </PnCol>
+ <p>value: {{ current_value.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+current_value = ref(0)
+
+</script>
+
+```
+
 
 ## 设置循环和间隔
 
 可以设置播放器是否循环以及播放间隔：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+ <PnCol :height=150>
+  <PnPlayer name="Player" 
+           :start="0" 
+           :end="10" 
+           :step="1"
+           loop_policy='loop'
+           :interval="1000" />
+  </PnCol>
+</template>
+
+```
+
 
 ## 设置显示模式
 
 可以设置播放器的显示模式，如只显示按钮或者同时显示值等：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+ <PnCol style='height:140px;'>
+  <PnPlayer name="Player" 
+           :start="0" 
+           :end="10" 
+           :step="1"
+           show_value
+           :visible_buttons="['previous', 'play', 'pause', 'next']" />
+ </PnCol>
+</template>
+
+```
 
 
 ## API
@@ -5074,20 +12509,90 @@ StaticText组件显示文本值但不允许编辑它，适用于展示只读信�
 
 基本的复选框使用：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCheckbox name="复选框" @change="update_value" />
+  <div>当前状态: {{ is_checked.value }}</div>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+is_checked = ref(False)
+
+def update_value(event):
+    is_checked.value = event.new
+</script>
+
+```
+
 
 ## 默认选中状态
 
 可以通过设置`value`参数为`True`使复选框默认处于选中状态：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCheckbox name="默认选中" :value="True" v-model='is_checked.value' />
+  <div>当前状态: {{ is_checked.value }}</div>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+is_checked = ref(True)
+</script>
+
+```
 
 
 ## 禁用状态
 
 可以通过设置`disabled`参数为`True`使复选框处于禁用状态：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnCheckbox name="禁用状态" @change="update_value" disabled />
+  </PnRow>
+  <div>禁用复选框状态: {{ is_checked.value }}</div>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+is_checked = ref(False)
+
+
+def update_value(event):
+    is_checked2.value = event.new
+</script>
+
+```
+
 
 ## 结合其他组件使用
 
 复选框通常用于控制其他组件的显示或行为：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' --app app -->
+<template>
+  <PnCheckbox name="显示内容" v-model="is_checked.value" />
+  <PnRow v-if="is_checked.value">
+    <PnTextInput placeholder="input..." />
+  </PnRow>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+is_checked = ref(True)
+
+def update_value(value):
+    is_checked.value = value
+</script>
+
+```
 
 
 ## API
@@ -5132,6 +12637,48 @@ Tabulator组件提供了一个功能丰富的交互式表格，可用于显示�
 * row：被编辑行在 DataFrame 中的整数索引
 * old：单元格的旧值
 * value：单元格的新值
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabulator :value="df.value" 
+               @change='on_change'
+               @edit='on_edit' 
+               @click='on_click' />
+</template>
+<script lang='py'>
+import pandas as pd
+from vuepy import ref
+
+df = ref(pd.DataFrame({
+    'int': [1, 2, 3],
+    'float': [3.14, 6.28, 9.42],
+    'str': ['A', 'B', 'C'],
+    'bool': [True, False, True],
+    'date': ['2019-01-01', '2020-01-01', '2020-01-10']
+}))
+
+def on_change(event):
+    print('on change')
+    print(event.new) #    int  float str   bool        date
+                     # 0    1   3.14   A  False  2019-01-01
+                     # 1    2   6.28   B  False  2020-01-01
+                     # 2    3   9.42   C   True  2020-01-10
+
+def on_edit(event):
+    print('on edit')
+    print(event) # TableEditEvent(column=bool, row=0, value=False, old=True)
+    print(df.value) #    int  float str   bool        date
+                    # 0    1   3.14   A  False  2019-01-01
+                    # 1    2   6.28   B  False  2020-01-01
+                    # 2    3   9.42   C   True  2020-01-10
+
+def on_click(event):
+    print(event) # CellClickEvent(column=int, row=0, value=1)
+
+</script>
+
+```
+
 ## Formatter 格式化器
 
 ### 使用 Bokeh Formatter
@@ -5146,6 +12693,29 @@ Tabulator组件提供了一个功能丰富的交互式表格，可用于显示�
 * [HTMLTemplateFormatter](https://docs.bokeh.org/en/latest/docs/reference/models/widgets/tables.html#bokeh.models.HTMLTemplateFormatter)
 * [StringFormatter](https://docs.bokeh.org/en/latest/docs/reference/models/widgets/tables.html#bokeh.models.StringFormatter)
 * [ScientificFormatter](https://docs.bokeh.org/en/latest/docs/reference/models/widgets/tables.html#bokeh.models.ScientificFormatter)
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabulator :value="df.value" :formatters="formatters" />
+</template>
+<script lang='py'>
+import pandas as pd
+from vuepy import ref
+from bokeh.models.widgets.tables import NumberFormatter, BooleanFormatter
+
+df = ref(pd.DataFrame({
+    'float': [3.14, 6.28, 9.42],
+    'bool': [True, False, True]
+}))
+
+formatters = {
+    'float': NumberFormatter(format='0.00000'),
+    'bool': BooleanFormatter(),
+}
+</script>
+
+```
+
 ### 使用 Tabulator Formatter
 
 除了使用 Bokeh 提供的格式化器之外，还可以使用 Tabulator 库内置的有效格式化器。这些格式化器可以定义为字符串，或者以字典形式声明类型及其他参数（作为 `formatterParams` 传递给 Tabulator）。  
@@ -5153,11 +12723,72 @@ Tabulator组件提供了一个功能丰富的交互式表格，可用于显示�
 可用的 Tabulator 格式化器列表可在 [Tabulator 文档](https://tabulator.info/docs/6.3.1/format#format-builtin)中查阅。  
 
 需要注意的是，类似的规则也可通过 `title_formatters` 参数应用于列标题（但不支持 Bokeh 的 `CellFormatter` 类型）。
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabulator :value="df.value" :formatters="formatters" />
+</template>
+<script lang='py'>
+import pandas as pd
+from vuepy import ref
+
+df = ref(pd.DataFrame({
+    'float': [3.14, 6.28, 9.42],
+    'bool': [True, False, True]
+}))
+
+formatters = {
+    'float': {'type': 'progress', 'max': 10},
+    'bool': {'type': 'tickCross'}
+}
+</script>
+
+```
+
 ## Editors 编辑器
 
 与格式化器类似，Tabulator 能够原生支持 Bokeh 的编辑器类型，但在底层实现中，它会将大部分 Bokeh 编辑器替换为 Tabulator 库原生支持的等效编辑器。
 
 因此，通常更推荐直接使用 Tabulator 的原生编辑器。将某列的编辑器设为 None 会使该列不可编辑。需要注意的是，除了标准的 Tabulator 编辑器外，Tabulator 组件还额外支持 'date'（日期）和 'datetime'（日期时间）编辑器。
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabulator :value="df.value" :editors="bokeh_editors" />
+  <PnTabulator :value="df.value" :editors="tabulator_editors" />
+</template>
+<script lang='py'>
+import pandas as pd
+import datetime as dt
+from bokeh.models.widgets.tables import CheckboxEditor, NumberEditor, SelectEditor
+from vuepy import ref
+
+df = ref(pd.DataFrame({
+    'int': [1, 2, 3],
+    'float': [3.14, 6.28, 9.42],
+    'str': ['A', 'B', 'C'],
+    'bool': [True, False, True],
+    'date': [dt.date(2019, 1, 1), dt.date(2020, 1, 1), dt.date(2020, 1, 10)],
+    'datetime': [dt.datetime(2019, 1, 1, 10), dt.datetime(2020, 1, 1, 12), dt.datetime(2020, 1, 10, 13)]
+}, index=[1, 2, 3]))
+
+bokeh_editors = {
+    'float': NumberEditor(),
+    'bool': CheckboxEditor(),
+    'str': SelectEditor(options=['A', 'B', 'C', 'D']),
+}
+
+tabulator_editors = {
+    'int': None,
+    'float': {'type': 'number', 'max': 10, 'step': 0.1},
+    'bool': {'type': 'tickCross', 'tristate': True, 'indeterminateValue': None},
+    'str': {'type': 'list', 'valuesLookup': True},
+    'date': 'date',
+    'datetime': 'datetime'
+}
+</script>
+
+```
+
 ### 嵌套编辑器
 
 假设你需要让某个单元格的编辑器依赖于另一个单元格的值，可以使用 `nested type`。嵌套类型需要两个参数：`options` 和 `lookup_order`，其中 `lookup_order` 用于指定选项的查找顺序。
@@ -5172,6 +12803,59 @@ Tabulator组件提供了一个功能丰富的交互式表格，可用于显示�
 * 无法保证当前显示的值一定是有效选项（可能存在依赖关系变化导致的值失效）。
 
 针对最后一点，你可以使用 `@edit`来修正或清空无效值。以下是一个清空无效值的示例：
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabulator :value="nested_df.value" 
+               :editors="tabulator_editors" 
+               show_index
+               @change='on_change'
+               @edit='on_edit'
+  />
+</template>
+<script lang='py'>
+import pandas as pd
+import datetime as dt
+from bokeh.models.widgets.tables import CheckboxEditor, NumberEditor, SelectEditor
+from vuepy import ref
+
+options = {
+    "A": ["A.1", "A.2", "A.3", "A.4", "A.5"],
+    "B": {
+        "1": ["B1.1", "B1.2", "B1.3"],
+        "2": ["B2.1", "B2.2", "B2.3"],
+        "3": ["B3.1", "B3.2", "B3.3"],
+    },
+}
+tabulator_editors = {
+    "0": {"type": "list", "values": ["A", "B"]},
+    "1": {"type": "list", "values": [1, 2, 3]},
+    "Nested Selection": {
+        "type": "nested", 
+        "options": options,
+        "lookup_order": ["0", "1"],
+    },
+}
+
+nested_df = ref(pd.DataFrame({
+    "0": ["A", "B", "A"], 
+    "1": [1, 2, 3], 
+    "Nested Selection": [None, None, None],
+}))
+
+def on_change(event):
+    print(event.new) #    0  1 Nested Selection
+                     # 0  A  1              A.5
+                     # 1  B  2             None
+                     # 2  A  3             None
+
+def on_edit(event):
+    if event.column in ["0", "1"]:
+        nested_table.patch({"2": [(event.row, None)]})
+</script>
+
+```
+
 ## 列布局
 
 默认情况下，DataFrame 组件会根据内容自动调整列宽和表格大小，这对应参数 `layout="fit_data_table"` 的默认行为。此外，还支持其他布局模式，例如手动指定列宽、均分列宽或仅调整列尺寸。
@@ -5179,6 +12863,37 @@ Tabulator组件提供了一个功能丰富的交互式表格，可用于显示�
 ### 手动设置列宽
 
 如需手动设置列宽，只需为每列显式指定宽度：
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <p> widths = {{  widths }}</p>
+  <PnTabulator :value="df.value" :widths="widths" />
+
+  <!-- declare a single width for all columns this way: -->
+  <p> widths = {{ 130 }}</p>
+  <PnTabulator :value="df.value" :widths="130" />
+
+  <!-- use percentage widths: -->
+  <p> widths = {{ percent_widths }}</p>
+  <PnTabulator :value="df.value" :widths="percent_widths" 
+               sizing_mode='stretch_width' />
+</template>
+<script lang='py'>
+import pandas as pd
+from vuepy import ref
+
+df = ref(pd.DataFrame({
+    'int': [1, 2, 3],
+    'float': [3.14, 6.28, 9.42],
+    'str': ['A', 'B', 'C']
+}))
+
+widths = {'int': 70, 'float': 100, 'str': 50}
+percent_widths = {'index': '15%', 'int': '25%', 'float': '25%', 'str': '35%'}
+</script>
+
+```
+
 ### 自动调整列宽
 
 通过 `layout` 参数自动调整列宽:
@@ -5187,16 +12902,122 @@ Tabulator组件提供了一个功能丰富的交互式表格，可用于显示�
 * fit_data_stretch：在适应内容的同时，拉伸最后一列以填满可用空间。
 * fit_data_fill：适应内容并填充空间，但不拉伸最后一列（其余列均分剩余宽度）。
 * fit_columns：每列相同大小
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <p>layout='fit_data_table'</p>
+  <PnTabulator :value="df.value" layout='fit_data_table' />
+
+  <p>layout='fit_data'</p>
+  <PnTabulator :value="df.value" layout='fit_data' :width="400" />
+
+  <p>layout='fit_data_stretch'</p>
+  <PnTabulator :value="df.value" layout='fit_data_stretch' :width="400" />
+
+  <p>layout='fit_data_fill'</p>
+  <PnTabulator :value="df.value" layout='fit_data_fill' :width="400" />
+
+  <p>layout='fit_columns'</p>
+  <PnTabulator :value="df.value" layout='fit_columns' :width="350" />
+</template>
+<script lang='py'>
+import pandas as pd
+from vuepy import ref
+
+df = ref(pd.DataFrame({
+    'int': [1, 2, 3],
+    'float': [3.14, 6.28, 9.42],
+    'str': ['A', 'B', 'C']
+}))
+</script>
+
+```
+
 ## 对齐方式
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabulator 
+    :value="df.value" 
+    :header_align="'center'" 
+    :text_align="{'int': 'center', 'float': 'left'}" 
+    :widths="150" 
+  />
+</template>
+<script lang='py'>
+import pandas as pd
+from vuepy import ref
+
+df = ref(pd.DataFrame({
+    'int': [1, 2, 3],
+    'float': [3.14, 6.28, 9.42]
+}))
+</script>
+
+```
+
 ## 样式设置
 
 ### 基本样式设置
 
 根据表格内容或其他条件进行样式定制是一项非常重要的功能。幸运的是，`pandas` 提供了一个强大的 [styling APIiiii](https://pandas.pydata.org/pandas-docs/stable/user_guide/style.html)，可与 `Tabulator` 组件配合使用。具体来说，`Tabulator` 组件暴露了与 `pandas.DataFrame` 类似的 `.style` 属性，允许用户通过 `.apply` 和 `.applymap` 等方法应用自定义样式。详细指南可参考 [Pandas 官方文档](https://pandas.pydata.org/pandas-docs/stable/user_guide/style.html)。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabulator :value="df.value" ref='styled' />
+</template>
+<script lang='py'>
+import pandas as pd
+import numpy as np
+from vuepy import ref, onMounted
+
+df = ref(pd.DataFrame(np.random.randn(4, 5), columns=list('ABCDE')))
+styled = ref(None)
+
+def color_negative_red(val):
+    color = 'red' if val < 0 else 'black'
+    return f'color: {color}'
+
+def highlight_max(s):
+    is_max = s == s.max()
+    return ['background-color: yellow' if v else '' for v in is_max]
+
+@onMounted
+def set_style():
+    tab = styled.value.unwrap()
+    tab.style.map(color_negative_red).apply(highlight_max)
+    # tab.value.iloc[0, 0] = 1
+</script>
+
+```
+
 ### 渐变样式设置
 
 通过 `.text_gradient`（文本渐变）或 `.background_gradient`（背景渐变）方法，配合 [Matplotlib 配色方案](https://matplotlib.org/stable/gallery/color/colormap_reference.html)，可以为表格添加渐变效果：
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabulator :value="df.value" ref='styled'/>
+</template>
+<script lang='py'>
+import pandas as pd
+import numpy as np
+from vuepy import ref, onMounted
+
+df = ref(pd.DataFrame(np.random.randn(4, 5), columns=list('ABCDE')))
+styled = ref(None)
+
+@onMounted
+def set_style():
+    tab = styled.value.unwrap()
+    tab.style.text_gradient(cmap="RdYlGn", subset=["B", "C"])
+    tab.style.background_gradient(cmap="RdYlGn", subset=["D", "E"])
+    # tab.value.iloc[0, 0] = 1
+</script>
+
+```
+
 ## 主题
 
 Tabulator 库内置了多种主题，这些主题以 CSS 样式表的形式定义。因此，更改一个表格的主题会影响页面上的所有表格。通常建议在类级别统一设置主题，例如：
@@ -5217,6 +13038,42 @@ Tabulator 库内置了多种主题，这些主题以 CSS 样式表的形式定�
 
 此外，您还可以按照 [官方说明](https://tabulator.info/docs/6.2/theme#framework) 添加自定义主题类。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+ <PnCol>
+  <PnSelect :options='themes' v-model='theme.value' />
+  <PnTabulator :value='df.value' :theme='theme.value'
+               :theme_classes="['thead-dark', 'table-sm']" />
+ </PnCol>
+</template>
+<script lang='py'>
+import pandas as pd
+from vuepy import ref
+
+df = ref(pd.DataFrame({
+    'int': [1, 2, 3],
+    'float': [3.14, 6.28, 9.42]
+}))
+
+themes = [
+    'simple',
+    'default',
+    'midnight',
+    'site',
+    'modern',
+    'bootstrap',
+    'bootstrap4',
+    'materialize',
+    'semantic-ui',
+    'bulma',
+]
+
+theme = ref('simple')
+</script>
+
+```
+
 ### 更改字体大小
 
 不同主题的字体大小可能有所不同。例如，“bootstrap”主题的字体大小为 13px，而“bootstrap5”主题的字体大小为 16px。以下是将主题“bootstrap5”的字体大小值覆盖为 10px 的一种方法。
@@ -5225,30 +13082,329 @@ Tabulator 库内置了多种主题，这些主题以 CSS 样式表的形式定�
  <PnTabulator :stylesheets='[":host .tabulator {font-size: 10px;}"]' ...
 ```
 ## 选择/点击
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabulator :value="df.value" :selection="[0, 2]" selectable="checkbox" />
+</template>
+<script lang='py'>
+import pandas as pd
+from vuepy import ref
+
+df = ref(pd.DataFrame({
+    'int': [1, 2, 3],
+    'float': [3.14, 6.28, 9.42]
+}))
+</script>
+
+```
+
 ## 冻结行列
 ### 冻结列
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabulator :value="df.value" :frozen_columns="['int']" :width="200" />
+</template>
+<script lang='py'>
+import pandas as pd
+from vuepy import ref
+
+df = ref(pd.DataFrame({
+    'int': [1, 2, 3],
+    'float': [3.14, 6.28, 9.42],
+    'str': ['A', 'B', 'C']
+}))
+</script>
+
+```
+
 ### 冻结行
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabulator :value="agg_df" :frozen_rows="[-2, -1]" :height="150" />
+</template>
+<script lang='py'>
+import pandas as pd
+from vuepy import ref
+
+date_df = pd.DataFrame({
+    'int': [1, 2, 3],
+    'float': [3.14, 6.28, 9.42]
+})
+agg_df = pd.concat([
+    date_df, 
+    date_df.median().to_frame('Median').T, 
+    date_df.mean().to_frame('Mean').T,
+])
+agg_df.index= agg_df.index.map(str)
+</script>
+
+```
+
 ## Row Content 行内容扩展
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabulator :value="periodic_df" :height=350 
+               layout='fit_columns' sizing_mode='stretch_width'
+               :row_content='content_fn' :embed_content='True' />
+</template>
+<script lang='py'>
+from vuepy import ref
+import panel as pn
+from bokeh.sampledata.periodic_table import elements
+
+periodic_df = elements[['atomic number', 'name', 'atomic mass', 'metal', 'year discovered']].set_index('atomic number')
+content_fn = lambda row: pn.pane.HTML(
+    f'<p>{row["name"]}</p>',
+    sizing_mode='stretch_width'
+)
+
+# periodic_table = pn.widgets.Tabulator(
+#     periodic_df, height=350, layout='fit_columns', sizing_mode='stretch_width',
+#     row_content=content_fn, embed_content=True
+# )
+
+# periodic_table
+</script>
+
+```
+
 ## Groupby 分组
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabulator :value="df.value" :groups="{'Group 1': ['A', 'B'], 'Group 2': ['C', 'D']}" />
+</template>
+<script lang='py'>
+import pandas as pd
+from vuepy import ref
+
+df = ref(pd.DataFrame({
+    'A': [1, 2, 3],
+    'B': [4, 5, 6],
+    'C': [7, 8, 9],
+    'D': [10, 11, 12]
+}))
+</script>
+
+```
 
 ### 分层多级索引
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabulator :value="autompg_df" hierarchical  :height='200'
+               :aggregators='{"origin": "mean", "yr": "mean"}'/>
+</template>
+<script lang='py'>
+import pandas as pd
+from bokeh.sampledata.autompg import autompg_clean as autompg_df
+
+autompg_df = autompg_df.set_index(["origin", "yr", "mfr"])
+</script>
+
+```
+
 ## 分页
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabulator :value="df.value" pagination='remote' :page_size="3" />
+</template>
+<script lang='py'>
+import pandas as pd
+import numpy as np
+from vuepy import ref
+
+df = ref(pd.DataFrame({'A': np.random.rand(10000)}))
+</script>
+
+```
 
 ## 过滤
 
 ### 客户端过滤
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabulator 
+    :value="df.value" 
+    :header_filters="{
+      'int': {'type': 'number', 'placeholder': 'Enter number'},
+      'str': {'type': 'input', 'placeholder': 'Enter string'}
+    }" 
+    :height="140" 
+    :width="400" 
+    layout="fit_columns" 
+  />
+</template>
+<script lang='py'>
+import pandas as pd
+from vuepy import ref
+
+df = ref(pd.DataFrame({
+    'int': [1, 2, 3],
+    'str': ['A', 'B', 'C']
+}))
+</script>
+
+```
+
 ## 下载
 
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+ <PnCol>
+  <PnButton name='download' @click='on_click()'/>
+  <PnTabulator :value="df.value" ref='tab'/>
+ </PnCol>
+</template>
+<script lang='py'>
+import pandas as pd
+from vuepy import ref
+
+df = ref(pd.DataFrame({
+    'int': [1, 2, 3],
+    'float': [3.14, 6.28, 9.42]
+}))
+tab = ref(None)
+
+def on_click():
+    if tab.value:
+        tab.value.unwrap().download()
+    
+</script>
+
+```
+
 ## 按钮
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabulator :value="df.value" :buttons="buttons" />
+</template>
+<script lang='py'>
+import pandas as pd
+from vuepy import ref
+
+buttons = {
+    'print': '<i class=\"fa fa-print\"></i>', 
+    'check': '<i class=\"fa fa-check\"></i>',
+}
+
+df = ref(pd.DataFrame({
+    'int': [1, 2, 3],
+    'float': [3.14, 6.28, 9.42]
+}))
+</script>
+
+```
 
 ## 流式数据
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabulator :value="df.value" layout='fit_columns' 
+               :width='450' :height="200" ref='stream_tab' />
+</template>
+<script lang='py'>
+import pandas as pd
+import numpy as np
+from vuepy import ref
+import panel as pn
+
+df = ref(pd.DataFrame(np.full((1, 5), 0), columns=list('ABCDE')))
+stream_tab = ref(None)
+
+count = 0
+
+# In a real app, you would call this method periodically
+def stream_data(follow=True):
+    nonlocal count
+    count += 1
+    new_data = pd.DataFrame(np.full((1, 5), count), columns=list('ABCDE'))
+    stream_tab.value.unwrap().stream(new_data, follow=follow)
+
+pn.state.add_periodic_callback(stream_data, period=1000, count=4);
+</script>
+
+```
+
 ## 数据补丁
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+ <PnCol>
+  <PnButton name='Patch' @click='on_click()'/>
+  <PnTabulator :value="df.value" ref='tab_ref'/>
+ </PnCol>
+</template>
+<script lang='py'>
+import pandas as pd
+from vuepy import ref
+
+df = ref(pd.DataFrame({
+    'int': [1, 2, 3],
+    'float': [3.14, 6.28, 9.42],
+    'bool': [True, False, True]
+}))
+
+tab_ref = ref(None)
+
+def patch_data():
+    tab = tab_ref.value
+    if not tab:
+        return
+    tab.unwrap().patch({
+        'bool': [(0, False), (2, False)],
+        'int': [(slice(0, 2), [3, 2])]
+    })
+
+def on_click():
+    patch_data()
+</script>
+
+```
+
 ## 静态配置
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnTabulator 
+    :value="df.value" 
+    :configuration="{
+      'clipboard': True,
+      'rowHeight': 50,
+      'columnDefaults': {
+        'headerSort': False
+      }
+    }" 
+  />
+</template>
+<script lang='py'>
+import pandas as pd
+from vuepy import ref
+
+df = ref(pd.DataFrame({
+    'int': [1, 2, 3],
+    'float': [3.14, 6.28, 9.42]
+}))
+</script>
+
+```
 
 ## API
 
@@ -5325,20 +13481,104 @@ Tabulator 库内置了多种主题，这些主题以 CSS 样式表的形式定�
 
 基本的离散滑块使用列表作为选项：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnDiscreteSlider name="数值列表" 
+                   :options="[2, 4, 8, 16, 32, 64, 128]"
+                   v-model="value.value"/>
+  <p>当前值: {{ value.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+value = ref(32)
+</script>
+
+```
+
 
 ## 使用字典作为选项
 
 `options`参数也接受一个字典，其键将作为滑块上显示的文本标签：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnDiscreteSlider name="选择速度" 
+                   :options="{'慢': 'slow', '中': 'medium', '快': 'fast'}"
+                   :value="'medium'"
+                   @change="update_value" />
+  <p>当前速度: {{ value.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+value = ref('medium')
+
+def update_value(new_value):
+    value.value = new_value.new
+</script>
+
+```
 
 
 ## 垂直方向
 
 滑块可以设置为垂直方向显示：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnDiscreteSlider name="垂直滑块" 
+                     orientation="vertical"
+                     :options="[1, 2, 3, 4, 5]"
+                     :value="3"
+                     :height="200"
+                     @change="update_value" />
+  </PnRow>
+  <div>当前值: {{ value.value }}</div>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+value = ref(3)
+
+def update_value(new_value):
+    value.value = new_value
+</script>
+
+```
+
 
 ## 自定义样式
 
 可以自定义滑块条的颜色和方向：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnDiscreteSlider name="蓝色滑块" 
+                   bar_color="#3498db"
+                   :options="['A', 'B', 'C', 'D', 'E']"
+                   v-model="value1.value"/>
+  <PnDiscreteSlider name="从右到左" 
+                   direction="rtl"
+                   :options="['A', 'B', 'C', 'D', 'E']"
+                   v-model="value2.value"/>
+  <div>蓝色滑块值: {{ value1.value }}</div>
+  <div>从右到左滑块值: {{ value2.value }}</div>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+value1 = ref('C')
+value2 = ref('C')
+
+</script>
+
+```
 
 
 ## API
@@ -5387,6 +13627,21 @@ Tabulator 库内置了多种主题，这些主题以 CSS 样式表的形式定�
 
 基本的密码输入框使用： 可以通过设置`v-mode`/`value`参数为密码输入框设置默认值：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnPasswordInput name="password" 
+                  placeholder="input password"
+                  v-model="pw.value" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+pw = ref('')
+</script>
+
+```
+
 
 ## API
 
@@ -5429,10 +13684,68 @@ Tabulator 库内置了多种主题，这些主题以 CSS 样式表的形式定�
 
 基本的文本编辑器使用：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnTextEditor name="基本编辑器" 
+               v-model="content.value"/>
+  <p>当前内容: {{ content.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+content = ref("这是一个文本编辑器示例")
+</script>
+
+```
+
 
 ## 工具栏布局
 
 可以设置工具栏的位置和是否显示：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnRow>
+    <PnTextEditor name="基础文本格式" 
+                 value="Flat list of options" 
+                 :toolbar="['bold', 'italic', 'underline']" />
+    
+    <PnTextEditor name="分组工具栏" 
+                 value="Grouped options" 
+                 :toolbar="[['bold', 'italic'], ['link', 'image']]" />
+    
+    <PnTextEditor name="字体大小" 
+                 value="Dropdown of options" 
+                 :toolbar="[{'size': ['small', False, 'large', 'huge']}]" />
+  </PnRow>
+  
+  <PnTextEditor name="完整功能编辑器" 
+               value="Full configuration" 
+               :toolbar="[
+                 ['bold', 'italic', 'underline', 'strike'],
+                 ['blockquote', 'code-block'],
+                 [{ 'header': 1 }, { 'header': 2 }],
+                 [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                 [{ 'script': 'sub'}, { 'script': 'super' }],
+                 [{ 'indent': '-1'}, { 'indent': '+1' }],
+                 [{ 'direction': 'rtl' }],
+                 [{ 'size': ['small', False, 'large', 'huge'] }],
+                 [{ 'header': [1, 2, 3, 4, 5, 6, False] }],
+                 [{ 'color': [] }, { 'background': [] }],
+                 [{ 'font': [] }],
+                 [{ 'align': [] }],
+                 ['clean']
+               ]" />
+</template>
+<script lang='py'>
+import panel as pn
+
+pn.config.sizing_mode = 'stretch_width'
+</script>
+
+```
 
 
 ## API
@@ -5480,15 +13793,77 @@ Tabulator 库内置了多种主题，这些主题以 CSS 样式表的形式定�
 
 基本的多选框使用：
 
+```vue
+<template>
+ <PnCol :height='150'>
+  <PnMultiSelect name="Fruit" 
+                :options="['Apple', 'Orange', 'Pear']"
+                v-model="selected.value" />
+ </PnCol>
+ <p>value: {{ selected.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+selected = ref([])
+</script>
+
+```
+
 
 ## 使用字典作为选项
 
 `options`参数也接受一个字典，其键将作为下拉菜单的标签：
 
+```vue
+<template>
+  <PnMultiSelect name="Code" 
+                :options="{'Python': 'py', 'JavaScript': 'js', 'Java': 'java', 'C++': 'cpp'}"
+                :value="['py', 'js']"
+                @change="update_value" />
+  <div>value: {{ selected.value }}</div>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+selected = ref(['py', 'js'])
+
+def update_value(new_value):
+    selected.value = new_value
+</script>
+
+```
+
 
 ## 选择区域大小
 
 可以通过`size`参数控制选择区域显示的选项数量：
+
+```vue
+<template>
+  <PnMultiSelect name="3 items" 
+                :options="['opt1', 'opt2', 'opt3', 'opt4']"
+                :size="3"
+                @change="update_value" />
+  <PnMultiSelect name="all" 
+                :options="['opt1', 'opt2', 'opt3', 'opt4', 'opt5']"
+                :size="6"
+                @change="update_value2" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+selected1 = ref([])
+selected2 = ref([])
+
+def update_value(new_value):
+    selected1.value = new_value.new
+    
+def update_value2(new_value):
+    selected2.value = new_value.new
+</script>
+
+```
 
 
 ## API
@@ -5534,20 +13909,92 @@ Tabulator 库内置了多种主题，这些主题以 CSS 样式表的形式定�
 
 基本的字面量输入框使用：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnLiteralInput name="字符串输入" 
+                 v-model="input_value.value"/>
+  <p>value: {{ input_value.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+input_value = ref("Hello, World!")
+</script>
+
+```
+
 
 ## 不同类型的值
 
 字面量输入框可以处理各种Python数据类型：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnLiteralInput name="int" 
+                 :value="42" />
+  <PnLiteralInput name="float" 
+                 :value="3.14159" />
+  <PnLiteralInput name="list" 
+                 :value="[1, 2, 3, 4]" />
+  <PnLiteralInput name="dict" 
+                 :value="{'name': 'far', 'age': 30}" />
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
 
 
 ## 指定类型
 
 可以使用type参数指定输入的数据类型：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnLiteralInput name="type int" 
+                 :value="42"
+                 :type="int" />
+  <PnLiteralInput name="type list" 
+                 :value="[1, 2, 3]"
+                 :type="list" />
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
+
 
 ## 自定义高度
 
 可以设置输入框的高度，特别是对于复杂类型很有用：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnLiteralInput name="多行输入" 
+                 :value="nested_dict"
+                 :height="150" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+nested_dict = {
+    "users": {
+        "user1": {
+            "name": "far",
+            "age": 30,
+            "hobbies": ["xx", "yy"]
+        },
+    }
+}
+</script>
+
+```
 
 
 ## API
@@ -5595,24 +14042,130 @@ Tabulator 库内置了多种主题，这些主题以 CSS 样式表的形式定�
 
 基本的按钮使用，点击时触发事件：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnButton button_type="primary" @click="update_clicks()">
+    click: {{ clicks.value }} 
+  </PnButton>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+clicks = ref(0)
+
+def update_clicks():
+    clicks.value += 1
+</script>
+
+```
+
 ## 按钮样式
 
 按钮的颜色可以通过设置`button_type`来改变，而`button_style`可以是`'solid'`或`'outline'`：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnCol v-for="style in ['solid', 'outline']">
+      <PnButton v-for="type in button_types" 
+                :name="type" 
+                :button_type="type" 
+                :button_style="style" 
+                style="margin: 5px" />
+    </PnCol>
+  </PnRow>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+button_types = ['default', 'primary', 'success', 'warning', 'danger', 'light']
+</script>
+
+```
 
 
 ## 图标按钮
 
 Button 组件可以添加图标，支持 Unicode、Emoji 字符，以及 [tabler-icons.io](https://tabler-icons.io) 的命名图标或自定义 SVG：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <!-- emoji -->
+  <PnButton name="🔍" :width="100" />
+  <PnButton :width="100">💾 Save</PnButton>
+  <PnButton name="Copy ✂️" :width="100" />
+  
+  <!-- tabler-icons -->
+  <PnButton icon="alert-triangle" />
+  <PnButton icon="bug" />
+
+  <!-- svg -->
+  <PnButton name='svg icon'>
+    <template #icon>
+      <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-cash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+        <path d="M7 9m0 2a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2z" />
+        <path d="M14 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+        <path d="M17 9v-2a2 2 0 0 0 -2 -2h-10a2 2 0 0 0 -2 2v6a2 2 0 0 0 2 2h2" />
+      </svg>
+    </template>
+  </PnButton>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+cash_icon = """
+<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-cash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M7 9m0 2a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2z" />
+  <path d="M14 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+  <path d="M17 9v-2a2 2 0 0 0 -2 -2h-10a2 2 0 0 0 -2 2v6a2 2 0 0 0 2 2h2" />
+</svg>
+"""
+</script>
+
+```
+
 ## 加载状态按钮
 
 通过设置 loading 属性为 true 来显示加载中状态。  
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnButton loading>Loading</PnButton>
+  <PnButton @click="click1">Click to Loading</PnButton>
+</template>
+<script lang="py">
+from vuepy import ref
+
+def click1(ev):
+    btn = ev.obj
+    btn.loading = not btn.loading
+</script>
+
+```
+
 ## 自定义 css style
 
 通过`style`设置组件外层DOM节点(意味着无法设置某些组件内的样式，如background-color，font-size等)的CSS样式:
 * `width`、`height` 设置组件的高和宽
 * `border` 设置组件的边框
 * ...
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <HBox>
+    <PnButton name="height 60px" style="height: 60px" />
+    <PnButton name="width 90px" style="width: 90px" />
+    <PnButton name="border: 5px solid red;" style="border: 5px solid #FAEBD7;" />
+  </HBox>
+</template>
+
+```
+
 
 ## API
 
@@ -5665,25 +14218,135 @@ SpeechToText组件通过封装[HTML5 `SpeechRecognition` API](https://developer.
 > 
 > 在像Chrome这样的浏览器上，在网页上使用语音识别涉及基于服务器的识别引擎。**您的音频会被发送到网络服务进行识别处理，因此它无法离线工作**。这对您的用例来说是否足够安全和保密，需要您自行评估。
 
+```vue
+<template>
+  <PnSpeechToText 
+    button_type="light"
+    v-model="speech_text.value"
+  />
+  <PnStaticText :value="f'result: {speech_text.value}'" />
+</template>
+<script lang='py'>
+import panel as pn
+from vuepy import ref
+
+speech_text = ref("")
+</script>
+
+```
+
 
 ## 自定义按钮
 
 可以通过设置`button_type`、`button_not_started`和`button_started`参数来自定义按钮的外观。
+
+```vue
+<template>
+  <PnRow>
+    <PnSpeechToText 
+      button_type="success" 
+      button_not_started="点击开始识别" 
+      button_started="点击停止识别"
+      v-model="custom_text.value"
+    />
+    <PnStaticText :value="f'识别结果: {custom_text.value}'" />
+  </PnRow>
+</template>
+<script lang='py'>
+import panel as pn
+from vuepy import ref
+
+custom_text = ref("")
+</script>
+
+```
 
 
 ## 连续识别
 
 通过设置`continuous=True`，语音识别服务会保持打开状态，允许您连续说多个语句。
 
+```vue
+<template>
+  <PnSpeechToText 
+    button_type="warning" 
+    :continuous="True"
+    v-model="continuous_text.value"
+  />
+  <PnStaticText :value="f'连续识别结果: {continuous_text.value}'" />
+</template>
+<script lang='py'>
+import panel as pn
+from vuepy import ref
+
+continuous_text = ref("")
+</script>
+
+```
+
 
 ## 使用语法列表
 
 可以使用`GrammarList`限制识别服务识别的单词或单词模式。
 
+```vue
+<template>
+  <PnCol>
+    <PnStaticText value="尝试说出一种颜色（英文）如red, blue, green等" />
+    <PnSpeechToText 
+      button_type="primary" 
+      :grammars="grammar_list"
+      v-model="grammar_text.value"
+    />
+    <PnStaticText :value="f'识别结果: {grammar_text.value}'" />
+  </PnCol>
+</template>
+<script lang='py'>
+import panel as pn
+from panel.widgets import GrammarList
+from vuepy import ref
+
+# 创建语法列表
+grammar_list = GrammarList()
+color_grammar = "#JSGF V1.0; grammar colors; public <color> = red | green | blue | yellow | purple | orange | black | white | pink | brown;"
+grammar_list.add_from_string(color_grammar, 1)
+
+grammar_text = ref("")
+</script>
+
+```
+
 
 ## 显示详细结果
 
 可以通过`results`属性获取更详细的结果，包括置信度级别。
+
+```vue
+<template>
+  <PnCol>
+    <PnSpeechToText 
+      button_type="danger" 
+      v-model="detailed_text.value"
+      @change="update_results"
+    />
+  </PnCol>
+  <PnHTML :object="results_html.value" />
+</template>
+<script lang='py'>
+import panel as pn
+from vuepy import ref
+
+detailed_text = ref("")
+results_html = ref("")
+
+def update_results(event):
+    # 通过引用获取SpeechToText组件实例
+    speech_component = event.owner
+    # 获取格式化的HTML结果
+    results_html.value = speech_component.results_as_html
+</script>
+
+```
 
 
 ## API
@@ -5741,15 +14404,88 @@ DatetimeRangeSlider组件允许用户通过带有两个手柄的滑块选择日�
 
 日期时间范围滑块提供了一种交互式方式来选择日期时间范围。用户可以通过拖动手柄调整范围的起始和结束时间，也可以通过拖动已选择的范围整体移动。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnDatetimeRangeSlider 
+    name="日期时间范围滑块" 
+    :start="dt.datetime(2017, 1, 1)" 
+    :end="dt.datetime(2019, 1, 1)" 
+    :step="10000"
+    v-model="selected_range.value"
+  />
+</template>
+<script lang='py'>
+import datetime as dt
+from vuepy import ref
+
+selected_range = ref((dt.datetime(2017, 1, 1), dt.datetime(2018, 1, 10)))
+</script>
+
+```
+
 
 ## 自定义格式
 
 可以通过format参数自定义日期时间的显示格式。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnDatetimeRangeSlider 
+    name="自定义格式" 
+    :start="dt.datetime(2017, 1, 1)" 
+    :end="dt.datetime(2019, 1, 1)" 
+    :step="10000"
+    format="%Y-%m-%dT%H:%M:%S"
+    v-model="custom_format_range.value"
+  />
+</template>
+<script lang='py'>
+import datetime as dt
+from vuepy import ref
+
+custom_format_range = ref((dt.datetime(2017, 1, 1), dt.datetime(2018, 1, 10)))
+</script>
+
+```
+
 
 ## 自定义样式
 
 通过设置bar_color和orientation等属性可以自定义滑块样式。
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnDatetimeRangeSlider 
+    name="水平滑块" 
+    :start="dt.datetime(2017, 1, 1)" 
+    :end="dt.datetime(2019, 1, 1)" 
+    bar_color="#ff5722"
+    tooltips
+    v-model="horizontal_range.value"
+  />
+  
+  <PnDatetimeRangeSlider 
+    name="垂直滑块" 
+    :start="dt.datetime(2017, 1, 1)" 
+    :end="dt.datetime(2019, 1, 1)" 
+    orientation="vertical"
+    bar_color="#2196f3"
+    tooltips
+    v-model="vertical_range.value"
+  />
+</template>
+<script lang='py'>
+import datetime as dt
+from vuepy import ref
+
+horizontal_range = ref((dt.datetime(2017, 1, 1), dt.datetime(2018, 1, 10)))
+vertical_range = ref((dt.datetime(2017, 3, 15), dt.datetime(2018, 6, 10)))
+</script>
+
+```
 
 
 ## API
@@ -5801,14 +14537,84 @@ ColorMap组件允许从包含色彩映射的字典中选择一个值。该组件
 
 色彩映射选择器可以提供色彩映射选项让用户进行选择，选项必须是一个包含色彩列表的字典。
 
+```vue
+<template>
+  <p>选择的色彩映射: {{selected_map.value}}</p>
+  <PnRow :height='200'>
+    <PnColorMap 
+      :options="cmaps" 
+      value_name="Reds" 
+      style="width: 200px;"
+      v-model="selected_map.value"
+      @change="on_change"
+    />
+  </PnRow>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+cmaps = {
+    'Reds': ['lightpink', 'red', 'darkred'],
+    'Blues': ['rgba(0, 0, 255, 1)', 'rgba(0, 0, 170, 1)', 'rgba(0, 0, 85, 1)'],
+    'Greens': ['#00ff00', '#00aa00', '#004400'],
+}
+
+selected_map = ref(['lightpink', 'red', 'darkred'])
+
+def on_change(event):
+    print(f"{event.new}") # ['#00ff00', '#00aa00', '#004400']
+</script>
+
+```
+
 ## 自定义布局
 
 可以通过设置`ncols`参数以及`swatch_width`和`swatch_height`选项来控制色彩映射的显示方式。
+
+```vue
+<template>
+ <PnCol :height='300'>
+  <PnColorMap 
+    :options="cc_palette" 
+    :ncols="3" 
+    :swatch_width="100"
+    v-model="selected_palette.value"
+  />
+ </PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+import colorcet as cc
+
+cc_palette = cc.palette
+selected_palette = ref(cc.b_circle_mgbm_67_c31)
+</script>
+
+```
 
 
 ## Matplotlib支持
 
 组件也支持matplotlib色彩映射：
+
+```vue
+<template>
+ <PnCol :height='200'>
+  <PnColorMap 
+    :options="mpl_maps" 
+    v-model="selected_mpl.value"
+  />
+</PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+from matplotlib.cm import Reds, Blues, Greens
+
+mpl_maps = {'Reds': Reds, 'Blues': Blues, 'Greens': Greens}
+selected_mpl = ref(Reds)
+</script>
+
+```
 
 
 ## API
@@ -5857,15 +14663,144 @@ JSONEditor组件提供了一个可视化编辑器，用于编辑JSON可序列化
 
 JSON编辑器提供了一个直观的界面来查看和编辑JSON数据。
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnJSONEditor 
+    :width="400"
+    v-model="json_data.value"
+    @change="on_change"
+    ref='e'
+  />
+  <p> {{ json_data.value }} </p>
+</template>
+<script lang='py'>
+# import panel as pn
+# pn.extension('ace', 'jsoneditor')
+from vuepy import ref, onMounted
+import os
+
+e = ref(None)
+# os.environ['PANEL_NPM_CDN'] = 'https://cdn.jsdelivr.net/npm'
+# print('cdn', os.environ.get('PANEL_NPM_CDN'))
+
+json_data = ref({
+    'dict'  : {'key': 'value'},
+    'float' : 3.14,
+    'int'   : 1,
+    'list'  : [1, 2, 3],
+    'string': 'A string',
+})
+
+@onMounted
+def on():
+    # print(type(e.value.unwrap()._widget_type))
+    pass
+
+def on_change(event):
+    print(event.new)
+</script>
+
+```
+
 
 ## 编辑模式
 
 JSON编辑器有多种模式，提供不同的查看和编辑`JSONEditor.value`的方式。注意，要启用对`mode='code'`的支持，必须使用`pn.extension('ace')`加载ace编辑器。
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnCol>
+    <PnStaticText value="tree 树形模式" />
+    <PnJSONEditor :value="json_data" mode='tree' :width='300' />
+  </PnCol>
+  
+  <PnCol>
+    <PnStaticText value="form 表单模式" />
+    <PnJSONEditor :value="json_data" mode='form' :width="300" />
+  </PnCol>
+ 
+  <PnCol>
+    <PnStaticText value="text 文本模式" />
+    <PnJSONEditor :value="json_data" mode='text' :width="300" />
+  </PnCol>
+  
+  <PnCol>
+    <PnStaticText value="preview 预览模式" />
+    <PnJSONEditor :value="json_data" mode='preview' :width="300" />
+  </PnCol>
+  
+  <PnCol>
+    <PnStaticText value="view 查看模式" />
+    <PnJSONEditor :value="json_data" mode='view' :width="300" />
+  </PnCol>
+</template>
+<script lang='py'>
+import panel as pn
+from vuepy import ref
+
+json_data = {
+    'dict'  : {'key': 'value'},
+    'float' : 3.14,
+    'int'   : 1,
+    'list'  : [1, 2, 3],
+    'string': 'A string',
+}
+</script>
+
+```
+
 
 ## 验证
 
 JSONEditor通过提供JSON Schema可以对`value`进行验证。JSON Schema描述了JSON对象必须具有的结构，如必需的属性或值必须具有的类型。更多信息请参见 http://json-schema.org/。
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnJSONEditor 
+    :schema="schema" 
+    :value="person_data"
+    :height="500"
+    :width="400"
+  />
+</template>
+<script lang='py'>
+import panel as pn
+from vuepy import ref
+
+# 需要初始化jsoneditor扩展
+pn.extension('ace', 'jsoneditor')
+
+schema = {
+    "title": "Person",
+    "type": "object",
+    "properties": {
+        "firstName": {
+            "type": "string",
+            "description": "The person's first name."
+        },
+        "lastName": {
+            "type": "string",
+            "description": "The person's last name."
+        },
+        "age": {
+            "description": "Age in years which must be equal to or greater than zero.",
+            "type": "integer",
+            "minimum": 0
+        }
+    }
+}
+
+person_data = {
+    'firstName': 2,  # 这将引发验证错误，因为应该是字符串
+    'lastName': 'Smith',
+    'age': 13.5  # 这将引发验证错误，因为应该是整数
+}
+</script>
+
+```
 
 
 ## API
@@ -5914,15 +14849,107 @@ Debugger是一个不可编辑的Card布局组件，可以在前端显示仪表�
 
 注意：调试器基于terminal组件，需要调用`pn.extension('terminal')`。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnDebugger name="我的调试器" />
+  </PnRow>
+</template>
+<script lang='py'>
+import panel as pn
+# 需要初始化terminal扩展
+pn.extension('terminal', console_output='disable')
+</script>
+
+```
+
 
 ## 错误捕获
 
 调试器可以捕获和显示应用程序中发生的错误，帮助用户了解交互过程中遇到的问题。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCol>
+    <PnRadioButtonGroup 
+      name="触发错误" 
+      value="no error" 
+      :options="['ZeroDivision', 'no error', 'Custom error']" 
+      button_type="danger" 
+      v-model="error_type.value"
+      @change="throw_error"
+    />
+    <PnDebugger name="错误调试器" />
+  </PnCol>
+</template>
+<script lang='py'>
+import panel as pn
+from vuepy import ref
+
+# 需要初始化terminal扩展
+pn.extension('terminal', console_output='disable')
+
+error_type = ref('no error')
+
+def throw_error(event):
+    if event['new'] == 'ZeroDivision':
+        try:
+            1/0
+        except Exception as e:
+            raise e
+    elif event['new'] == 'Custom error':
+        raise Exception('自定义错误示例')
+</script>
+
+```
+
 
 ## 日志级别
 
 通过设置不同的日志级别，可以控制显示哪些级别的日志信息。
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCol sizing_mode="stretch_both">
+    <PnRadioButtonGroup 
+      name="显示信息" 
+      :options="['debug', 'info', 'warning']" 
+      v-model="info_type.value"
+      @change="log_message"
+    />
+    <PnDebugger 
+      name="信息级别调试器" 
+      :level="logging.INFO" 
+      sizing_mode="stretch_both"
+      :logger_names="['panel.myapp']"
+    />
+  </PnCol>
+</template>
+<script lang='py'>
+import panel as pn
+import logging
+from vuepy import ref
+
+# 需要初始化terminal扩展
+pn.extension('terminal', console_output='disable')
+
+logger = logging.getLogger('panel.myapp')
+info_type = ref('info')
+
+def log_message(event):
+    msg = (event['new'] + ' 通过按钮发送').capitalize()
+    if event['new'] == 'info':
+        logger.info(msg)
+    elif event['new'] == 'debug':
+        logger.debug(msg)
+    elif event['new'] == 'warning':
+        logger.warning(msg)
+</script>
+
+```
 
 
 ## API
@@ -5968,20 +14995,133 @@ EditableIntSlider组件允许用户在设定范围内通过滑块选择整数值
 
 可编辑整数滑块提供了滑块和输入框两种方式来选择和输入整数值。
 
+```vue
+<template>
+  <PnEditableIntSlider 
+    name="整数滑块" 
+    :start="0" 
+    :end="8" 
+    :step="2" 
+    :value="4"
+    v-model="int_value.value"
+    @change="on_change"
+  />
+  <PnStaticText :value="f'选择的值: {int_value.value}'" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+int_value = ref(4)
+
+def on_change(event):
+    print(f"值改变: {event}")
+</script>
+
+```
+
 
 ## 固定范围
 
 通过设置`fixed_start`和`fixed_end`参数，可以限制value的范围，使其不能超出这个范围。
+
+```vue
+<template>
+  <PnEditableIntSlider 
+    name="固定范围滑块" 
+    :start="0" 
+    :end="10" 
+    :step="1" 
+    :value="5"
+    :fixed_start="-2"
+    :fixed_end="12"
+    v-model="fixed_value.value"
+  />
+  <PnStaticText :value="f'尝试输入超出范围的值（-2~12）: {fixed_value.value}'" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+fixed_value = ref(5)
+</script>
+
+```
 
 
 ## 自定义格式
 
 可以通过format参数自定义整数的显示格式。
 
+```vue
+<template>
+  <PnCol>
+    <PnEditableIntSlider 
+      name="八进制" 
+      format="0o" 
+      :start="0" 
+      :end="100"
+      :value="10"
+      v-model="octal_value.value"
+    />
+    
+    <PnEditableIntSlider 
+      name="带单位" 
+      :format="formatter" 
+      :start="0" 
+      :end="100"
+      :value="42"
+      v-model="duck_value.value"
+    />
+  </PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+from bokeh.models.formatters import PrintfTickFormatter
+
+octal_value = ref(10)
+duck_value = ref(42)
+formatter = PrintfTickFormatter(format='%d 只鸭子')
+</script>
+
+```
+
 
 ## 自定义样式
 
 通过设置bar_color和orientation等属性可以自定义滑块样式。
+
+```vue
+<template>
+  <PnEditableIntSlider 
+    name="水平自定义滑块" 
+    :start="0" 
+    :end="10" 
+    :step="1" 
+    :value="5"
+    bar_color="#ff5722"
+    tooltips
+    v-model="horizontal_value.value"
+  />
+  
+  <PnEditableIntSlider 
+    name="垂直自定义滑块" 
+    :start="0" 
+    :end="10" 
+    :step="1" 
+    :value="7"
+    orientation="vertical"
+    bar_color="#2196f3"
+    tooltips
+    v-model="vertical_value.value"
+  />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+horizontal_value = ref(5)
+vertical_value = ref(7)
+</script>
+
+```
 
 
 ## API
@@ -6035,19 +15175,125 @@ DateSlider组件允许用户在设定的日期范围内通过滑块选择一个�
 
 日期滑块组件提供了一种交互式方式来选择日期范围内的特定日期。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnDateSlider 
+    name="日期滑块" 
+    :start="dt.datetime(2019, 1, 1)" 
+    :end="dt.datetime(2019, 6, 1)" 
+    :value="dt.datetime(2019, 2, 8)"
+    v-model="selected_date.value"
+    @change="on_change"
+  />
+  <PnStaticText :value="f'选择的日期: {selected_date.value}'" />
+</template>
+<script lang='py'>
+import datetime as dt
+from vuepy import ref
+
+selected_date = ref(dt.datetime(2019, 2, 8))
+
+def on_change(event):
+    print(f"Date changed: {event}") # Date changed: Event(what='value'
+</script>
+
+```
+
 ## 自定义样式
 
 通过设置bar_color和orientation等属性可以自定义滑块样式。
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnDateSlider 
+    name="水平滑块" 
+    :start="dt.datetime(2019, 1, 1)" 
+    :end="dt.datetime(2019, 6, 1)" 
+    :value="dt.datetime(2019, 2, 8)"
+    bar_color="#ff5722"
+    tooltips
+    v-model="date_horizontal.value"
+  />
+  
+ <PnColumn style='height:400px;'>
+  <PnDateSlider 
+    name="垂直滑块" 
+    :start="dt.datetime(2019, 1, 1)" 
+    :end="dt.datetime(2019, 6, 1)" 
+    :value="dt.datetime(2019, 3, 15)"
+    orientation="vertical"
+    bar_color="#2196f3"
+    tooltips
+    v-model="date_vertical.value"
+  />
+ </PnColumn>
+</template>
+<script lang='py'>
+import datetime as dt
+from vuepy import ref
+
+date_horizontal = ref(dt.datetime(2019, 2, 8))
+date_vertical = ref(dt.datetime(2019, 3, 15))
+</script>
+
+```
 
 
 ## 步长设置
 
 通过step参数可以设置日期滑块的步长（以天为单位）。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnDateSlider 
+    name="7天步长" 
+    :start="dt.datetime(2019, 1, 1)" 
+    :end="dt.datetime(2019, 6, 1)" 
+    :value="dt.datetime(2019, 2, 8)"
+    :step="7"
+    tooltips
+    v-model="date_step.value"
+  />
+  <PnStaticText :value="f'选择的日期: {date_step.value}'" />
+</template>
+<script lang='py'>
+import datetime as dt
+from vuepy import ref
+
+date_step = ref(dt.datetime(2019, 2, 8))
+</script>
+
+```
+
 
 ## 日期格式
 
 可以通过format参数自定义日期的显示格式。
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnDateSlider 
+    name="自定义格式" 
+    :start="dt.datetime(2019, 1, 1)" 
+    :end="dt.datetime(2019, 6, 1)" 
+    :value="dt.datetime(2019, 2, 8)"
+    format="%Y年%m月%d日"
+    tooltips
+    v-model="date_format.value"
+  />
+</template>
+<script lang='py'>
+import datetime as dt
+from vuepy import ref
+
+date_format = ref(dt.datetime(2019, 2, 8))
+</script>
+
+```
 
 
 ## API
@@ -6100,14 +15346,67 @@ DateSlider组件允许用户在设定的日期范围内通过滑块选择一个�
 
 基本的文件输入框使用：
 
+```vue
+<template>
+  <PnFileInput name="上传文件" @change="on_change" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+def on_change(event):
+    print(event) # Event(what='value', name='value', 
+                 #  obj=FileInput(name='上传文件', value=b'hello\n'), 
+                 #  cls=FileInput(name='上传文件', value=b'hello\n'), 
+                 #  old=None, new=b'hello\n', type='changed')
+</script>
+
+```
+
 
 ## 多文件上传
 
 可以通过设置`multiple=True`支持多文件上传：
 
+```vue
+<template>
+  <PnFileInput name="上传多个文件" :multiple="True" @change="on_change" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+def on_change(event):
+    print(event) # Event(what='value', name='value', 
+                 #  obj=FileInput(filename=['a.txt'], mime_type=['text/plain'], multiple=True, name='上传多个文件', value=[b'hello\n', b'hello\n']),
+                 #  cls=FileInput(filename=['a.txt'], mime_type=['text/plain'], multiple=True, name='上传多个文件', value=[b'hello\n', b'hello\n']), 
+                 #  old=None, new=[b'hello\n', b'hello\n'], type='changed')
+</script>
+
+```
+
 ## 接受特定文件类型
 
 可以通过`accept`参数限制可接受的文件类型：
+
+```vue
+<template>
+  <PnFileInput name="上传图片" 
+              accept=".jpg,.jpeg,.png,.gif" 
+              @change="on_change" />
+  <PnFileInput name="上传PDF" 
+              accept=".pdf" 
+              @change="on_change_pdf" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+def on_change(event):
+    print(event)
+        
+def on_change_pdf(event):
+    print(event)
+</script>
+
+```
 
 
 ## API
@@ -6226,15 +15525,73 @@ FileDropper组件允许用户将一个或多个文件上传到服务器。它基
 
 FileDropper提供了一个拖放区域，允许用户通过拖放或点击选择上传文件。
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnFileDropper 
+    v-model="uploaded_files.value"
+    @change="on_change"
+  />
+  <PnStaticText :value="f'上传的文件: {list(uploaded_files.value.keys())}'" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+uploaded_files = ref({})
+
+def on_change(event):
+    print(f"{event}") # Event(what='value', name='value', 
+                      #  obj=FileDropper(mime_type={'a.txt': 'text/plain'}, value={'a.txt': 'hello\n'}), 
+                      #  cls=FileDropper(mime_type={'a.txt': 'text/plain'}, value={'a.txt': 'hello\n'}), 
+                      #  old={'a.txt': 'hello\n'}, new={'a.txt': 'hello\n'},
+</script>
+
+```
+
 
 ## 文件类型限制
 
 通过`accepted_filetypes`参数可以限制用户可以选择的文件类型。这包括一个也允许通配符的mime类型列表。
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnCol>
+    <PnStaticText value="只允许上传PNG和JPEG图片" />
+    <PnFileDropper 
+      :accepted_filetypes="['.png', 'image/jpeg']"
+    />
+    
+    <PnStaticText value="允许上传所有图片" />
+    <PnFileDropper 
+      :accepted_filetypes="['image/*']"
+    />
+  </PnCol>
+</template>
+
+```
+
 
 ## 多文件上传
 
 通过设置`multiple=True`可以允许上传多个文件。
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnFileDropper 
+    multiple
+    v-model="multiple_files.value"
+  />
+  <PnStaticText :value="f'上传的文件数量: {len(multiple_files.value)}'" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+multiple_files = ref({})
+</script>
+
+```
 
 
 ## 布局选项
@@ -6244,10 +15601,53 @@ FileDropper支持几种不同的布局选项：
 - `"integrated"`: 移除背景和其他样式，当组件嵌入到更大的组件中时很有用
 - `"circle"`: 圆形上传区域，适用于个人资料图片上传
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnCol>
+    <PnFileDropper layout="compact" />
+    <PnFileDropper 
+      layout="integrated" 
+      style="background-color: black; border-radius: 1em; color: white" 
+    />
+    <PnFileDropper layout="circle" />
+  </PnCol>
+</template>
+
+```
+
 
 ## 上传大小限制
 
 与FileInput组件不同，FileDropper组件通过分块上传绕过了网络浏览器、Bokeh、Tornado、笔记本等对最大文件大小的限制。这使得上传比以前可能的大得多的文件变得可行。默认的`chunk_size`是10MB（表示为10000000字节）。您可以配置`max_file_size`、`max_total_file_size`（如果设置了`multiple=True`，则限制总上传大小）和`max_files`，以提供对可上传数据量的上限。
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnCol>
+    <PnStaticText value="限制单个文件大小为1MB" />
+    <PnFileDropper 
+      max_file_size="1MB"
+      v-model="limited_size.value"
+    />
+    
+    <PnStaticText value="限制最多上传3个文件，总大小不超过5MB" />
+    <PnFileDropper 
+      :multiple="True"
+      :max_files="3"
+      max_total_file_size="5MB"
+      v-model="limited_total.value"
+    />
+  </PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+limited_size = ref({})
+limited_total = ref({})
+</script>
+
+```
 
 
 ## API
@@ -6297,10 +15697,46 @@ FileDropper支持几种不同的布局选项：
 
 基本的多项选择器使用：
 
+```vue
+<template>
+ <PnCol :height='400'>
+  <PnMultiChoice name="Fruit" 
+                :options="['Apple', 'Orange', 'Pear']"
+                v-model="selected.value" />
+ </PnCol>
+ <p>value: {{ selected.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+selected = ref(['Apple'])
+</script>
+
+```
+
 
 ## 使用字典选项
 
 可以使用字典作为选项，其中键是显示的标签，值是实际的数据值：
+
+```vue
+<template>
+ <PnCol :height='400'>
+  <PnMultiChoice name="City" 
+                :options="city_options"
+                v-model="selected.value" />
+ </PnCol>
+ <p>value: {{ selected.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+city_options = {'Beijing': 'BJ', 'shanghai': 'SH', 'guangzhou': 'GZ'}
+selected = ref(['BJ', 'SZ'])
+
+</script>
+
+```
 
 
 ## API
@@ -6348,20 +15784,132 @@ VideoStream组件可以显示来自本地流（例如网络摄像头）的视频
 
 视频流组件默认情况下会显示视频流，可用于如网络摄像头实时视频的展示。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnVideoStream name="视频流" />
+</template>
+
+```
+
 
 ## 截图功能
 
 可以调用`snapshot`方法触发组件的`value`更新，以获取当前视频帧的图像。
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCol>
+    <PnVideoStream 
+      name="video stream" 
+      @change="update_snapshot"
+      v-model="snapshot_img.value"
+      ref="video_stream_ref"
+    />
+    <PnButton 
+      name="Snapshot" 
+      button_type="primary" 
+      @click="take_snapshot()"
+    />
+  </PnCol>
+  <img alt='snap' :src="snapshot_img.value" />
+  <PnHTML :object="snapshot_html.value" :width='320' :height='240' />
+</template>
+<script lang='py'>
+import panel as pn
+from vuepy import ref
+
+snapshot_html = ref("")
+video_stream_ref = ref(None)
+snapshot_img = ref('')
+
+def take_snapshot():
+    if video_stream_ref.value:
+        print('img', video_stream_ref.value.unwrap().value)
+        video_stream_ref.value.unwrap().snapshot()
+
+def update_snapshot(event):
+    print(event.new)
+    if event.new:
+        snapshot_html.value = f'<img src="{event.new}" width=320 height=240 />'
+        # video_stream_ref.value = event['owner']
+</script>
+
+```
 
 
 ## 定时截图
 
 通过设置`timeout`参数，可以指定视频流将以多大频率更新。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCol>
+    <PnToggle name="暂停" v-model="paused.value" />
+    <PnRow>
+      <PnVideoStream 
+        :timeout="1000" 
+        :paused="paused.value"
+        @change="update_timed_snapshot"
+      />
+    </PnRow>
+  <PnHTML :object="timed_html.value" />
+  </PnCol>
+</template>
+<script lang='py'>
+import panel as pn
+from vuepy import ref
+
+pn.extension()
+
+paused = ref(False)
+timed_html = ref("")
+
+def update_timed_snapshot(event):
+    if 'value' in event and event.new:
+        timed_html.value = f'<img src="{event.new}" width=320 height=240 />'
+</script>
+
+```
+
 
 ## 图像格式
 
 可以通过`format`参数指定捕获的图像格式，如果需要高频率的截图，可以选择'jpeg'格式，因为图像尺寸要小得多。
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCol>
+    <PnRow>
+      <PnVideoStream 
+        name="PNG格式" 
+        format="png"
+        :timeout="500"
+        :width="320"
+        :height="240"
+      />
+      <PnVideoStream 
+        name="JPEG格式" 
+        format="jpeg"
+        :timeout="500"
+        :width="320"
+        :height="240"
+      />
+    </PnRow>
+    <PnStaticText value="JPEG格式适合高频率截图，因为图像尺寸更小" />
+  </PnCol>
+</template>
+<script lang='py'>
+import panel as pn
+from vuepy import ref
+
+pn.extension()
+</script>
+
+```
 
 
 ## API
@@ -6408,25 +15956,100 @@ VideoStream组件可以显示来自本地流（例如网络摄像头）的视频
 
 基本的选择器使用：
 
+```vue
+<template>
+  <PnSelect :options="['Apple', 'Orange', 'Banana']" 
+            v-model='selection.value' />
+  <p>value: {{ selection.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+selection = ref('Apple')
+</script>
+
+```
+
 
 ## 使用字典作为选项
 
 `options`参数也接受一个字典，其键将作为下拉菜单的标签：
+
+```vue
+<template>
+  <PnSelect :options="{'Apple': 1, 'Orange': 2, 'Banana': 3}"
+            v-model='selection.value' />
+  <p>value: {{ selection.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+selection = ref(1)
+</script>
+
+```
 
 
 ## 禁用选项
 
 可以使用`disabled_options`参数禁用部分选项：
 
+```vue
+<template>
+  <PnSelect :options="['Apple', 'Orange', 'xxx', 'Banana']" 
+            :disabled_options="['xxx']"
+            v-model='selection.value' />
+  <p>value: {{ selection.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+selection = ref('Apple')
+</script>
+
+```
+
 
 ## 分组选项
 
 可以使用`groups`参数对选项进行分组显示（也称为*optgroup*）：
 
+```vue
+<template>
+  <PnSelect 
+    :groups="{'Europe': ['Greece', 'France'], 'Asia': ['China', 'Japan']}"
+    v-model='selection.value' />
+  />
+  <p>value: {{ selection.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+selection = ref('France')
+</script>
+
+```
+
 
 ## 列表选择区域
 
 通过设置`size`参数大于1，可以从列表中选择一个选项，而不是使用下拉菜单：
+
+```vue
+<template>
+  <PnSelect 
+    :options="['Apple', 'Orange', 'xxx', 'Banana']" 
+    :size="3"
+    v-model='selection.value' />
+  <p>value: {{ selection.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+selection = ref('Apple')
+</script>
+
+```
 
 
 ## API
@@ -6474,15 +16097,79 @@ VideoStream组件可以显示来自本地流（例如网络摄像头）的视频
 
 基本的切换开关使用：
 
+```vue
+<template>
+  <PnToggle name="切换开关" button_type="success" 
+            v-model='is_toggled.value'/>
+  <p>value: {{ is_toggled.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+is_toggled = ref(False)
+</script>
+
+```
+
 
 ## 样式
 
 按钮的颜色可以通过设置`button_type`来改变，而`button_style`可以是`'solid'`或`'outline'`：
 
+```vue
+<template>
+  <PnRow>
+    <PnCol v-for="style in ['solid', 'outline']">
+      <PnToggle v-for="type in button_types" 
+                :name="f'{type}-{style}'"
+                :button_type="type"
+                :button_style="style" 
+                style="margin: 5px" />
+    </PnCol>
+  </PnRow>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+button_types = ['default', 'primary', 'success', 'warning', 'danger', 'light']
+</script>
+
+```
+
 
 ## 图标
 
 Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-icons.io](https://tabler-icons.io) 的命名图标或自定义SVG：
+
+```vue
+<template>
+  <PnRow>
+    <PnToggle :name="u'\u25c0'" :width="50" />
+    <PnToggle :name="u'\u25b6'" :width="50" />
+    <PnToggle name="🔍" :width="100" />
+    <PnToggle name="▶️ 播放" :width="100" />
+    <PnToggle name="暂停 ⏸️" :width="100" />
+  </PnRow>
+  
+  <PnRow>
+    <PnToggle icon="alert-triangle-filled" button_type="warning" name="警告" />
+    <PnToggle icon="2fa" button_type='light' icon_size='2em' />
+  </PnRow>
+  
+  <PnToggle button_type='success' name='随机播放' icon_size='2em'>
+    <template #icon>
+    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-arrows-shuffle" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <path d="M18 4l3 3l-3 3" />
+      <path d="M18 20l3 -3l-3 -3" />
+      <path d="M3 7h3a5 5 0 0 1 5 5a5 5 0 0 0 5 5h5" />
+      <path d="M21 7h-5a4.978 4.978 0 0 0 -3 1m-4 8a4.984 4.984 0 0 1 -3 1h-3" />
+    </svg>
+    </template>
+  </PnToggle>
+</template>
+
+```
 
 
 ## API
@@ -6530,19 +16217,97 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 
 基本的颜色选择器使用：
 
+```vue
+<template>
+  <PnColorPicker name="basic" value="#99ef78" @change="update_color" />
+  <div>color: {{ color.value }}</div>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+color = ref('#99ef78')
+
+def update_color(value):
+    color.value = value
+</script>
+
+```
+
 
 ## 默认颜色设置
 
 可以通过设置`value`参数来指定默认颜色：
+
+```vue
+<template>
+  <PnRow>
+    <PnColorPicker name="red" value="#ff0000" @change="update_red" />
+    <PnColorPicker name="green" value="#00ff00" @change="update_green" />
+    <PnColorPicker name="blue" value="#0000ff" @change="update_blue" />
+  </PnRow>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+red = ref('#ff0000')
+green = ref('#00ff00')
+blue = ref('#0000ff')
+
+def update_red(value):
+    red.value = value
+
+def update_green(value):
+    green.value = value
+
+def update_blue(value):
+    blue.value = value
+</script>
+
+```
 
 
 ## 禁用状态
 
 可以通过设置`disabled`参数为`True`使颜色选择器处于禁用状态：
 
+```vue
+<template>
+  <PnRow>
+    <PnColorPicker name="可用状态" value="#ff9900" />
+    <PnColorPicker name="禁用状态" value='#3399ff' disabled />
+  </PnRow>
+</template>
+
+```
+
 ## 实时应用颜色
 
 颜色选择器可以用于实时更新网页元素的样式：
+
+```vue
+<template>
+  <PnRow>
+    <PnColorPicker name="背景色" v-model="bg_color.value" />
+    <PnColorPicker name="文字色" v-model="text_color.value" />
+  </PnRow>
+    <p :style="f'background-color: {bg_color.value}; color: {text_color.value};'">
+      这是一段示例文本，您可以通过上方的颜色选择器来更改其背景色和文字颜色。
+   </p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+bg_color = ref('#f0f0f0')
+text_color = ref('#333333')
+
+def update_bg(value):
+    bg_color.value = value
+
+def update_text(value):
+    text_color.value = value
+</script>
+
+```
 
 
 ## API
@@ -6586,6 +16351,20 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 
 基本的开关使用：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnSwitch name="Switch" v-model="is_on.value" />
+  <p>value: {{ is_on.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+is_on = ref(False)
+</script>
+
+```
+
 
 ## API
 
@@ -6628,14 +16407,71 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 
 基本的日期时间选择器使用：
 
+```vue
+<template>
+ <PnCol style='height:420px;'>
+  <PnDatetimePicker name="选择日期时间" v-model='datetime.value' />
+ </PnCol>
+ <p>当前选择: {{ datetime.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+import datetime as dt
+
+datetime = ref(None)
+# set default
+# datetime = ref(dt.datetime(2023, 7, 15, 14, 30))
+</script>
+
+```
+
 ## 日期范围限制
 
 可以使用`start`和`end`参数限制可选择的日期范围：
+
+```vue
+<template>
+ <PnCol style='height:420px;'>
+  <PnDatetimePicker name="7天内选择" 
+                   :start="today"
+                   :end="week_later"/>
+ </PnCol>
+ <p>当前选择: {{ datetime.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+import datetime as dt
+
+today = dt.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+week_later = today + dt.timedelta(days=7)
+
+datetime = ref(None)
+</script>
+
+```
 
 
 ## 自定义时间选项
 
 可以使用`enable_time`、`enable_seconds`和`military_time`参数自定义时间选择功能：
+
+```vue
+<template>
+ <PnCol style='height:420px;'>
+  <PnDatetimePicker name="仅日期" 
+                   :enable_time="False"/>
+ </PnCol>
+ <PnCol style='height:420px;'>
+  <PnDatetimePicker name="带秒选择" 
+                   :enable_seconds="True"/>
+ </PnCol>
+ <PnColumn style='height:420px;'>
+  <PnDatetimePicker name="12小时制" 
+                   :military_time="False"/>
+ </PnCol>
+</template>
+
+```
 
 
 ## 禁用特定日期
@@ -6692,20 +16528,106 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 
 基本的离散播放器使用：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+ <PnCol style='height:140px;'>
+  <PnDiscretePlayer name="月份播放器" 
+                  :options="months" 
+                  @change="on_change" />
+ </PnCol>
+  <p>当前月份: {{ current_month.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+months = ['一月', '二月', '三月', '四月', '五月', '六月', 
+         '七月', '八月', '九月', '十月', '十一月', '十二月']
+current_month = ref("未选择")
+
+def on_change(event):
+    current_month.value = event.new
+</script>
+
+```
+
 
 ## 设置循环和间隔
 
 可以设置播放器是否循环以及播放间隔(毫秒）：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+ <PnCol style='height:140px;'>
+  <PnDiscretePlayer name="慢速播放" 
+                  :options="months"
+                  :interval="1000" />
+ </PnCol>
+ <PnCol style='height:140px;'>
+  <PnDiscretePlayer name="不循环播放" 
+                  :options="months"
+                  loop_policy="once" />
+ </PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+months = ['一月', '二月', '三月', '四月', '五月', '六月', 
+         '七月', '八月', '九月', '十月', '十一月', '十二月']
+</script>
+
+```
 
 
 ## 使用字典选项
 
 可以使用字典作为选项，其中键是显示的标签，值是实际的数据值：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+ <p>当前季度代码: {{ current_quarter.value }}</p>
+ <PnCol style='height:140px;'>
+  <PnDiscretePlayer name="季度播放器" 
+                  :options="quarters"
+                  @change="on_change" />
+ </PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+quarters = {'第一季度': 'Q1', '第二季度': 'Q2', '第三季度': 'Q3', '第四季度': 'Q4'}
+current_quarter = ref("未选择")
+
+def on_change(event):
+    current_quarter.value = event.new
+</script>
+
+```
+
 
 ## 设置显示模式
 
 可以设置播放器的显示模式，如只显示按钮或者同时显示值等：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+ <PnCol style='height:140px;'>
+  <PnDiscretePlayer name="只显示按钮" 
+                  :options="months"
+                  :visible_buttons="['previous', 'play', 'pause', 'next']" />
+ </PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+months = ['一月', '二月', '三月', '四月', '五月', '六月', 
+         '七月', '八月', '九月', '十月', '十一月', '十二月']
+</script>
+
+```
 
 
 ## API
@@ -6777,20 +16699,73 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 | box        | check    | CheckBoxGroup         |
 | box        | radio    | RadioBoxGroup         |
 
+```vue
+<template>
+  <PnToggleGroup name="ToggleGroup" 
+                :options="['opt1', 'opt2', 'opt3']" 
+                v-model='selected.value'/>
+  <p>value: {{ selected.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+selected = ref([])
+</script>
+
+```
+
 
 ## 使用Box接口
 
 可以设置为CheckBox样式：
+
+```vue
+<template>
+  <PnToggleGroup name="Checkbox" 
+                :options="['Opt1', 'Opt2', 'Opt3']" 
+                behavior="check"
+                widget_type='box' />
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
 
 
 ## 垂直布局
 
 可以设置为垂直布局：
 
+```vue
+<template>
+  <PnToggleGroup name="垂直布局" 
+                :options="['选项1', '选项2', '选项3']" 
+                orientation="vertical" />
+</template>
+
+```
+
 
 ## 使用字典选项
 
 可以使用字典作为选项，其中键是显示的标签，值是实际的数据值：
+
+```vue
+<template>
+  <PnToggleGroup name="使用字典" 
+                :options="city_options"
+                v-model='selected_city.value'/>
+  <p>value: {{ selected_city.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+city_options = {'北京': 'BJ', '上海': 'SH', '广州': 'GZ', '深圳': 'SZ'}
+selected_city = ref(['BJ'])
+</script>
+
+```
 
 
 ## API
@@ -6840,15 +16815,94 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 
 基本的日期范围选择器使用：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+ <PnColumn style='height:400px;'>
+  <PnDateRangePicker name="日期范围" 
+                    :value="(date(2023, 3, 1), date(2023, 3, 15))"
+                    @change="on_change" />
+ </PnColumn>
+ <p>选择的范围: {{ selected_range.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+import datetime
+
+def date(year, month, day):
+    return datetime.date(year, month, day)
+
+selected_range = ref("")
+
+def on_change(event):
+    selected_range.value = f"{event.new[0]} 至 {event.new[1]}"
+</script>
+
+```
+
 
 ## 设置日期范围限制
 
 可以设置可选日期的范围：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+ <PnColumn style='height:400px;'>
+  <PnDateRangePicker name="范围限制" 
+                    :start="date(2023, 12, 5)"
+                    :end="date(2023, 12, 31)"
+                    :value="(date(2023, 12, 6), date(2023, 12, 15))" />
+ </PnColumn>
+</template>
+<script lang='py'>
+import datetime
+
+def date(year, month, day):
+    return datetime.date(year, month, day)
+</script>
+
+```
+
 
 ## 禁用和启用特定日期
 
 可以设置特定日期不可选或可选：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+ <PnColumn style='height:400px;'>
+  <PnDateRangePicker name="禁用特定日期" 
+                    :disabled_dates="[
+                      date(2023, 3, 5),
+                      date(2023, 3, 6),
+                      date(2023, 3, 12),
+                      date(2023, 3, 13)
+                    ]"
+                    :value="(date(2023, 3, 1), date(2023, 3, 15))" />
+ </PnColumn>
+ <PnColumn style='height:400px;'>
+  <PnDateRangePicker name="启用特定日期" 
+                    :enabled_dates="[
+                      date(2023, 3, 1),
+                      date(2023, 3, 2),
+                      date(2023, 3, 3),
+                      date(2023, 3, 8),
+                      date(2023, 3, 9),
+                      date(2023, 3, 10)
+                    ]"
+                    :value="(date(2023, 3, 1), date(2023, 3, 10))" />
+ </PnColumn>
+</template>
+<script lang='py'>
+import datetime
+
+def date(year, month, day):
+    return datetime.date(year, month, day)
+</script>
+
+```
 
 
 ## API
@@ -6899,14 +16953,130 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 ::: warning
 当前页面只能展示组件的样式，需要在 `notebook` 才有交互效果。
 :::
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <p>{{ time.value }}</p>
+  <PnDisplay :obj='audio' />
+  <PnButton name='update' @click='on_click()' />
+</template>
+<script lang='py'>
+from vuepy import ref
+import panel as pn
+
+audio = pn.pane.Audio('https://ccrma.stanford.edu/~jos/mp3/pno-cs.mp3', name='Audio')
+
+time = ref(0)
+
+def on_click():
+    time.value = audio.time
+</script>
+
+```
+
 ## 展示 Matplotlib
 
 展示 matplotlib 绘制的图，并利用布局组件进行排列。更推荐使用`PnMatplotlib`组件。
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <HBox>
+    <PnDisplay :obj="plt1.value"/>
+  </HBox>
+</template>
+<script lang='py'>
+import matplotlib.pyplot as plt
+import numpy as np
+
+from vuepy import ref
+
+
+def plt_to_img(title, xlabel, ylabel):
+    """
+    plt to matplotlib.figure.Figure
+    """
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.grid(True)
+    # plt.show()
+    im = plt.gcf()
+    plt.close()
+    return im
+
+
+def plt_sin():
+    x = np.arange(0, 5 * np.pi, 0.1)
+    y = np.sin(x)
+    plt.plot(x, y, color='green')
+    return plt_to_img('Sine Curve using Matplotlib', 'x', 'sin(x)')
+
+plt1 = ref(plt_sin())
+</script>
+
+```
+
 ## 展示 PIL 图片
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnDisplay :obj="pil_img"/>
+</template>
+
+
+
+
+
+
+<script lang="py">
+import numpy as np
+from PIL import Image
+
+width, height = 300, 200
+gradient = np.linspace(0, 255, width, dtype=np.uint8)
+gradient_array = np.tile(gradient, (height, 1))
+
+pil_img = Image.fromarray(gradient_array, 'L')
+</script>
+
+```
+
 ## 展示 Pandas Dataframe
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnDisplay :obj="df1"/>
+</template>
+
+<script lang="py">
+import pandas as pd
+
+df1 = pd.DataFrame(data={
+    'col1': ['a', 'b'],
+    'col2': ['c', 'd'],
+    'col3': ['e', 'f'],
+})
+</script>
+
+```
+
 ## 展示 widget
 
 利用 `Display` 组件集成基于 ipywidgets/Panel 的任意 widget。
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnDisplay :obj="btn"/>
+</template>
+
+<script lang="py">
+import panel as pn
+
+btn = pn.widgets.Button(name='btn')
+</script>
+
+```
+
 ## Display API
 
 ### Display 属性
@@ -6933,19 +17103,69 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 
 基本的文件选择器使用：
 
+```vue
+<template>
+  <PnFileSelector name="选择文件"
+                  directory="/Users/test"
+                 @change="on_change" />
+  <p>当前选择: {{ selected_file.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+selected_file = ref("未选择")
+
+def on_change(event):
+    selected_file.value = event.new
+</script>
+
+```
+
 
 ## 显示隐藏文件
 
 可以控制是否显示隐藏文件：
+
+```vue
+<template>
+  <PnFileSelector name="显示隐藏文件"
+                  directory="/Users/test"
+                  show_hidden />
+</template>
+
+```
 
 
 ## 文件过滤
 
 可以通过正则表达式过滤文件：
 
+```vue
+<template>
+  <PnFileSelector name="只显示Python文件"
+                  directory="/Users/test"
+                  file_pattern="*.txt" />
+</template>
+
+```
+
 ## 远程文件系统
 
 利用 [fsspec](https://filesystem-spec.readthedocs.io/en/latest/) 的强大功能，我们可以连接到远程文件系统。在下面的示例中，我们使用 s3fs 包连接到远程 S3 服务器。
+```vue
+<template>
+  <PnFileSelector :fs='fs'
+                  directory="s3://datasets.holoviz.org" />
+</template>
+<script lang='py'>
+import s3fs
+
+fs = s3fs.S3FileSystem(anon=True)
+</script>
+
+```
+
+
 
 ## API
 
@@ -6993,15 +17213,70 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 
 基本的日期时间范围输入框使用：
 
+```vue
+<template>
+  <PnDatetimeRangeInput name="日期时间范围" 
+                       :value="(dt(2023, 3, 1, 8, 0), dt(2023, 3, 15, 18, 0))"
+                       @change="on_change" />
+  <p>当前值: {{ selected_range.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+import datetime
+
+def dt(year, month, day, hour=0, minute=0, second=0):
+    return datetime.datetime(year, month, day, hour, minute, second)
+
+selected_range = ref("未选择")
+
+def on_change(event):
+    selected_range.value = f"{event.new[0]} - {event.new[1]}"
+</script>
+
+```
+
 
 ## 自定义格式
 
 可以通过format参数自定义日期时间的解析和显示格式：
 
+```vue
+<template>
+  <PnDatetimeRangeInput name="标准格式" 
+                       :value="(dt(2023, 3, 1), dt(2023, 3, 15))" />
+  <PnDatetimeRangeInput name="自定义格式" 
+                       :value="(dt(2023, 3, 1), dt(2023, 3, 15))"
+                       format="%Y年%m月%d日 %H:%M:%S" />
+</template>
+<script lang='py'>
+import datetime
+
+def dt(year, month, day, hour=0, minute=0, second=0):
+    return datetime.datetime(year, month, day, hour, minute, second)
+</script>
+
+```
+
 
 ## 设置边界
 
 可以设置日期时间的上下限：
+
+```vue
+<template>
+  <PnDatetimeRangeInput name="有范围限制" 
+                       :value="(dt(2023, 2, 15), dt(2023, 3, 15))"
+                       :start="dt(2023, 1, 1)"
+                       :end="dt(2023, 12, 31)" />
+</template>
+<script lang='py'>
+import datetime
+
+def dt(year, month, day, hour=0, minute=0, second=0):
+    return datetime.datetime(year, month, day, hour, minute, second)
+</script>
+
+```
 
 
 ## API
@@ -7047,15 +17322,83 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 
 创建一个基本的终端界面：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnTerminal 
+    output="Welcome to the Panel Terminal!\nI'm based on xterm.js\n\n"
+    :height="300" sizing_mode='stretch_width'/>
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
+
 
 ## 自定义参数
 
 可以设置各种终端参数，如字体大小、是否显示光标等：
 
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnTerminal :height='200' :width='300' output='> hello'
+              :options="{
+               'cursorBlink': True,
+               'fontSize': 18,
+               'theme': {
+                 'background': '#42b883',
+                 'foreground': '#f8f8f8'
+               }
+             }" />
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
+
 
 ## 交互处理
 
 终端还可以通过命令随时更新：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnRow>
+    <PnButton name="run python" @click="run_py()" />
+    <PnButton name="clear" @click="clear_term()" />
+  </PnRow>
+  <PnTerminal output='>>> Python 3.10.12' ref='terminal'
+             :height='300' sizing_mode='stretch_width'/>
+</template>
+<script lang='py'>
+from vuepy import ref, onMounted
+
+terminal = ref(None)
+
+def run_py():
+    if terminal.value:
+        t = terminal.value.unwrap()
+        if t.subprocess.running:
+            return
+        # t.subprocess.run("python", "-c", 'print(\"Hello from Python!\")')
+        t.subprocess.run("python")
+
+def clear_term():
+    if terminal.value:
+        t = terminal.value.unwrap()
+        t.subprocess.kill()
+        t.clear()
+
+@onMounted
+def run():
+    run_py()
+</script>
+
+```
 
 
 ## API
@@ -7103,20 +17446,107 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 
 基本的浮点滑块使用：
 
+```vue
+<template>
+  <PnFloatSlider name="浮点滑块" 
+                :start="0" 
+                :end="3.141" 
+                :step="0.01" 
+                v-model="value.value" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+value = ref(1.57)
+</script>
+
+```
+
 
 ## 自定义格式
 
 可以使用自定义格式字符串或Bokeh TickFormatter来格式化滑块值：
+
+```vue
+<template>
+  <PnFloatSlider name="距离（字符串格式）" 
+                format="1[.]00"
+                :start="0" 
+                :end="10" 
+                v-model="value1.value" />
+  <PnFloatSlider name="距离（格式化器）" 
+                :format="tick_formatter"
+                :start="0" 
+                :end="10" 
+                v-model="value2.value" />
+</template>
+<script lang='py'>
+from vuepy import ref
+from bokeh.models.formatters import PrintfTickFormatter
+
+value1 = ref(5)
+value2 = ref(5)
+tick_formatter = PrintfTickFormatter(format='%.3f 米')
+</script>
+
+```
 
 
 ## 垂直方向
 
 滑块可以设置为垂直方向显示：
 
+```vue
+<template>
+  <PnRow>
+    <PnFloatSlider name="水平滑块" 
+                  orientation="horizontal"
+                  :start="0" 
+                  :end="10" 
+                  :value="5"
+                  :width="300" />
+    <PnFloatSlider name="垂直滑块" 
+                  orientation="vertical"
+                  :start="0" 
+                  :end="10" 
+                  :value="5"
+                  :height="300" />
+  </PnRow>
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
+
 
 ## 滑块颜色和方向
 
 可以自定义滑块条的颜色和方向：
+
+```vue
+<template>
+  <PnFloatSlider name="蓝色滑块" 
+                bar_color="#3498db"
+                :start="0" 
+                :end="10" 
+                :value="5" />
+  <PnFloatSlider name="绿色滑块" 
+                bar_color="#2ecc71"
+                :start="0" 
+                :end="10" 
+                :value="5" />
+  <PnFloatSlider name="从右到左" 
+                direction="rtl"
+                :start="0" 
+                :end="10" 
+                :value="5" />
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
 
 
 ## API
@@ -7168,15 +17598,58 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 
 基本的整数输入框使用：
 
+```vue
+<template>
+  <PnIntInput name="数量" 
+              v-model="i.value" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+i = ref(0)
+</script>
+
+```
+
 
 ## 范围限制
 
 可以使用`start`和`end`参数设定值的范围：
 
+```vue
+<template>
+  <PnIntInput name="评分 (1-10)" 
+              :start="1"
+              :end="10"
+              v-model="i.value" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+i = ref(5)
+</script>
+
+```
+
 
 ## 自定义步长
 
 可以使用`step`参数定义上下调整时的步进值：
+
+```vue
+<template>
+  <PnIntInput name="调整(步长10)" 
+              :value="10"
+              :step="10"
+              v-model="i.value" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+i = ref(10)
+</script>
+
+```
 
 
 ## API
@@ -7224,24 +17697,152 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 
 基本的菜单按钮使用，定义按钮名称和菜单项列表：菜单项可以是单个字符串或元组，用None分隔为不同组。
 
+```vue
+<template>
+ <PnCol :height='200'>
+  <PnMenuButton name="Dropdown" 
+               :items="menu_items" 
+               button_type="primary" 
+               @click="on_click" />
+ </PnCol>
+ <p>value: {{ clicked_item.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+menu_items = [
+    ('A', 'a'), 
+    ('B', 'b'), 
+    ('C', 'c'), 
+    None, 
+    ('Help', 'help'),
+]
+clicked_item = ref("")
+
+def on_click(event):
+    clicked_item.value = event.new
+</script>
+
+```
+
 
 ## 分离式菜单
 
 可以使用`split`选项将下拉指示器移动到单独的区域：
 
 在`split`模式下，如果点击按钮本身，将报告`name`参数的值。
+```vue
+<template>
+ <PnCol :height='200'>
+  <PnMenuButton name="Split Menu" 
+               :split="True"
+               :items="menu_items" 
+               button_type="primary" 
+               @click="on_click" />
+ </PnCol>
+ <p>value: {{ clicked_item.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+menu_items = [
+    ('A', 'a'), 
+    ('B', 'b'), 
+    ('C', 'c'), 
+    None, 
+    ('Help', 'help'),
+]
+clicked_item = ref("")
+
+def on_click(event):
+    clicked_item.value = event.new # Split Menu, a, b, c
+</script>
+
+```
+
 
 ## 按钮样式
 
 可以通过设置`button_type`来改变按钮的颜色：
+
+```vue
+<template>
+  <PnCol>
+    <PnMenuButton v-for="type in button_types" 
+                 :name="type" 
+                 :button_type="type"
+                 :items="menu_items" />
+  </PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+menu_items = [('A', 'a'), ('B', 'b'), ('C', 'c')]
+button_types = ['default', 'primary', 'success', 'warning', 'light', 'danger']
+</script>
+
+```
 
 
 ## 图标
 
 菜单按钮的名称和菜单项可以包含Unicode字符和表情符号，为常见的图形按钮提供了一种便捷的方式：
 
+```vue
+<template>
+ <PnCol style='height: 200px'>
+  <PnRow style="border-bottom: 1px solid black">
+    <PnMenuButton name="File" 
+                 icon="file" 
+                 :items="file_items" 
+                 :width="75" 
+                 button_type="light" />
+    <PnMenuButton name="🧏🏻‍♂️ Help" 
+                 :items="help_items" 
+                 :width="100" 
+                 button_type="light" />
+  </PnRow>
+ </PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+file_items = ["\U0001F4BE Save", "🚪 Exit"]
+help_items = ["⚖️ License", None, "\U0001F6C8 About"]
+</script>
+
+```
+
 
 对于按钮本身，可以通过提供SVG `icon`值或从[tabler-icons.io](https://tabler-icons.io)加载的命名`icon`来使用更高级的图标：
+
+```vue
+<template>
+  <PnRow>
+    <PnMenuButton icon="alert-triangle-filled" 
+                  button_type="warning" 
+                  :items="['Confirm']">Warning</PnMenuButton>
+    <PnMenuButton name="Error" 
+                  icon="bug" 
+                  button_type="danger" 
+                  :items="['Retry']" />
+    <PnMenuButton name="Payment" 
+                  button_type="success" 
+                  icon_size="1.5em"
+                  :items="['WeChat']">
+     <template #icon>
+       <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-cash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+         <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+         <path d="M7 9m0 2a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2z" />
+         <path d="M14 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+         <path d="M17 9v-2a2 2 0 0 0 -2 -2h-10a2 2 0 0 0 -2 2v6a2 2 0 0 0 2 2h2" />
+       </svg>
+     </template>
+    </PnMenuButton>
+  </PnRow>
+</template>
+
+```
 
 
 ## API
@@ -7290,20 +17891,126 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 
 基本的日期时间范围选择器使用：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+ <PnColumn style='height:400px;'>
+  <PnDatetimeRangePicker 
+    name="日期时间范围" v-model="selected_range.value"/>
+ </PnColumn>
+ <p>选择的范围: {{ selected_range.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+import datetime
+
+def dt(year, month, day, hour=0, minute=0, second=0):
+    return datetime.datetime(year, month, day, hour, minute, second)
+
+selected_range = ref((dt(2023, 3, 2, 12, 10), dt(2023, 3, 2, 12, 22)))
+
+</script>
+
+```
+
 
 ## 设置日期范围限制
 
 可以设置可选日期的范围：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+ <PnColumn style='height:400px;'>
+  <PnDatetimeRangePicker name="范围限制" 
+                        :start="dt(2023, 12, 10)"
+                        :end="dt(2023, 12, 31)"
+                        :value="(dt(2023, 12, 11), dt(2023, 12, 15))" />
+ </PnColumn>
+</template>
+<script lang='py'>
+import datetime
+
+def dt(year, month, day, hour=0, minute=0, second=0):
+    return datetime.datetime(year, month, day, hour, minute, second)
+</script>
+
+```
 
 
 ## 禁用和启用特定日期
 
 可以设置特定日期不可选或可选：**注意**是`datetime.date`类型。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+ <PnColumn style='height:400px;'>
+  <PnDatetimeRangePicker name="禁用特定日期" 
+                        :value='(date(2023, 3, 8), date(2023, 3, 10))'
+                        :disabled_dates="disabled"/>
+ </PnColumn>
+ <PnColumn style='height:400px;'>
+  <PnDatetimeRangePicker name="启用特定日期" 
+                        :value='(date(2023, 3, 1), date(2023, 3, 2))'
+                        :enabled_dates="enabled" />
+ </PnColumn>
+</template>
+<script lang='py'>
+import datetime
+
+def date(year, month, day):
+    return datetime.date(year, month, day)
+    
+disabled = [
+  date(2023, 3, 5),
+  date(2023, 3, 6),
+  date(2023, 3, 12),
+  date(2023, 3, 13)
+]
+enabled = [
+  date(2023, 3, 1),
+  date(2023, 3, 2),
+  date(2023, 3, 10)
+]
+</script>
+
+```
+
 
 ## 时间格式设置
 
 可以控制时间显示和编辑的方式：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+ <PnCol style='height:400px;'>
+  <PnDatetimeRangePicker name="不显示时间" 
+                        :enable_time="False"
+                        :value="(dt(2023, 3, 1), dt(2023, 3, 15))" />
+  
+ </PnCol>
+ <PnCol style='height:400px;'>
+  <PnDatetimeRangePicker name="不显示秒" 
+                        :enable_seconds="False"
+                        :value="(dt(2023, 3, 1, 12, 30), dt(2023, 3, 15, 18, 45))" />
+  
+ </PnCol>
+ <PnColumn style='height:400px;'>
+  <PnDatetimeRangePicker name="12小时制" 
+                        :military_time="False"
+                        :value="(dt(2023, 3, 1, 13, 30), dt(2023, 3, 15, 15, 45))" />
+ </PnCol>
+</template>
+<script lang='py'>
+import datetime
+
+def dt(year, month, day, hour=0, minute=0, second=0):
+    return datetime.datetime(year, month, day, hour, minute, second)
+</script>
+
+```
 
 
 ## API
@@ -7355,20 +18062,95 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 
 基本的多选按钮组使用：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCheckButtonGroup name="水果选择" 
+                     :value="['苹果', '梨']"
+                     :options="['苹果', '香蕉', '梨', '草莓']"
+                     @change="on_change" />
+  <div>当前选择: {{ selected.value }}</div>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+selected = ref(["苹果", "梨"])
+
+def on_change(event):
+    selected.value = event['new']
+</script>
+
+```
+
 
 ## 垂直方向
 
 可以将按钮组设置为垂直方向：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCheckButtonGroup name="水果选择" 
+                     :value="['苹果']"
+                     :options="['苹果', '香蕉', '梨', '草莓']"
+                     button_type="primary"
+                     orientation="vertical" />
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
 
 
 ## 使用字典选项
 
 可以使用字典作为选项，其中键是显示的标签，值是实际的数据值：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCheckButtonGroup name="城市选择" 
+                     :options="city_options"
+                     :value="['BJ', 'SZ']"
+                     v-model="selected_cities.value" />
+  <div>选中城市代码: {{ selected_cities.value }}</div>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+city_options = {'北京': 'BJ', '上海': 'SH', '广州': 'GZ', '深圳': 'SZ'}
+selected_cities = ref(['BJ', 'SZ'])
+</script>
+
+```
+
 
 ## 按钮样式
 
 可以通过设置`button_type`和`button_style`来改变按钮的外观：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnCol v-for="style in ['solid', 'outline']">
+      <PnCheckButtonGroup v-for="type in button_types" 
+                         :name="type"
+                         :button_type="type"
+                         :button_style="style"
+                         :options="['选项1', '选项2', '选项3']"
+                         :value="['选项2']" />
+    </PnCol>
+  </PnRow>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+button_types = ['default', 'primary', 'success', 'warning', 'danger', 'light']
+</script>
+
+```
 
 
 ## API
@@ -7416,20 +18198,91 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 
 基本的单选按钮组使用：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRadioButtonGroup name="RadioButtonGroup" 
+                     :options="['Apple', 'Orange', 'Banana']" 
+                     v-model="selected.value"
+                     button_type="success"
+                     @change="on_change" />
+  <p>value: {{ selected.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+selected = ref('Apple')
+
+def on_change(event):
+    print(event.new)
+</script>
+
+```
+
 
 ## 垂直方向
 
 可以将按钮组设置为垂直方向：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRadioButtonGroup button_type="primary"
+                     :options="['Apple', 'Orange', 'Banana']" 
+                     orientation="vertical" />
+</template>
+
+```
 
 
 ## 使用字典选项
 
 可以使用字典作为选项，其中键是显示的标签，值是实际的数据值：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRadioButtonGroup name="RadioButtonGroup" 
+                     :options="city_options"
+                     button_type="warning"
+                     v-model="selected_city.value" />
+  <p>value: {{ selected_city.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+city_options = {'Beijing': 'BJ', 'Shanghai': 'SH', 'Guangzhou': 'GZ'}
+selected_city = ref('BJ')
+</script>
+
+```
+
 
 ## 按钮样式
 
 可以通过设置`button_type`和`button_style`来改变按钮的外观：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnCol v-for="style in ['solid', 'outline']">
+      <PnRadioButtonGroup v-for="type in button_types" 
+                         :name="type"
+                         :button_type="type"
+                         :button_style="style"
+                         :options="['opt1', 'opt2', 'opt3']"
+                         value="opt2" />
+    </PnCol>
+  </PnRow>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+button_types = ['default', 'primary', 'success', 'warning', 'danger', 'light']
+</script>
+
+```
 
 
 ## API
@@ -7477,20 +18330,89 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 
 基本的范围滑块，通过拖动两个手柄选择一个范围：
 
+```vue
+<template>
+  <PnRangeSlider name="RangeSlider" 
+                :start="0" 
+                :end="100" 
+                v-model="value.value"
+                :step="1" />
+  <p>value: {{ value.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+value = ref((25, 75))
+
+</script>
+
+```
+
 
 ## 自定义格式
 
 可以使用自定义格式字符串或Bokeh TickFormatter来格式化滑块值：
+
+```vue
+<template>
+  <PnRangeSlider name="Price" 
+                format="$%d"
+                :start="0" 
+                :end="1000" 
+                v-model="value.value"
+                :step="100" />
+  <p>value: {{ value.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+value = ref((200, 800))
+</script>
+
+```
 
 
 ## 垂直方向
 
 滑块可以设置为垂直方向显示：
 
+```vue
+<template>
+  <PnRow>
+    <PnRangeSlider name="垂直" 
+                  orientation="vertical"
+                  :start="0" 
+                  :end="100" 
+                  :value="(30, 70)"
+                  :height="300" />
+  </PnRow>
+</template>
+
+```
+
 
 ## 滑块颜色和方向
 
 可以自定义滑块条的颜色和方向：
+
+```vue
+<template>
+  <PnRangeSlider name="Blue RangeSlider" 
+                bar_color="#3498db"
+                :start="0" 
+                :end="100" 
+                :value="(20, 80)" />
+  <PnRangeSlider name="Right to Left" 
+                direction="rtl"
+                :start="0" 
+                :end="100" 
+                :value="(20, 80)" />
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
 
 
 ## API
@@ -7542,15 +18464,61 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 
 基本的浮点数输入框使用：
 
+```vue
+<template>
+  <PnFloatInput name="数值" 
+               v-model="f.value" />
+  <p>当前值: {{ f.value }} </p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+f = ref(0.0)
+</script>
+
+```
+
 
 ## 范围限制
 
 可以使用`start`和`end`参数设定值的范围：
 
+```vue
+<template>
+  <PnFloatInput name="温度 (-10.0 到 50.0)" 
+               :value="25.5"
+               :start="-10.0"
+               :end="50.0"
+               v-model="f.value" />
+  <p>当前温度: {{ f.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+f = ref(25.5)
+</script>
+
+```
+
 
 ## 自定义步长
 
 可以使用`step`参数定义上下调整时的步进值：
+
+```vue
+<template>
+  <PnFloatInput name="调整(步长0.1)" 
+               :value="1.0"
+               :step="2"
+               v-model="f.value" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+f = ref(1.0)
+</script>
+
+```
 
 
 ## API
@@ -7600,37 +18568,206 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 
 基本的文件下载组件使用，默认情况下（`auto=True`和`embed=False`）文件只在按钮被点击后才传输到浏览器：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnFileDownload file="FileDownload.ipynb" 
+                 filename="FileDownload.ipynb" />
+</template>
+
+```
+
 ## 嵌入文件数据
 
 可以通过`embed`参数立即嵌入文件数据，这允许在静态导出中使用此组件：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnFileDownload file="FileDownload.ipynb" 
+                 filename="FileDownload.ipynb"
+                 embed />
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
 
 
 ## 手动保存
 
 如果设置`auto=False`，文件不会在初次点击时下载，而是会在数据同步后将标签从"Transfer<文件>"更改为"Download<文件>"。这样可以在数据传输后使用"另存为"对话框下载。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnFileDownload file="FileDownload.ipynb" 
+                 filename="FileDownload.ipynb"
+                 :auto="False"
+                 button_type="success"
+                 name="右键点击使用'另存为'对话框下载" />
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
+
 
 ## 使用文件对象
 
 文件下载组件也可以接受文件对象，例如将`pandas DataFrame`保存为`CSV`到`StringIO`对象：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnFileDownload :file="file_obj" 
+                 filename="data.csv"
+                 embed />
+</template>
+<script lang='py'>
+from vuepy import ref
+from io import StringIO
+import pandas as pd
+
+# 创建示例数据
+data = {'名称': ['张三', '李四', '王五'],
+        '年龄': [28, 32, 45],
+        '城市': ['北京', '上海', '广州']}
+df = pd.DataFrame(data)
+
+sio = StringIO()
+df.to_csv(sio, index=False)
+sio.seek(0)
+file_obj = sio
+</script>
+
+```
 
 
 ## 动态生成文件
 
 可以提供回调函数动态生成文件，例如根据某些小部件的参数：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnFileDownload :file="filtered_file()" 
+                 filename="filtered_data.csv" />
+  <PnRow :height=400>
+    <PnMultiChoice name="选择年份" :options="years" v-model="selected_years.value" />
+    <PnRangeSlider name="里程范围" :start="min_mpg" :end="max_mpg" v-model="mpg_range.value" />
+  </PnRow>
+</template>
+<script lang='py'>
+from vuepy import ref
+from io import StringIO
+import pandas as pd
+
+# 创建示例数据
+years_list = [2018, 2019, 2020, 2021, 2022]
+mpg_data = []
+for year in years_list:
+    for i in range(10):
+        mpg_data.append({'年份': year, '里程': 10 + i * 5})
+df = pd.DataFrame(mpg_data)
+
+min_mpg = df['里程'].min()
+max_mpg = df['里程'].max()
+years = years_list
+
+selected_years = ref([years[0]])
+mpg_range = ref((min_mpg, max_mpg))
+
+
+def filtered_file():
+    filtered = df
+    if selected_years.value:
+        filtered = filtered[filtered['年份'].isin(selected_years.value)]
+    filtered = filtered[(filtered['里程'] >= mpg_range.value[0]) & 
+                        (filtered['里程'] <= mpg_range.value[1])]
+    
+    sio = StringIO()
+    filtered.to_csv(sio, index=False)
+    sio.seek(0)
+    print('update file')
+    return sio
+</script>
+
+```
+
 
 ## 按钮样式
 
 可以通过设置`button_type`和`button_style`来改变文件下载按钮的外观：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnCol v-for="style in ['solid', 'outline']">
+      <PnFileDownload v-for="type in button_types" 
+                     :button_type="type"
+                     :button_style="style"
+                     file="FileDownload.ipynb" 
+                     :label="type + '-' + style"
+                     style="margin: 5px" />
+    </PnCol>
+  </PnRow>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+button_types = ['default', 'primary', 'success', 'warning', 'light', 'danger']
+</script>
+
+```
 
 
 ## 图标按钮
 
 与其他按钮一样，可以提供显式的`icon`，可以是tabler-icons.io的命名图标：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnFileDownload icon="alert-triangle-filled" 
+                   button_type="warning" 
+                   file="FileDownload.ipynb" />
+    <PnFileDownload icon="bug" 
+                   button_type="danger" 
+                   file="FileDownload.ipynb" />
+  </PnRow>
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
+
 
 也可以是显式的SVG：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnFileDownload  button_type="success" 
+                   icon_size="2em" 
+                   file="FileDownload.ipynb">
+    <template #icon>
+      <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-cash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+        <path d="M7 9m0 2a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2z" />
+        <path d="M14 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+        <path d="M17 9v-2a2 2 0 0 0 -2 -2h-10a2 2 0 0 0 -2 2v6a2 2 0 0 0 2 2h2" />
+      </svg>
+    </template>
+  </PnFileDownload>
+</template>
+
+```
 
 
 ## API
@@ -7681,14 +18818,68 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 
 基本的日期时间输入框使用：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnDatetimeInput name="日期时间输入" 
+                  v-model="selected_datetime.value"/>
+  <p>当前值: {{ selected_datetime.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+import datetime
+
+def dt(year, month, day, hour=0, minute=0, second=0):
+    return datetime.datetime(year, month, day, hour, minute, second)
+
+selected_datetime = ref(dt(2023, 2, 8))
+</script>
+
+```
+
 ## 自定义格式
 
 可以通过format参数自定义日期时间的解析和显示格式：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnDatetimeInput name="标准格式" 
+                  :value="dt(2023, 2, 8)" />
+  <PnDatetimeInput name="自定义格式" 
+                  :value="dt(2023, 2, 8)"
+                  format="%Y年%m月%d日 %H:%M:%S" />
+</template>
+<script lang='py'>
+import datetime
+
+def dt(year, month, day, hour=0, minute=0, second=0):
+    return datetime.datetime(year, month, day, hour, minute, second)
+</script>
+
+```
 
 
 ## 设置边界
 
 可以设置日期时间的上下限：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnDatetimeInput name="有范围限制" 
+                  :value="dt(2023, 12, 15)"
+                  :start="dt(2023, 12, 10)"
+                  :end="dt(2023, 12, 31)" />
+</template>
+<script lang='py'>
+import datetime
+
+def dt(year, month, day, hour=0, minute=0, second=0):
+    return datetime.datetime(year, month, day, hour, minute, second)
+</script>
+
+```
 
 
 ## API
@@ -7734,16 +18925,66 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 
 基本的图标切换组件使用：
 
+```vue
+<template>
+  <PnToggleIcon size="4em" 
+               description="favorite desc" 
+               name="favorite" 
+               v-model='is_toggled.value'/>
+  <p>value: {{ is_toggled.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+is_toggled = ref(False)
+</script>
+
+```
+
 
 ## 自定义图标
 
 可以自定义默认图标和激活状态图标：
 
 
+```vue
+<template>
+  <PnRow>
+    <PnToggleIcon icon="thumb-down" 
+                 active_icon="thumb-up" 
+                 size="3em" />
+    <PnToggleIcon icon="bell" 
+                 active_icon="bell-ringing" 
+                 size="3em" />
+    <PnToggleIcon icon="star" 
+                 active_icon="star-filled" 
+                 size="3em" />
+  </PnRow>
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
+
 
 ## 使用SVG图标
 
 可以使用SVG字符串作为图标：
+
+```vue
+<template>
+<PnToggleIcon size="3em">
+  <template #icon>
+   <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-ad-off" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 5h10a2 2 0 0 1 2 2v10m-2 2h-14a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2" /><path d="M7 15v-4a2 2 0 0 1 2 -2m2 2v4" /><path d="M7 13h4" /><path d="M17 9v4" /><path d="M16.115 12.131c.33 .149 .595 .412 .747 .74" /><path d="M3 3l18 18" /></svg>
+  </template>                  
+  <template #active-icon>
+   <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-ad-filled" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M19 4h-14a3 3 0 0 0 -3 3v10a3 3 0 0 0 3 3h14a3 3 0 0 0 3 -3v-10a3 3 0 0 0 -3 -3zm-10 4a3 3 0 0 1 2.995 2.824l.005 .176v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-1h-2v1a1 1 0 0 1 -1.993 .117l-.007 -.117v-4a3 3 0 0 1 3 -3zm0 2a1 1 0 0 0 -.993 .883l-.007 .117v1h2v-1a1 1 0 0 0 -1 -1zm8 -2a1 1 0 0 1 .993 .883l.007 .117v6a1 1 0 0 1 -.883 .993l-.117 .007h-1.5a2.5 2.5 0 1 1 .326 -4.979l.174 .029v-2.05a1 1 0 0 1 .883 -.993l.117 -.007zm-1.41 5.008l-.09 -.008a.5 .5 0 0 0 -.09 .992l.09 .008h.5v-.5l-.008 -.09a.5 .5 0 0 0 -.318 -.379l-.084 -.023z" stroke-width="0" fill="currentColor" /></svg>
+  </template>                  
+</PnToggleIcon>
+</template>
+
+```
 
 
 ## API
@@ -7790,10 +19031,40 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 
 基本的文本输入框，可以输入和获取字符串：
 
+```vue
+<template>
+  <PnTextInput name="Text Input" 
+               placeholder="Enter a string here..." 
+               v-model="text.value"/>
+  <p>value: {{ text.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+text = ref("")
+</script>
+
+```
+
 
 ## 实时输入
 
 TextInput 组件提供了`value_input`参数，可以在每次按键时更新：
+
+```vue
+<template>
+  <PnTextInput name="Text Input" 
+               placeholder="Enter a string here..." 
+               v-model:value_input="text.value"/>
+  <p>value: {{ text.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+text = ref("")
+</script>
+
+```
 
 
 ## API
@@ -7840,20 +19111,102 @@ TextInput 组件提供了`value_input`参数，可以在每次按键时更新：
 
 基本的日期时间滑块使用：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnDatetimeSlider name="日期时间滑块" 
+                    :start="dt(2023, 1, 1)" 
+                    :end="dt(2023, 6, 1)" 
+                    v-model="selected_datetime.value"/>
+</template>
+<script lang='py'>
+from vuepy import ref
+import datetime
+
+def dt(year, month, day, hour=0, minute=0, second=0):
+    return datetime.datetime(year, month, day, hour, minute, second)
+
+selected_datetime = ref(dt(2023,1,1))
+</script>
+
+```
+
 
 ## 自定义格式
 
 可以通过format参数自定义日期时间的显示格式：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnDatetimeSlider name="自定义格式" 
+                    :start="dt(2023, 1, 1)" 
+                    :end="dt(2023, 6, 1)" 
+                    :value="dt(2023, 2, 8, 15, 40, 30)"
+                    format="%Y年%m月%d日 %H:%M:%S" />
+</template>
+<script lang='py'>
+import datetime
+
+def dt(year, month, day, hour=0, minute=0, second=0):
+    return datetime.datetime(year, month, day, hour, minute, second)
+</script>
+
+```
 
 
 ## 步长设置
 
 可以通过step参数设置滑块的步长（单位为秒）：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnDatetimeSlider name="小时步长" 
+                    :start="dt(2023, 1, 1)" 
+                    :end="dt(2023, 1, 2)" 
+                    :value="dt(2023, 1, 1, 12)"
+                    :step="60 * 60" />
+  <PnDatetimeSlider name="天步长" 
+                    :start="dt(2023, 1, 1)" 
+                    :end="dt(2023, 1, 31)" 
+                    :value="dt(2023, 1, 15)"
+                    :step="24 * 60 * 60" />
+</template>
+<script lang='py'>
+import datetime
+
+def dt(year, month, day, hour=0, minute=0, second=0):
+    return datetime.datetime(year, month, day, hour, minute, second)
+</script>
+
+```
+
 
 ## 垂直方向
 
 滑块可以设置为垂直方向显示：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnDatetimeSlider name="垂直滑块" 
+                      :start="dt(2023, 1, 1)" 
+                      :end="dt(2023, 6, 1)" 
+                      :value="dt(2023, 3, 15)"
+                      orientation="vertical" 
+                      :height="300" />
+  </PnRow>
+</template>
+<script lang='py'>
+import datetime
+
+def dt(year, month, day, hour=0, minute=0, second=0):
+    return datetime.datetime(year, month, day, hour, minute, second)
+</script>
+
+```
 
 
 ## API
@@ -7905,23 +19258,166 @@ TextInput 组件提供了`value_input`参数，可以在每次按键时更新：
 
 基本的嵌套选择组件，提供多层级的选项：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnNestedSelect :options="nested_options" 
+                  :levels="['模型', '分辨率', '初始化']" 
+                  @change="on_change" />
+  <p>value: {{ selected.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+nested_options = {
+    "GFS": {
+        "0.25度": ["00Z", "06Z", "12Z", "18Z"],
+        "0.5度": ["00Z", "12Z"],
+        "1度": ["00Z", "12Z"],
+    },
+    "NAME": {
+        "12km": ["00Z", "12Z"],
+        "3km": ["00Z", "12Z"],
+    },
+}
+
+selected = ref({})
+
+def on_change(event):
+    selected.value = event.new
+</script>
+
+```
+
 
 ## 自定义布局
 
 嵌套选择组件支持不同的布局类型：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnNestedSelect :options="nested_options" 
+                  :levels="['模型', '分辨率', '初始化']"
+                  layout="row" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+nested_options = {
+    "GFS": {
+        "0.25度": ["00Z", "06Z", "12Z", "18Z"],
+        "0.5度": ["00Z", "12Z"],
+        "1度": ["00Z", "12Z"],
+    },
+    "NAME": {
+        "12km": ["00Z", "12Z"],
+        "3km": ["00Z", "12Z"],
+    },
+}
+</script>
+
+```
+
 
 网格布局示例：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnNestedSelect :options="nested_options" 
+                  :levels="['模型', '分辨率', '初始化']"
+                  :layout='{"type": pn.GridBox, "ncols": 2}' />
+</template>
+<script lang='py'>
+from vuepy import ref
+import panel as pn
+
+nested_options = {
+    "GFS": {
+        "0.25度": ["00Z", "06Z", "12Z", "18Z"],
+        "0.5度": ["00Z", "12Z"],
+        "1度": ["00Z", "12Z"],
+    },
+    "NAME": {
+        "12km": ["00Z", "12Z"],
+        "3km": ["00Z", "12Z"],
+    },
+}
+</script>
+
+```
 
 
 ## 设置默认值
 
 可以通过设置`v-model`/`value`参数来指定默认选中的值：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnNestedSelect :options="nested_options" 
+                  :levels="['模型', '分辨率', '初始化']"
+                  v-model="default_value.value" />
+ <p>value: {{ default_value.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+nested_options = {
+    "GFS": {
+        "0.25度": ["00Z", "06Z", "12Z", "18Z"],
+        "0.5度": ["00Z", "12Z"],
+        "1度": ["00Z", "12Z"],
+    },
+    "NAME": {
+        "12km": ["00Z", "12Z"],
+        "3km": ["00Z", "12Z"],
+    },
+}
+
+default_value = ref({"模型": "NAME", "分辨率": "12km", "初始化": "12Z"})
+</script>
+
+```
+
 
 ## 动态选项
 
 动态生成选项options：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnNestedSelect :options="list_options"
+                  :levels='["time_step", "level_type", "file_type"]' />
+</template>
+<script lang='py'>
+from vuepy import ref
+import panel as pn
+
+# @pn.cache() # can help improve user experience and reduce the risk of rate limits.
+def list_options(level, value):
+    if level == "time_step":
+        options = {
+            "Daily": list_options, 
+            "Monthly": list_options,
+        }
+    elif level == "level_type":
+        options = {
+            f"{value['time_step']}_upper": list_options, 
+            f"{value['time_step']}_lower": list_options,
+        }
+    else:
+        options = [
+            f"{value['level_type']}.json", 
+            f"{value['level_type']}.csv",
+        ]
+
+    return options
+</script>
+
+```
 
 
 ## API
@@ -7968,20 +19464,109 @@ TextInput 组件提供了`value_input`参数，可以在每次按键时更新：
 
 基本的时间选择器使用：
 
+```vue
+<template>
+ <PnCol :height='150'>
+  <PnTimePicker name="TimePicker" v-model='time.value'/>
+ </PnCol>
+ <p>value: {{ time.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+import datetime as dt
+
+time = ref(None)
+</script>
+
+```
+
 
 ## 时间范围限制
 
 可以使用`start`和`end`参数限制可选择的时间范围：
+
+```vue
+<template>
+ <PnCol :height='150'>
+  <PnTimePicker name="TimePicker" 
+               start="09:00"
+               end="13:00"
+               v-model="time.value"/>
+ </PnCol>
+ <p>value: {{ time.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+import datetime as dt
+
+time = ref(dt.time(12, 0))
+</script>
+
+```
 
 
 ## 自定义时间格式
 
 可以使用`format`参数自定义时间的显示格式：
 
+```vue
+<template>
+ <p>value: {{ time1.value }}</p>
+ <PnCol :height='150'>
+  <PnTimePicker name="12小时制" 
+               format="h:i K"
+               v-model="time1.value"/>
+ </PnCol>
+
+ <p>value: {{ time2.value }}</p>
+ <PnCol :height='150'>
+  <PnTimePicker name="24小时制" 
+               format="H:i"
+               v-model="time2.value"/>
+ </PnCol>
+
+ <p>value: {{ time3.value }}</p>
+ <PnCol :height='150'>
+  <PnTimePicker name="带秒的格式" 
+               format="H:i:s"
+               :seconds="True"
+               v-model="time3.value"/>
+ </PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+import datetime as dt
+
+time1 = ref(dt.time(14, 30))
+time2 = ref(dt.time(14, 30))
+time3 = ref(dt.time(14, 30, 45))
+</script>
+
+```
+
 
 ## 自定义步长
 
 可以通过`hour_increment`、`minute_increment`和`second_increment`参数控制时、分、秒的调整步长：
+
+```vue
+<template>
+ <PnCol :height='150'>
+  <PnTimePicker name="小时步长:2 分钟步长:15" 
+               :hour_increment="2"
+               :minute_increment="15"
+               v-model="time.value"/>
+ </PnCol>
+ <p>value: {{ time.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+import datetime as dt
+
+time = ref(dt.time(12, 0))
+</script>
+
+```
 
 
 ## API
@@ -8054,21 +19639,171 @@ format:
 
 基本的代码编辑器，可以编辑和高亮显示代码：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCodeEditor v-model="code.value" 
+               sizing_mode="stretch_width" 
+               language="python" 
+               :height="200"
+               @change="on_change" />
+  <div>当前代码长度: {{ len(code.value) }} 字符</div>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+initial_code = """import sys
+import math
+
+def calculate_distance(x, y):
+    return math.sqrt(x**2 + y**2)
+
+print(calculate_distance(3, 4))  # 输出：5.0
+"""
+code = ref(initial_code)
+
+def on_change(event):
+    print(f"代码已更新，新长度: {len(code.value)}")
+</script>
+
+```
+
 ## 延迟更新
 
 默认情况下，代码编辑器会在每次按键时更新`value`，但可以设置`on_keyup=False`，使其仅在编辑器失去焦点或按下`<Ctrl+Enter>`/`<Cmd+Enter>`时更新`value`：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCodeEditor v-model="code.value" 
+               :on_keyup="False"
+               language="python" 
+               @change="on_change" />
+  <PnButton @click="show_code()">显示当前代码</PnButton>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+initial_code = "# 按Ctrl+Enter/Cmd+Enter或点击外部提交更改\nimport sys\n"
+code = ref(initial_code)
+
+def on_change(event):
+    print("代码已更新（失去焦点或按下Ctrl+Enter/Cmd+Enter）")
+    
+def show_code():
+    print(f"当前代码:\n{code.value}")
+</script>
+
+```
 
 ## 语言和主题
 
 可以更改编辑器的语言和主题：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRow>
+    <PnSelect name="语言" 
+              :options="languages"
+              v-model="selected_language.value" />
+    <PnSelect name="主题" 
+              :options="themes"
+              v-model="selected_theme.value" />
+  </PnRow>
+  <PnCodeEditor :value="sample_code" 
+               :language="selected_language.value"
+               :theme="selected_theme.value"
+               :height="300" :width="400"/>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+languages = ['python', 'html', 'javascript', 'css', 'sql']
+themes = ['chrome', 'monokai', 'twilight', 'tomorrow_night', 'github']
+
+selected_language = ref('html')
+selected_theme = ref('chrome')
+
+sample_code = r"""<!DOCTYPE html>
+<html>
+    <head>
+        <title>示例页面</title>
+    </head>
+    <body>
+        <h1>标题1</h1>
+        <h2>标题2</h2>
+        <p>段落</p>
+    </body>
+</html>
+"""
+</script>
+
+```
+
 ## 注释和只读模式
 
 可以为编辑器添加注释，并设置为只读模式：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCodeEditor :value="py_code" 
+               :annotations="annotations"
+               :readonly="True"
+               language="python"
+               :height="200" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+py_code = """import math
+
+# 这里有一个错误
+x = math.cos(x)**2 + math.cos(y)**2
+
+# 这里有一个警告
+for i in range(10)
+    print(i)
+"""
+
+annotations = [
+    dict(row=3, column=0, text='未定义变量 x 和 y', type='error'),
+    dict(row=6, column=17, text='缺少冒号', type='warning')
+]
+</script>
+
+```
+
 ## 通过文件名自动检测语言
 
 如果设置了`filename`属性，编辑器会根据文件扩展名自动检测语言：
+
+```vue
+<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<template>
+  <PnSelect name="文件" 
+            :options="files"
+            v-model="selected_file.value" />
+  <PnCodeEditor :value="file_contents[selected_file.value]"
+                :filename="selected_file.value"
+                :height="200" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+files = ['test.py', 'test.html', 'test.js', 'test.css']
+file_contents = {
+    'test.py': "def hello():\n    print('Hello World')\n\nhello()",
+    'test.html': "<html>\n  <body>\n    <h1>Hello World</h1>\n  </body>\n</html>",
+    'test.js': "function hello() {\n  console.log('Hello World');\n}\n\nhello();",
+    'test.css': "body {\n  background-color: #f0f0f0;\n  color: #333;\n}",
+}
+
+selected_file = ref('test.py')
+</script>
+
+```
 
 
 ## API
@@ -8119,15 +19854,76 @@ format:
 
 基本的可编辑范围滑块，可以通过滑动两个手柄或直接输入数字来选择范围：
 
+```vue
+<template>
+  <PnEditableRangeSlider name="范围滑块" 
+                        :start="0" 
+                        :end="pi" 
+                        :step="0.01"
+                        v-model="value.value"
+                        @change="on_change" />
+  <p>当前范围: {{ value.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+pi = 3.14
+
+initial_value = (pi/4., pi/2.)
+value = ref(initial_value)
+
+def on_change(event):
+    print(f"范围已更新为: {value.value}")
+</script>
+
+```
+
 
 ## 固定范围
 
 滑块的`value`默认没有界限，可以超过`end`或低于`start`。如果需要将`value`固定在特定范围内，可以使用`fixed_start`和`fixed_end`：
 
+```vue
+<template>
+  <PnEditableRangeSlider name="固定范围滑块" 
+                        :start="0" 
+                        :end="10" 
+                        :fixed_start="-1" 
+                        :fixed_end="12"
+                        :value="(2, 7)" />
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
+
 
 ## 自定义格式
 
 可以使用自定义格式字符串或Bokeh TickFormatter来格式化滑块值：
+
+```vue
+<template>
+  <PnEditableRangeSlider name="距离（字符串格式）" 
+                        format="0.0a"
+                        :start="100000" 
+                        :end="1000000"
+                        :value="(200000, 800000)" />
+  <PnEditableRangeSlider name="距离（格式化器）" 
+                        :format="tick_formatter"
+                        :start="0" 
+                        :end="10" 
+                        :value="(2, 7)" />
+</template>
+<script lang='py'>
+from vuepy import ref
+from bokeh.models.formatters import PrintfTickFormatter
+
+tick_formatter = PrintfTickFormatter(format='%.3f 米')
+</script>
+
+```
 
 
 ## API
@@ -8181,15 +19977,68 @@ format:
 
 基本的数组输入框，可以显示和编辑NumPy数组：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnArrayInput name="Array input" 
+                :value="initial_array"
+                v-model="array.value"
+                @change="on_change" />
+  <div>array shape: {{ array.value.shape }}</div>
+</template>
+<script lang='py'>
+import numpy as np
+from vuepy import ref
+
+initial_array = np.random.randint(0, 10, (10, 2))
+array = ref(initial_array)
+
+def on_change(event):
+    print(f"update ，shape: {array.value.shape}")
+</script>
+
+```
+
 
 ## 大型数组
 
 对于大型数组，可以设置`max_array_size`以避免浏览器负担过重：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnArrayInput name="Small Array (Editable)" 
+              :value="small_array" :max_array_size="1000" />
+<PnArrayInput name="Large Array (Non-editable)"
+              :value="large_array"
+              :max_array_size="1000" />
+</template>
+<script lang='py'>
+import numpy as np
+from vuepy import ref
+
+small_array = np.random.randint(0, 10, (10, 5))
+large_array = np.random.randint(0, 10, (100, 20))
+</script>
+
+```
+
 
 ## 自定义占位符
 
 可以自定义占位符文本：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnArrayInput name="placeholder" 
+                placeholder="[1, 2, 3]" />
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
 
 
 ## API
@@ -8234,15 +20083,80 @@ format:
 
 可以通过拖动手柄调整滑块的开始和结束日期，也可以通过拖动选定范围来整体移动范围：
 
+```vue
+<template>
+  <div>当前选择范围: {{ value.value }}</div>
+  <PnDateRangeSlider name="日期范围滑块"
+                     :start="start_date"
+                     :end="end_date"
+                     :value="initial_value"
+                     :step="2"
+                     v-model="value.value"/>
+</template>
+<script lang='py'>
+import datetime as dt
+from vuepy import ref
+
+start_date = dt.datetime(2017, 1, 1)
+end_date = dt.datetime(2019, 1, 1)
+initial_value = (dt.datetime(2017, 1, 1), dt.datetime(2018, 1, 10))
+value = ref(initial_value)
+
+</script>
+
+```
+
 
 ## 自定义格式
 
 可以使用自定义格式字符串来格式化滑块值：
 
+```vue
+<template>
+  <PnDateRangeSlider name="自定义格式日期范围"
+                    :start="start_date"
+                    :end="end_date"
+                    :value="initial_value"
+                    :step="2"
+                    format="%Y-%m-%d" />
+</template>
+<script lang='py'>
+import datetime as dt
+from vuepy import ref
+
+start_date = dt.datetime(2017, 1, 1)
+end_date = dt.datetime(2019, 1, 1)
+initial_value = (dt.datetime(2017, 1, 1), dt.datetime(2018, 1, 10))
+</script>
+
+```
+
 
 ## 垂直方向
 
 滑块可以设置为垂直方向显示：
+
+```vue
+<template>
+ <PnColumn style='height:400px;'>
+  <PnDateRangeSlider name="垂直日期范围滑块"
+                    orientation="vertical"
+                    :start="start_date"
+                    :end="end_date"
+                    :value="initial_value"
+                    :height="400" />
+ </PnColumn>
+</template>
+<script lang='py'>
+import datetime as dt
+from vuepy import ref
+
+start_date = dt.datetime(2017, 1, 1)
+end_date = dt.datetime(2019, 1, 1)
+initial_value = (dt.datetime(2017, 3, 1), dt.datetime(2018, 9, 10))
+</script>
+
+```
 
 
 ## API
@@ -8294,13 +20208,66 @@ format:
 
 基本的复选框组，可以选择多个选项：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCheckBoxGroup name="复选框组" 
+                  :value="['苹果', '梨']" 
+                  :options="['苹果', '香蕉', '梨', '草莓']"
+                  :inline="True"
+                  v-model="selected.value"
+                  @change="on_change" />
+  <div>当前选择: {{ selected.value }}</div>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+selected = ref(['苹果', '梨'])
+
+def on_change(ev):
+    print(ev) # Event(what='value', name='value', 
+              #  obj=CheckBoxGroup(inline=True,...), cls=CheckBoxGroup(...), 
+              #  old=[], new=[], type='changed')
+    print(f"{ev.new}") # value is ['苹果']
+</script>
+
+```
+
 ## 垂直布局
 
 通过设置`inline=False`可以将选项垂直排列：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCheckBoxGroup name="" 
+                  :options="['Opt1', 'Opt2', 'Opt3']" 
+                  :inline="False" />
+</template>
+
+```
+
 ## 字典选项
 
 可以使用字典作为选项，键作为显示标签，值作为实际值：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCheckBoxGroup name="字典选项" 
+                  :options="options"
+                  :value="[1, 3]"
+                  v-model="value.value" />
+  <div>ID: {{ value.value }}</div>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+options = {'苹果': 1, '香蕉': 2, '梨': 3, '草莓': 4}
+value = ref([1, 3])
+</script>
+
+```
 
 
 ## API
@@ -8346,14 +20313,81 @@ format:
 
 日期选择器使用浏览器依赖的日历小部件来选择日期：
 
+```vue
+<template>
+ <PnColumn style='height:400px;'>
+  <PnDatePicker name="日期选择器" 
+               :value="initial_date" 
+               v-model="date.value"
+               @change="on_change" />
+ </PnColumn>
+</template>
+<script lang='py'>
+import datetime as dt
+from vuepy import ref
+
+initial_date = dt.date(2024, 4, 1)
+date = ref(initial_date)
+
+def on_change(event):
+    print(f"{date.value}") # 2024-04-02
+</script>
+
+```
+
 ## 日期范围限制
 
 可以通过`start`和`end`参数限制可选日期的范围：
+
+```vue
+<template>
+ <PnColumn style='height:400px;'>
+  <PnDatePicker name="限制范围" 
+               :start="start_date" 
+               :end="end_date" />
+ </PnColumn>
+</template>
+<script lang='py'>
+import datetime as dt
+
+start_date = dt.date(2024, 12, 10)
+end_date = dt.date(2024, 12, 31)
+</script>
+
+```
 
 
 ## 可用/禁用日期
 
 可以通过`disabled_dates`和`enabled_dates`参数设置不可用和可用的日期：
+
+```vue
+<template>
+ <PnColumn style='height:400px;'>
+  <PnDatePicker name="禁用特定日期: 禁用周末"
+               :disabled_dates="disabled_dates" />
+ </PnColumn>
+ <PnColumn style='height:400px;'>
+  <PnDatePicker name="仅允许特定日期: 只允许本月的奇数日期"
+               :enabled_dates="enabled_dates" />
+ </PnColumn>
+</template>
+<script lang='py'>
+import datetime as dt
+from vuepy import ref
+
+# 禁用周末
+today = dt.datetime.now().date()
+disabled_dates = [(today + dt.timedelta(days=i)) for i in range(30) if (today + dt.timedelta(days=i)).weekday() >= 5]
+
+# 只允许本月的奇数日期
+month_start = today.replace(day=1)
+next_month = month_start.replace(month=month_start.month % 12 + 1, day=1)
+enabled_dates = [(month_start + dt.timedelta(days=i-1)) for i in range(1, 31, 2) 
+                if (month_start + dt.timedelta(days=i-1)).month == month_start.month]
+</script>
+
+```
 
 
 ## API
@@ -8400,20 +20434,102 @@ format:
 
 基本的自动完成输入框，可以从选项列表中选择一个值：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnCol :height='300'>
+  <PnAutocompleteInput name="自动完成输入框" 
+                      :options="['Apple', 'banana', 'orange']"
+                      :case_sensitive="False"
+                      :min_characters='1'
+                      search_strategy="includes"
+                      placeholder="Select a fruit: apple, ..."
+                      v-model="value.value"
+                      @change="on_change" />
+</PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+value = ref("")
+
+def on_change(event):
+    print(f"选择已更新为: {value.value}")
+</script>
+
+```
+
 
 ## 不限制输入
 
 如果设置`restrict=False`，自动完成输入框将允许任何输入，而不仅限于它提供的自动完成选项：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnAutocompleteInput name="不限制输入" 
+                       value="math"
+                      :options="['banana', 'apple']"
+                      :restrict="False" />
+</template>
+
+```
 
 
 ## 字典选项
 
 `options`参数也接受一个字典，其键将是下拉菜单的标签：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnAutocompleteInput name="Dict options" 
+                      :options="options"
+                      v-model="value.value" />
+  <PnButton @click="update_value()">to Apple</PnButton>
+  <div>当前值: {{ value.value }}</div>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+options = {'Banana': 1, 'Apple': 2, 'Orange': 3}
+value = ref(1)
+
+def update_value():
+    value.value = 2
+</script>
+
+```
+
 
 ## 搜索策略
 
 可以通过`search_strategy`参数定义如何搜索完成字符串列表：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+<PnCol :height='150'>
+  <PnAutocompleteInput name="Starts with match" 
+                      :options="fruits"
+                      search_strategy="starts_with"
+                      placeholder="Enter fruit name" />
+</PnCol>
+<PnCol :height='150'>
+  <PnAutocompleteInput name="Contains match" 
+                      :options="fruits"
+                      search_strategy="includes"
+                      :min_characters='1'
+                      placeholder="Enter fruit name" />
+</PnCol>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+fruits = ['Apple', 'Banana', 'Orange', 'Pear', 'Grape', 'Mango', 'Strawberry', 'Watermelon']
+</script>
+
+```
 
 
 ## API
@@ -8466,14 +20582,73 @@ format:
 * 过滤框，允许使用正则表达式匹配下方值列表中的选项
 * 按钮，用于将值从未选择列表移动到已选择列表（`>>`）或反之（`<<`）
 
+```vue
+<template>
+  <PnCrossSelector name="Fruits" 
+                  :value="['Apple', 'Pear']" 
+                  :options="['Apple', 'Banana', 'Pear', 'Strawberry']"
+                  v-model="selected.value"
+                  @change="on_change" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+selected = ref(['Apple', 'Pear'])
+
+def on_change(event):
+    print(f"Selection: {event.new}") # Selection: ['Apple']
+</script>
+
+```
+
 ## 自定义过滤函数
 
 可以自定义过滤函数来控制如何根据搜索模式过滤选项：
+
+```vue
+<template>
+  <PnCrossSelector name="Cities" 
+                  :options="cities"
+                  :filter_fn="custom_filter" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+cities = ['New York', 'London', 'Paris', 'Tokyo', 'Beijing', 'Shanghai', 'Sydney', 'Berlin']
+
+def custom_filter(pattern, option):
+    """Custom filter function that only matches beginning"""
+    if not pattern:
+        return True
+    return option.startswith(pattern)
+</script>
+
+```
 
 
 ## 保持定义顺序
 
 通过`definition_order`参数可以控制是否在过滤后保留定义顺序：
+
+```vue
+<template>
+  <PnCrossSelector name="保持定义顺序" 
+                  definition_order
+                  :options="options"
+                  :value="initial_value" />
+  <PnCrossSelector name="按选择顺序" 
+                  :definition_order="False"
+                  :options="options"
+                  :value="initial_value" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+options = ['选项1', '选项2', '选项3', '选项4']
+initial_value = ['选项2', '选项4']
+</script>
+
+```
 
 
 ## API
@@ -8519,10 +20694,48 @@ format:
 
 基本的单选框组，可以从选项列表中选择一个值：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRadioBoxGroup name="RadioBoxGroup" 
+                  :options="['Apple', 'Orange', 'Banana']" 
+                  :inline="True" 
+                  v-model="value.value"
+                  @change="on_change" />
+  <p>value: {{ value.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+value = ref('Apple')
+
+def on_change(event):
+    print(event.new) # Orange
+</script>
+
+```
+
 
 ## 字典选项
 
 使用字典作为选项，键作为显示标签，值作为实际值：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnRadioBoxGroup name="RadioBoxGroup" 
+                  :options="options" 
+                  v-model="value.value" />
+  <p>value: {{ value.value }}</p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+options = {'Apple': 101, 'Orange': 102, 'Banana': 103}
+value = ref(101)
+</script>
+
+```
 
 
 ## API
@@ -8567,15 +20780,64 @@ format:
 
 基本的整数滑块，可以通过滑动选择整数值：
 
+```vue
+<template>
+  <PnIntSlider name="整数滑块" 
+              :start="0" 
+              :end="8" 
+              :step="2" 
+              :value="4" 
+              v-model="value.value"/>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+value = ref(4)
+</script>
+
+```
+
 
 ## 自定义格式
 
 可以使用自定义格式字符串或Bokeh TickFormatter来格式化滑块值：
 
+```vue
+<template>
+  <PnIntSlider name="计数" 
+               :format="tick_formatter" 
+               :start="0" 
+               :end="100" 
+               :value="42" />
+</template>
+<script lang='py'>
+from vuepy import ref
+from bokeh.models.formatters import PrintfTickFormatter
+
+tick_formatter = PrintfTickFormatter(format='%d 只鸭子')
+</script>
+
+```
+
 
 ## 垂直方向
 
 滑块可以设置为垂直方向显示：
+
+```vue
+<template>
+  <PnIntSlider name="垂直滑块" 
+               orientation="vertical" 
+               :start="0" 
+               :end="100" 
+               :value="50"
+               :height="200" />
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
 
 
 ## API
@@ -8627,15 +20889,73 @@ format:
 
 基本的可编辑浮点滑块，可以通过滑动或直接输入数字来选择值：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnEditableFloatSlider name="浮点滑块" 
+                        :start="0" 
+                        :end="3.141" 
+                        :step="0.01" 
+                        :value="1.57" 
+                        v-model="value.value"/>
+  <div>当前值: {{ value.value }}</div>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+value = ref(1.57)
+</script>
+
+```
+
 
 ## 固定范围
 
 滑块的`value`默认没有界限，可以超过`end`或低于`start`。如果需要将`value`固定在特定范围内，可以使用`fixed_start`和`fixed_end`：
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnEditableFloatSlider name="固定范围滑块" 
+                        :start="0" 
+                        :end="10" 
+                        :fixed_start="-3.14" 
+                        :fixed_end="15.0"
+                        :value="5" />
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
+
 
 ## 自定义格式
 
 可以使用自定义格式字符串或Bokeh TickFormatter来格式化滑块值：
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnEditableFloatSlider name="距离" 
+                        format="1[.]00"
+                        :start="0" 
+                        :end="10" 
+                        :value="5" />
+  <PnEditableFloatSlider name="距离（米）" 
+                        :format="tick_formatter"
+                        :start="0" 
+                        :end="10" 
+                        :value="5" />
+</template>
+<script lang='py'>
+from vuepy import ref
+from bokeh.models.formatters import PrintfTickFormatter
+
+tick_formatter = PrintfTickFormatter(format='%.3f m')
+</script>
+
+```
 
 
 ## API
@@ -8689,15 +21009,64 @@ format:
 
 基本的多行文本输入框，可以输入和获取多行字符串：
 
+```vue
+<template>
+  <PnTextAreaInput name="TextAreaInput" 
+                   placeholder='Enter a string here...'
+                   v-model="text.value" 
+                   sizing_mode='stretch_width'/>
+  <p>value: {{ text.value }} </p>
+</template>
+<script lang='py'>
+from vuepy import ref
+
+text = ref("")
+</script>
+
+```
+
 
 ## 自动增长
 
 自动增长的 TextAreaInput 会根据输入的文本自动调整高度。设置 `rows` 和 `auto_grow` 可以设置行数下限，而设置 `max_rows` 可以提供上限：
 
+```vue
+<template>
+  <PnTextAreaInput name="Growing TextArea" 
+                  :auto_grow="True" 
+                  :max_rows="10" 
+                  :rows="6" 
+                  :value="initial_text" 
+                  :width="500" />
+</template>
+<script lang='py'>
+from vuepy import ref
+
+initial_text = """\
+This text area will grow when newlines are added to the text:
+
+1. Foo
+2. Bar
+3. Baz
+"""
+</script>
+
+```
+
 
 ## 可调整大小
 
 可以设置文本区域只在垂直方向可调整大小：
+
+```vue
+<template>
+  <PnTextAreaInput name="垂直可调整文本框" resizable="height" />
+</template>
+<script lang='py'>
+from vuepy import ref
+</script>
+
+```
 
 
 ## API
