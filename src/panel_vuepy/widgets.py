@@ -5,6 +5,14 @@ from __future__ import annotations
 from typing import Dict
 
 import panel as pn
+try:
+    from panel.widgets import ButtonIcon as _ButtonIcon
+except ImportError:
+    _ButtonIcon = None
+try:
+    from panel.widgets import ToggleIcon as _ToggleIcon
+except ImportError:
+    _ToggleIcon = None
 
 from vuepy.compiler_sfc.codegen_backends.backend import IHTMLNode
 from vuepy.compiler_sfc.codegen_backends.backend import INode
@@ -84,7 +92,7 @@ class AutocompleteInput(VPanelComponent):
 
 
 class ActiveIconComponent(VPanelComponent):
-    _cls = pn.widgets.ButtonIcon
+    _cls = _ButtonIcon
     v_model_default = 'name'
     PARAMS_STORE_TRUE = [
         ('disabled', False),
@@ -130,6 +138,9 @@ class ActiveIconComponent(VPanelComponent):
             attrs['active_icon'] = active_icon_slot.inner_html
 
         _params = {**props, **attrs, **params}
+        if self._cls is None:
+            raise ValueError(f"{self._cls.__name__} is not supported in this version of Panel")
+
         w = self._cls(**_params)
 
         if slot_label_node:
@@ -144,7 +155,7 @@ class ActiveIconComponent(VPanelComponent):
 
 @vpanel.ns_register()
 class ButtonIcon(ActiveIconComponent):
-    _cls = pn.widgets.ButtonIcon
+    _cls = _ButtonIcon
 
 
 @vpanel.ns_register()
@@ -992,7 +1003,7 @@ class ToggleGroup(VPanelComponent):
 
 @vpanel.ns_register()
 class ToggleIcon(ActiveIconComponent):
-    _cls = pn.widgets.ToggleIcon
+    _cls = _ToggleIcon
     v_model_default = 'value'
 
 
