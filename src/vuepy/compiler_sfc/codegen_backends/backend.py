@@ -30,8 +30,8 @@ class CodegenBackendMgr(metaclass=FactoryMeta):
     @classmethod
     def get_by_name(cls, name):
         backend = cls._registry.get(name, None)
+        # lazy load
         if isinstance(backend, str):
-            # lazy load
             module, backend_cls = backend.rsplit('.', 1)
             module = __import__(module, fromlist=[backend_cls])
             backend = getattr(module, backend_cls)

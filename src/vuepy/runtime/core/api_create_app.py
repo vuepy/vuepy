@@ -58,9 +58,9 @@ class App:
     def __init__(
         self, 
         root_component: RootComponent, 
-        backend=codegen_backends.ipywidgets.NAME, 
-        servable=False,
-        debug=False, 
+        backend: str | None = codegen_backends.ipywidgets.NAME, 
+        servable: bool = False,
+        debug: bool = False, 
     ):
         self.codegen_backend: ICodegenBackend = CodegenBackendMgr.get_by_name(backend)
         if self.codegen_backend is None:
@@ -96,7 +96,6 @@ class App:
         self._components = {}
         self.component('template', self.codegen_backend.get_template_component())
 
-        # self.document: Document = Document()
         self.document: IDocumentNode = self.codegen_backend.gen_document_node()
         self.dom: INode = None
 

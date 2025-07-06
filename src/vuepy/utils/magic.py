@@ -201,10 +201,12 @@ def vuepy_run(vue_file, cell=''):
     """
 
     def add_codegen_backend_params(parser: argparse.ArgumentParser):
-        parser.add_argument('--codegen-backend',
-                            type=str,
-                            default=iw_backend.NAME,
-                            help='codegen backend')
+        parser.add_argument(
+            '--backend',
+            type=str,
+            default=iw_backend.NAME,
+            help='backend of codegen: ipywidgets, panel, etc. default: ipywidgets'
+        )
         return parser
 
     def add_vue_file_params(parser: argparse.ArgumentParser):
@@ -269,7 +271,7 @@ def vuepy_run(vue_file, cell=''):
         else:
             App = import_sfc(vue_file)
 
-    app = create_app(App, backend=args.codegen_backend, servable=args.servable)
+    app = create_app(App, backend=args.backend, servable=args.servable)
     plugins = []
     for _p in args.plugins:
         plugins.extend(_p) if isinstance(_p, list) else plugins.append(_p)
