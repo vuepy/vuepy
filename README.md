@@ -27,11 +27,12 @@ Vue.py (pronounced /vjuːpaɪ/, like "view py") is a reactive Python framework f
 * 🛠️ create custom web interface using pure Python in Jupyter
 * 🤖 prototype within .ipynb or .py files
 * 🪄 reactive: update the data, vuepy will reactively update all dependent view components
-* 🚀 batteries-included: built-in IPywUI includes 37+ commonly used UI components
+* 🚀 batteries-included: built-in [IPywUI](https://vuepy.org/ipywui/overview.html) includes 37+ commonly used UI components
+* 🚀 batteries-included: [Panel-vuepy](https://vuepy.org/panel_vuepy/quick-start.html) includes 130+ commonly used UI components
 * 🧩 extensible: can easily integrate third-party python libraries such as plotly, bokeh, panel, pandas, ipyleaflet etc
 * 🖐️ interactive: bind sliders, buttons, plots, and more to Python — no callbacks required
 * 🚀 run in Jupyter, JupyterLab, VSCode, Cursor, Google Colab and more
-* ✨ generate UI interface with one click through AI-driven conversation interface. provide [llms.txt](https://www.vuepy.org/llms.txt), [llms-ctx.txt](https://www.vuepy.org/llms-ctx.txt)
+* ✨ generate UI interface with one click through AI-driven conversation interface. provide [llms.txt](https://www.vuepy.org/llms.txt), [llms-ctx.txt](https://www.vuepy.org/llms-ctx.txt), [llms-ctx-ipywui.md](), [llm-ctx-panel-vuepy.md]()
 
 ## Installation
 
@@ -108,6 +109,16 @@ Check out our [docs](https://www.vuepy.org/guide/introduction.html), the `exampl
       <a target="_blank" href="https://www.vuepy.org/vleaflet/overview.html">docs</a>
     </td>
   </tr>
+  <!--
+  <tr>
+    <td><img src='https://github.com/vuepy/vuepy/blob/master/docs/assets/vleaflet-demo-orgin-low.gif?raw=true' with='389px'></td>
+    <td>Panel-vuepy</td>
+    <td>
+      <a target="_blank" href="https://github.com/vuepy/vuepy/blob/master/examples/vleaflet_travel/travel.ipynb">Read more</a>, 
+      <a target="_blank" href="https://www.vuepy.org/panel_vuepy/quick-start.html">docs</a>
+    </td>
+  </tr>
+  -->
 </table>
 
 

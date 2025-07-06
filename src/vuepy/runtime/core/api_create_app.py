@@ -213,19 +213,26 @@ VueOptions = SFCType
 RootComponent = Union[Type[VueComponent], SFCType, dict]
 
 
-def create_app(root_component: RootComponent, use_wui=True, **root_props) -> App:
-    """创建一个应用实例
+def create_app(
+    root_component: RootComponent, 
+    use_wui: bool = True,
+    backend: str = codegen_backends.ipywidgets.NAME,
+    servable: bool = False,
+    debug: bool = False,
+    **root_props
+) -> App:
+    """create a app instance.
     app = create_app(App)
     app = create_app({})
 
     :param root_component:
-    :param use_wui:
-    :param root_props: dict { backend, debug }
+    :param use_wui: use ipywui
+    :param backend: backend of codegen: ipywidgets, panel, etc. default: ipywidgets
+    :param servable: servable mode
+    :param debug: debug mode
+    :param root_props: root component props
     :return:
     """
-    debug = root_props.get('debug', False)
-    backend = root_props.get('backend', codegen_backends.ipywidgets.NAME)
-    servable = root_props.get('servable', False)
     app = App(root_component, backend=backend, debug=debug, servable=servable)
     if use_wui:
         from ipywui import wui
