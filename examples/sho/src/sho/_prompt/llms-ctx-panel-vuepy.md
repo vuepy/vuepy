@@ -88,94 +88,6 @@ panel server app.ipynb
 * [Panel: Serve Apps](https://panel.holoviz.org/tutorials/intermediate/serve.html)
 
 
-# ChatFeed 聊天消息流组件
-
-中层级的布局组件，用于管理一系列 ChatMessage 消息组件。该组件提供后端方法来：
-- 发送(附加)消息到聊天记录
-- 将字符流式显示到最近的 ChatMessage 中
-- 当用户发送消息时执行回调
-- 撤销多条 ChatMessage 消息
-- 清空所有 ChatMessage 消息
-
-底层实现为`panel.chat.ChatFeed`，参数基本一致，参考文档：https://panel.holoviz.org/reference/chat/ChatFeed.html
-
-
-## 基本用法
-
-基本的消息流组件可以不带任何参数初始化：
-
-
-可以通过 send 方法发送消息：
-
-
-## 消息回调
-
-可以通过设置 callback 来创建更有趣的交互：
-
-
-回调函数可以根据需要包含不同的参数：
-- 只有一个参数时为 contents (消息内容)
-- 两个参数时为 contents 和 user (用户名)
-- 三个参数时为 contents、user 和 instance (组件实例)
-
-可以通过设置 callback_user 和 callback_avatar 来修改响应者的默认名称和头像：
-
-
-## 消息流式显示
-
-通过 async generators 可以实现最简单和最理想的输出流式显示：
-
-
-对于非生成器输出(比如LangChain输出)，也可以使用 stream 方法进行流式显示：
-
-
-## 自定义样式
-
-可以通过 message_params 传递 ChatEntry 参数：
-
-
-还可以通过 CSS 自定义消息外观：
-
-
-## API
-
-### 属性
-
-| 属性名            | 说明                   | 类型                                                   | 默认值  |
-| ---------------- | --------------------- | ----------------------------------------------------- | ------- |
-| callback         | 消息回调函数           | ^[Callable]                                           | None    |
-| callback_user    | 回调消息的默认用户名    | ^[str]                                                | —      |
-| callback_avatar  | 回调消息的默认头像      | ^[str]                                               | —      |
-| message_params   | ChatEntry 参数         | ^[dict]                                              | {}     |
-| show_activity_dot| 显示活动状态点         | ^[bool]                                              | False  |
-| height          | 组件高度              | ^[int \| str]                                         | —      |
-| width           | 组件宽度              | ^[int \| str]                                         | —      |
-
-### Events
-
-| 事件名   | 说明                  | 类型                                     |
-| ------- | -------------------- | ---------------------------------------- |
-| message | 发送新消息时触发       | ^[Callable]`(message: dict) -> None`     |
-| clear   | 清空消息时触发        | ^[Callable]`() -> None`                  |
-
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-| default | 自定义默认内容      |
-
-### 方法
-
-| 方法名    | 说明                  | 参数                                    |
-| -------- | ------------------- | --------------------------------------- |
-| send     | 发送消息            | value, user, avatar, footer_objects     |
-| stream   | 流式发送消息         | value, user, avatar, message            |
-| clear    | 清空所有消息         | -                                       |
-| undo     | 撤销最后的消息       | count: int = 1                          |
-
-
-
-
 # ChatAreaInput 聊天输入组件
 
 多行文本输入组件，继承自 TextAreaInput，允许通过文本输入框输入任意多行字符串。支持使用 Enter 键或可选的 Ctrl-Enter 键提交消息。
@@ -255,15 +167,6 @@ output_text = ref("")
 | -------- | ------------- | ------------------------------------- |
 | change   | value 值改变时触发   | ^[Callable]`(value: str) -> None`    |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-
-### 方法
-
-| 方法名    | 说明         | 参数                    |
-| -------- | ----------- | ---------------------- |
 
 
 
@@ -280,6 +183,7 @@ output_text = ref("")
 基本的 LangChain 集成示例：
 
 
+
 ## 流式输出
 
 通过设置 LLM 的 streaming=True 来启用流式输出：
@@ -294,18 +198,6 @@ output_text = ref("")
 | instance | 目标聊天组件实例       | ^[ChatFeed \| ChatInterface]        | —      |
 | user     | 用户名               | ^[str]                              | —      |
 | avatar   | 用户头像              | ^[str \| BinaryIO]                  | —      |
-
-### Events
-
-| 事件名   | 说明           | 类型                               |
-| ------- | ------------- | ---------------------------------- |
-| -       | -            | -                                  |
-
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-| -       | -                |
 
 ### 方法
 
@@ -326,7 +218,7 @@ output_text = ref("")
 
 底层实现为`panel.chat.ChatInterface`，参数基本一致，参考文档：https://panel.holoviz.org/reference/chat/ChatInterface.html
 
-![image.png](attachment:84748a4a-e38b-4573-b6b5-557e3dc970c9.png)
+![image.png](https://panel.holoviz.org/assets/ChatDesignSpecification.png)
 
 ## 基本用法
 
@@ -365,7 +257,7 @@ async def get_response(contents, user, instance):
 可以自定义输入组件，支持多种输入类型：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
 <PnChatInterface :callback="get_num">
   <template #inputs>
@@ -388,7 +280,7 @@ def get_num(contents, user):
 可以添加文件上传等其他输入组件：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
 <!-- use widgets prop -->
 <PnChatInterface :callback="handle_file" 
@@ -522,6 +414,7 @@ def run_after(instance, event):
 ```
 
 
+
 ## API
 
 ### 核心属性
@@ -581,6 +474,7 @@ def run_after(instance, event):
 
 
 
+
 # ChatStep 聊天步骤组件
 
 用于显示和管理聊天中的中间步骤组件，比如思维链中的步骤。该组件提供了对步骤状态的管理，包括挂起、运行中、成功和失败等状态，以及相应的标题和内容控制。
@@ -593,6 +487,7 @@ def run_after(instance, event):
 基本的步骤组件初始化：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnChatStep/>
 </template>
@@ -608,6 +503,7 @@ def run_after(instance, event):
 
 标题也可以通过 `stream_title` 方法对标题实现类似操作。
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
 <PnColumn>
   <PnChatStep ref="step_ref" :width='200' />
@@ -645,6 +541,7 @@ async def add_content():
 
 默认头像是 `BooleanStatus` 组件，但可以通过提供 `default_badges` 进行更改。值可以是表情符号、图像、文本或 Panel 对象
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
 <PnChatStep 
     :default_badges='default_badges'
@@ -668,6 +565,7 @@ default_badges={
 
 为了显示该步骤正在处理，您可以将`status`设置为 `running` 并提供 `running_title`，使用 `success_title` 在成功时更新标题。
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
 <PnCol>
   <PnChatStep
@@ -701,6 +599,7 @@ def on_click():
 处理失败状态：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
 <PnCol>
   <PnChatStep 
@@ -737,6 +636,7 @@ def on_click():
 支持标题的流式更新：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
 <PnColumn>
   <PnChatStep :width='200' ref="step_ref" />
@@ -806,7 +706,8 @@ def stream_title():
 
 
 
-# PnChatFeed 聊天流
+
+# ChatFeed 聊天流
 
 PnChatFeed是一个中层布局组件，用于管理一系列聊天消息(ChatMessage)项。该组件提供后端方法来发送消息、流式传输令牌、执行回调、撤销消息以及清除聊天记录。
 
@@ -818,7 +719,7 @@ PnChatFeed是一个中层布局组件，用于管理一系列聊天消息(ChatMe
 `PnChatFeed`可以不需要任何参数初始化，通过`send`方法发送聊天消息。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
 <PnCol>
   <PnChatFeed ref="chat_feed" />
@@ -851,7 +752,7 @@ _ = onMounted(on_click)
 除了`contents`之外，签名还可以包含最新可用的`user`名称和聊天`instance`。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnChatFeed :callback="echo_message" ref="chat_feed" />
   <PnButton name='send' @click='send_message()'/>
@@ -877,7 +778,7 @@ _ = onMounted(send_message)
 可以更新`callback_user`和`callback_avatar`来分别更改响应者的默认名称和头像。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnChatFeed :callback='echo_message' 
               callback_user='Echo Bot' callback_avatar='🛸' ref="chat_feed" />
@@ -904,7 +805,7 @@ d = onMounted(send_message)
 指定的`callback`也可以返回一个包含`value`、`user`和`avatar`键的字典，这将覆盖默认的`callback_user`和`callback_avatar`。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnChatFeed :callback="parrot_message" 
               callback_user='Echo Bot' 
@@ -931,7 +832,7 @@ _ = onMounted(send_message)
 如果不希望与`send`一起触发回调，请将`respond`设置为`False`。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnChatFeed :callback="parrot_message" callback_user='Echo Bot' callback_avatar='🛸' ref="chat_feed" />
 </template>
@@ -956,7 +857,7 @@ _ = onMounted(send_message)
 可以通过将`callback_exception`设置为`"summary"`来显示异常。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnChatFeed :callback="bad_callback" callback_exception='summary' ref="chat_feed" />
 </template>
@@ -983,7 +884,7 @@ _ = onMounted(send_message)
 `PnChatFeed`还支持*异步*`callback`。我们建议尽可能使用*异步*`callback`以保持应用程序的快速响应，*只要函数中没有阻塞事件循环的内容*。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnChatFeed :callback="parrot_message" callback_user='Echo Bot' ref="chat_feed" />
 </template>
@@ -1010,7 +911,7 @@ _ = onMounted(send_message)
 流式输出的最简单和最优方式是通过*异步生成器*。如果您不熟悉这个术语，只需在函数前加上`async`，并用`yield`替换`return`。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnChatFeed :callback="stream_message" ref="chat_feed" />
 </template>
@@ -1040,7 +941,7 @@ _ = onMounted(send_message)
 如果不连接字符，也可以持续替换原始消息。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnChatFeed :callback="replace_message" ref="chat_feed" />
 </template>
@@ -1068,7 +969,7 @@ _ = onMounted(send_message)
 也可以手动触发回调与`respond`。这对于从初始消息实现一系列响应很有用！
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnChatFeed :callback="chain_message" ref="chat_feed" />
 </template>
@@ -1110,7 +1011,7 @@ _ = onMounted(send_message)
 可以将`edit_callback`附加到`PnChatFeed`以处理消息编辑。签名必须包含最新可用的消息值`contents`、编辑消息的索引和聊天`instance`。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnChatFeed :callback="echo_callback" :edit_callback="edit_callback" callback_user="Echo Guy" ref="chat_feed" />
 </template>
@@ -1140,7 +1041,7 @@ _ = onMounted(send_message)
 可以通过一系列`ChatStep`提供中间步骤，如思想链。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnChatFeed ref="chat_feed" />
 </template>
@@ -1186,7 +1087,7 @@ _ = onMounted(demo_steps)
 可以使用`prompt_user`暂时暂停代码执行并提示用户回答问题或填写表单，该方法接受任何Panel `component`和后续`callback`（带有`component`和`instance`作为args）在提交后执行。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnChatFeed :callback="show_interest" callback_user="Ice Cream Bot" ref="chat_feed" />
 </template>
@@ -1219,7 +1120,7 @@ _ = onMounted(send_message)
 还可以设置一个`predicate`来评估组件的状态，例如小部件是否有值。如果提供，当谓词返回`True`时，提交按钮将被启用。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnChatFeed :callback="show_interest" callback_user="Ice Cream Bot" ref="chat_feed" />
 </template>
@@ -1257,7 +1158,7 @@ _ = onMounted(send_message)
 聊天历史可以通过`serialize`并设置`format="transformers"`来序列化，以供`transformers`或`openai`包使用。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnChatFeed ref="chat_feed" />
   <PnCol>
@@ -1292,7 +1193,7 @@ m2 = onMounted(serialize_chat)
 可以设置`role_names`来显式映射角色到ChatMessage的用户名。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnChatFeed ref="chat_feed" />
   <PnCol>
@@ -1332,7 +1233,7 @@ m2 = onMounted(serialize_chat)
 如果返回的对象不是生成器（特别是LangChain输出），仍然可以使用`stream`方法流式传输输出。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnChatFeed ref="chat_feed" />
 </template>
@@ -1354,7 +1255,7 @@ def demo_stream():
         user="Aspiring User",
         avatar="🤓",
         message=message,
-        footer_objects=[{"component": "PnButton", "props": {"name": "Footer Object"}}]
+        footer_objects=[pn.widgets.Button(name="Footer Object")]
     )
     
     # Demonstrate streaming with a loop
@@ -1363,8 +1264,9 @@ def demo_stream():
         time.sleep(0.1)
         message = chat_feed.value.unwrap().stream(n, message=message)
 
-# m1 = onMounted(demo_stream)
-pn.state.add_periodic_callback(demo_stream, 500, count=1)
+@onMounted
+def demo():
+    pn.state.add_periodic_callback(demo_stream, 500, count=1)
 </script>
 
 ```
@@ -1375,7 +1277,7 @@ pn.state.add_periodic_callback(demo_stream, 500, count=1)
 可以通过`message_params`传递`ChatEntry`参数。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnChatFeed 
     :message_params="message_params"
@@ -1404,7 +1306,7 @@ m1 = onMounted(send_messages)
 直接将这些参数传递给ChatFeed构造函数，它将自动转发到`message_params`中。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnChatFeed 
     :default_avatars='{"System": "S", "User": "👤"}'
@@ -1430,7 +1332,7 @@ m1 = onMounted(send_messages)
 也可以通过设置`message_params`参数来自定义聊天流的外观。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnChatFeed 
     :show_activity_dot="True"
@@ -1468,7 +1370,7 @@ m1 = onMounted(send_message)
 您也可以在`PnChatFeed`的基础上构建自己的自定义聊天界面。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnCol>
     <PnChatFeed
@@ -1558,11 +1460,6 @@ m1 = onMounted(init_chat)
 | show_activity_dot | 是否在流式传输回调响应时在ChatMessage上显示活动点 | ^[bool] | False |
 | view_latest | 是否在初始化时滚动到最新对象 | ^[bool] | True |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
@@ -1582,6 +1479,7 @@ m1 = onMounted(init_chat)
 | stop | 如果可能，取消当前回调任务 | ^[Callable]`() -> None` |
 | scroll_to | 列滚动到指定索引处的对象 | ^[Callable]`(index: int) -> None` |
 | undo | 从聊天记录中删除最后`count`条消息并返回它们 | ^[Callable]`(count: int = 1) -> List[ChatMessage]` |
+
 
 
 
@@ -1669,7 +1567,7 @@ vgl_pane = pn.pane.Vega(vegalite, height=240)
 组件的值、用户名和头像都可以动态更新：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
 <PnColumn>
   <PnChatMessage ref='msg_ref' 
@@ -1694,8 +1592,9 @@ def update_message():
 ```
 
 将输出流式传输到`ChatMessage`最简单、最好的方式是通过异步生成器。
+
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
 <PnColumn>
   <PnChatMessage :object='response.value' 
@@ -1836,6 +1735,36 @@ print('hello world')
 
 
 
+# Notifications 通知
+
+NotificationsArea 组件是一个全局组件，允许用户显示所谓的“toast”，以向用户提供信息。可以通过 pn.extension 设置 notifications=True 或直接设置 pn.config.notifications = True 来启用通知。
+
+参考文档：https://panel.holoviz.org/reference/global/Notifications.html
+
+## 基本用法
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnButton name='notify' @click='msg()'/>
+</template>
+<script lang='py'>
+import panel as pn
+
+pn.extension(notifications=True)
+
+def msg():
+    pn.state.notifications.error('This is error.', duration=1000)
+    pn.state.notifications.info('This is info.', duration=2000)
+    pn.state.notifications.success('This is success.', duration=0)
+    pn.state.notifications.warning('This is warning.', duration=4000)
+</script>
+
+```
+
+
+
+
 # Trend 趋势指示器
 
 趋势指示器提供了一个值及其最近趋势的可视化表示。它支持向图表组件流式传输数据，使得能够对某个值的最近趋势提供高性能的实时更新。
@@ -1964,16 +1893,12 @@ plot_types = ['line', 'bar', 'step', 'area']
 | ---   | ---                  | ---                                    |
 | change | 当值变化时触发的事件   | ^[Callable]`(event: dict) -> None`     |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-
 ### 方法
 
 | 名称      | 说明                             | 参数                                                  |
 | -------- | -------------------------------- | ----------------------------------------------------|
 | stream   | 向图表流式传输新数据，支持限制显示的数据量 | data: 要添加的新数据, rollover: 保留的最大数据点数量    |
+
 
 
 
@@ -2047,15 +1972,6 @@ tooltip_value = Tooltip(content="This is a tooltip using a bokeh.models.Tooltip"
 | ---   | ---                  | ---                                    |
 | change | 当值变化时触发的事件   | ^[Callable]`(event: dict) -> None`     |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -2144,15 +2060,6 @@ tooltip_value = Tooltip(content="This is a tooltip using a bokeh.models.Tooltip"
 | ---   | ---                  | ---                                    |
 | change | 当值变化时触发的事件   | ^[Callable]`(event: dict) -> None`     |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -2391,15 +2298,6 @@ def run_df():
 | ---   | ---                  | ---                                    |
 | change | 当值变化时触发的事件   | ^[Callable]`(event: dict) -> None`     |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -2487,15 +2385,6 @@ bar_colors = ['primary', 'secondary', 'success', 'info', 'warning', 'danger', 'l
 | ---   | ---                  | ---                                    |
 | change | 当值变化时触发的事件   | ^[Callable]`(event: dict) -> None`     |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -2572,15 +2461,6 @@ colors = ['primary', 'secondary', 'success', 'info', 'warning', 'danger', 'light
 | ---   | ---                  | ---                                    |
 | change | 当值变化时触发的事件   | ^[Callable]`(event: dict) -> None`     |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -2657,15 +2537,6 @@ colors = ['primary', 'secondary', 'success', 'info', 'warning', 'danger', 'light
 | ---   | ---                  | ---                                    |
 | change | 当值变化时触发的事件   | ^[Callable]`(event: dict) -> None`     |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -2735,15 +2606,6 @@ colors = ['primary', 'secondary', 'success', 'info', 'warning', 'danger', 'light
 | ---   | ---                  | ---                                    |
 | change | 当值变化时触发的事件   | ^[Callable]`(event: dict) -> None`     |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -2814,15 +2676,6 @@ colors = ['primary', 'secondary', 'success', 'info', 'warning', 'danger', 'light
 | ---   | ---                  | ---                                    |
 | change | 当值变化时触发的事件   | ^[Callable]`(event: dict) -> None`     |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -2867,7 +2720,7 @@ def rcolor():
 可以通过设置`flex_direction='column'`让FlexBox按列排列元素：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnFlexBox flex_direction="column" :height='450'>
     <PnHTML v-for="i in range(24)" 
@@ -2894,7 +2747,7 @@ def rcolor():
 可以通过`align_content`、`align_items`和`justify_content`控制元素如何在容器中对齐和分布：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
     <PnCol>
       <PnMarkdown>
@@ -2959,10 +2812,6 @@ def rcolor():
 | ---     | ---               |
 | default | FlexBox的内容      |
 
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -2978,6 +2827,7 @@ def rcolor():
 使用分割线将不同组件清晰地分隔开：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnCol :width='400' style='background: whitesmoke'>
     <PnMarkdown>
@@ -3004,6 +2854,7 @@ def rcolor():
 启用响应式尺寸后，分割线会自动占据全宽：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnColumn sizing_mode="stretch_width">
     <PnMarkdown>
@@ -3047,20 +2898,6 @@ pn.config.sizing_mode = 'stretch_width'
 | style | 分割线的样式 | ^[Object] | — |
 | margin | 分割线的外边距 | ^[Tuple] | — |
 
-### Events
-
-| 事件名 | 说明 | 类型 |
-| --- | --- | --- |
-
-### Slots
-
-| 插槽名 | 说明 |
-| --- | --- |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -3097,22 +2934,12 @@ from vuepy import ref
 | objects  | List of child nodes  | list   | —      |
 | scroll   | Enable scrollbars    | bool   | False  |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-|       |                      |                                        |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | Custom content     |
 
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -3129,6 +2956,7 @@ Feed组件继承自Column布局，允许在垂直容器中排列多个组件，�
 Feed组件可以显示大量条目，但只会加载和渲染当前可见的部分和缓冲区内的内容：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnFeed :load_buffer="20" :height="300">
     <PnMarkdown v-for="i in range(0, 100)">
@@ -3148,6 +2976,7 @@ from vuepy import ref
 通过设置`view_latest=True`，可以让Feed在初始化时显示最新条目：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnFeed :view_latest="True" :height="300">
     <PnMarkdown v-for="i in range(0, 100)">
@@ -3167,6 +2996,7 @@ from vuepy import ref
 通过设置`scroll_button_threshold`，可以让Feed显示一个可点击的滚动按钮，帮助用户快速滚动到底部：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnFeed :scroll_button_threshold="20" :width="300" :height="300">
     <PnMarkdown v-for="i in range(0, 100)">
@@ -3213,6 +3043,7 @@ from vuepy import ref
 | 方法名 | 说明 | 类型 |
 | --- | --- | --- |
 | scroll_to | 滚动到指定索引的对象 | ^[Function]`(index: int) -> None` |
+
 
 
 
@@ -3344,6 +3175,7 @@ from vuepy import ref
 
 
 
+
 # Swipe 滑动对比布局
 
 滑动对比布局使您能够快速比较两个面板，通过滑块控制显示前后两个面板的比例。
@@ -3442,16 +3274,6 @@ gis_2015 = 'https://earthobservatory.nasa.gov/ContentWOC/images/globaltemp/globa
 | ---   | ---                  | ---                                    |
 | change | 当滑块值改变时触发     | ^[Callable]`(value: int) -> None`      |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-| —       | —                 |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -3465,6 +3287,7 @@ gis_2015 = 'https://earthobservatory.nasa.gov/ContentWOC/images/globaltemp/globa
 ## 基本用法
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnWidgetBox>
     <PnTextInput name="Text:" />
@@ -3507,6 +3330,7 @@ from vuepy import ref
 
 
 
+
 # GridStack 可拖拽网格
 
 GridStack布局允许将多个Panel对象排列在网格中，并支持用户拖拽和调整单元格大小。
@@ -3519,7 +3343,7 @@ GridStack布局允许将多个Panel对象排列在网格中，并支持用户拖
 GridStack可以创建可拖拽和调整大小的网格布局：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnGridStack :height="300" :width='300'>
     <PnGridStackItem :row_start="0" :row_end="3" :col_start="0" :col_end="1">
@@ -3552,7 +3376,7 @@ GridStack可以创建可拖拽和调整大小的网格布局：
 通过设置合适的响应式布局参数，GridStack可以适应不同的屏幕尺寸：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnGridStack :width='600' :height='400'>
     <PnGridStackItem :row_start="0" :row_end="1" :col_start="0" :col_end="3">
@@ -3605,7 +3429,7 @@ image_url = "https://upload.wikimedia.org/wikipedia/commons/4/47/PNG_transparenc
 可以通过设置`allow_drag`和`allow_resize`参数来控制是否允许拖拽和调整大小：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnCol>
     <PnMarkdown>
@@ -3676,11 +3500,6 @@ from vuepy import ref
 | ---     | ---               |
 | default | GridStack的内容，通过PnGridStackItem组件包裹 |
 
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| --- | --- | --- |
-
 ## GridStackItem API
 
 ### 属性
@@ -3693,21 +3512,12 @@ from vuepy import ref
 | col_end      | 结束列的索引，开区间               | ^[Number]           | `col_start+1` |
 
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | 默认内容 |
 
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -3723,10 +3533,11 @@ GridBox是一种列表式布局，将对象按照指定的行数和列数包装�
 GridBox可以将元素按指定的列数排列，自动换行形成网格：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnGridBox :ncols="6">
     <PnHTML v-for="i in range(24)"
-            :value='str(i)'
+            :object='str(i)'
             :style="f'background: {rcolor()};width:50px;height:50px;'" 
     />
   </PnGridBox>
@@ -3748,6 +3559,7 @@ def rcolor():
 可以动态地调整GridBox的列数，从而改变网格的排列：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnColumn>
     <PnRow>
@@ -3758,7 +3570,7 @@ def rcolor():
     </PnRow>
     <PnGridBox :ncols="columns.value">
         <PnHTML v-for="i in range(24)"
-                :value='str(i)'
+                :object='str(i)'
                 :style="f'background: {rcolor()};width:50px;height:50px;'" 
         />
     </PnGridBox>
@@ -3786,10 +3598,11 @@ def rcolor():
 除了指定列数，也可以使用`nrows`指定行数：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnGridBox :nrows="4">
     <PnHTML v-for="i in range(24)"
-            :value='str(i)'
+            :object='str(i)'
             :style="f'background: {rcolor()};width:50px;height:50px;'" 
     />
   </PnGridBox>
@@ -3828,10 +3641,6 @@ def rcolor():
 | ---     | ---               |
 | default | GridBox的内容      |
 
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -3847,7 +3656,7 @@ FloatPanel提供一个可拖动的容器，可以放置在其父容器内部或�
 浮动面板可以包含在父容器内：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnColumn :height="250">
     <PnMarkdown>
@@ -3867,14 +3676,14 @@ FloatPanel提供一个可拖动的容器，可以放置在其父容器内部或�
 浮动面板也可以配置为自由浮动，不受父容器限制：
 
 ```vue
-<!-- --plugins vpanel --show-code -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnFloatPanel name="Free Floating FloatPanel" 
                :contained="False" 
                position="center">
-    <PnMarkdown>
+    <p>
       Try dragging me around.
-    </PnMarkdown>
+    </p>
   </PnFloatPanel>
 </template>
 <script lang='py'>
@@ -3891,7 +3700,7 @@ FloatPanel可以通过`config`参数进行高度自定义，比如移除关闭�
 要了解更多配置选项，请查看 [jsPanel 文档](https://jspanel.de/)
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnColumn :height="200">
     <PnMarkdown>
@@ -3921,7 +3730,7 @@ config = {"headerControls": {"close": "remove"}}
 可以通过`status`属性控制FloatPanel的状态：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnColumn>
     <PnRow>
@@ -3996,10 +3805,6 @@ def handle_change(event):
 | ---     | ---               |
 | default | 浮动面板内容        |
 
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -4015,6 +3820,7 @@ def handle_change(event):
 折叠面板可以包含任意数量的子项，每个子项可以包含任意内容。
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnAccordion v-model="active.value" @change='on_change'>
     <PnAccordionItem name="Scatter Plot">
@@ -4061,6 +3867,7 @@ def on_change(event):
 当`toggle`属性设置为`True`时，同一时间只能展开一个面板。
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnAccordion :toggle="True" v-model="active.value" @change='on_change'>
     <PnAccordionItem name="Panel 1">
@@ -4138,6 +3945,7 @@ def on_change(event):
 | default | 自定义默认内容      |
 
 
+
 # Modal 模态框
 
 Modal 布局在布局顶部提供了一个对话框窗口。它基于 [a11y-dialog](https://a11y-dialog.netlify.app/) 构建。它拥有类似列表的 API，包含`append`, `extend`, `clear`, `insert`, `pop`, `remove`, `__setitem__`方法，从而可以交互式地更新和修改布局。其中的组件以列的形式布局。
@@ -4147,10 +3955,10 @@ Modal 布局在布局顶部提供了一个对话框窗口。它基于 [a11y-dial
 
 ## 基本用法
 
-The Modal component displays content in a dialog overlay. Use the `open` prop to control visibility, and you can add any content via slot.
-
+Modal 组件以对话框叠加层的形式展示内容。通过 `open` 属性控制显示状态，您可以通过插槽添加任意内容。
+<img style='width:400px' src="data:image/png;base64,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X3/JQQcdJBEzPZyfhQDspybnQgABBBBAAIFqFyAA57gDCg3AGzdulKefftoOxNZTjR49WubPn28Hfp933nnJs+/YsUMuvPBC6e3ttUMZ7r///uQ+XdizZ4/d397eLvq9e+65R/QYHfqgwdotGrC13HHHHXLxxRe7m0XHCet4Zn04j4IAAggggAACCCCQW4AAnMOmkADc2tpqQ+v+/fuznuXOO++UJUuWJPe98MIL8vjjj9v1N998U2bNmpXcd++994pu0wD9xRdfyIQJE+Tmm2+WDz/8MHmMd0Gn/bjyyivtpu+++04uv/xyu/zkk0/K+eef7z2UZQQQQAABBBBAAAGPAAHYg+FdHCwA//nnn3LuueeK9uxOnjxZNMAef/zx8scff8jrr78u7rjhF198UU4//XR7ah0msXDhQvn5559tT+1HH30ko8y8yT/++KPdrgdpSD7jjDPs8fqAnk4kfcstt8hnn30m//rXv+Spp56y+3QKNneohfZA639aLrjgAnniiSfsMn8ggAACCCCAAAIIZAoQgDNN7JbBArBO7qxhVHtsdZiCd+iBBl3t+dU58GbOnCkrV65MXuX3339Pzou3dOlS28u7YMEC2bJlS87wOtgY4N9++81er7OzU5599lkbxJMXZAEBBBBAAAEEEEAgRYAAnMIxsDJYANaAqxMwX3PNNXa87sA3E0s6993ixYvtig6VcHtrdcPbb78td999t92nU5tpgNaxvZ9//rmMHTvWbvf+MVgA1mPdF3mEPG/h856DZQQQQAABBBBAAIGEAAE4x50wWAA+8sgjk9/USZ7Ty6+//io//PCD3axDHaZMmZI8RMPqtddeKxqS3fLGG2/IKaec4q6mfBYSgFO+wAoCCCCAAAIIIIBATgECcA6afAG4ra1NTjjhhBzfzNz86quvyrx581J2bN68WXTog5Zjjz1W3n///ZT93hUCsFeDZQQQQAABBBBAYGgCBOAcfvkCsI7xbWlpsd/U3l998Cxb0SnPotGoHHXUURlDG2699daU0PvKK6/Y6dOynYcAnE2FbQgggAACCCCAQGkCBOAcbvkCsH5l0aJF8u2334o+yHb77bfnOEv2zfpO7Ouvv97u1JkddIYHHQP86aefyvjx4zO+RADOIGEDAggggAACCCBQsgABOAfdYAH4scceE53iTIPrmjVrZOLEiSln0pkZ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AQgggAACCCCAAAIFESAAF+RGcBkIIIAAAggggAAC9REgANfHmbMggAACCCCAAAIIFESAAFyQG8FlIIAAAggggAACCNRHgABcH2fOggACCCCAAAIIIFAQAQJwQW4El4EAAggggAACCCBQHwECcH2cOQsCCCCAAAIIIIBAQQQIwAW5EVwGAggggAACCCCAQH0ECMD1ceYsCCCAAAIIIIAAAgURIAAX5EZwGQgggAACCCCAAAL1ESAA18eZsyCAAAIIIIAAAggURIAAXJAbwWUggAACCCCAAAII1EeAAFwfZ86CAAIIIIAAAgggUBABAnBBbgSXgQACCCCAAAIIIFAfAQJwHzpv2LAhLF++PAwfPrwPz0LXCCCAAAIIIIAAArUIEIBTWgqtM2fODP/4xz/CG2+8EXbcccew5557hve+971h2223Te29afHEE0+M+1511VXhE5/4RFy5cuXKcPTRR4d58+aFG264IXzqU5/KPDZr5YwZM8IJJ5wQNz355JNhhx12yNqtkOtef/318Oc//znMmjUrDB06NIwfPz4cccQRYdCgQYW8Xi4KAQQQQAABBLY+AQKwu+cKveecc04MrW510rzsssvC2WefHZqampJ1ahx++OEx8F199dXhtNNOi9teeeWVcNJJJ8X2McccEyZPnhzb3fn2z3/+Mxx33HFx1+eeey6MGjWqO4c1dJ9ly5aFr371q+H3v//9ZtehAH/NNdcEOVAQQAABBBBAAIFGCxCAO+/AY489Fj73uc8l92PXXXcNEydODAsXLgwKs1Y+/vGPh5tuuskWY50VgDWSfPHFF4fp06eHyy+/POy///5djqm2ULYArNHuM844I478Vvu5brnlljBp0qRqu7ANAQQQQAABBBDocwECcCexRienTZsWRo8eHW6++ebwwQ9+MMFfsmRJ+PrXv56Mbv7sZz8L++67b7I9KwAnG3vQKFsA/t73vtflLwWa8nDyySeHqVOnhjvuuCP85z//iQqaQvLMM8+EYcOG9UCFQxBAAAEEEEAAgXwECMAdjpqvqhCrovBr0w/iis5va9asCR/+8IfDokWLwplnnhmuvPLKZHNvAnB7e3vsU+HQ5sl2NwDr2KVLl8bj2trakuvpTkMj1O+8804YMWJEGDhwYHcOydxnxYoVYZ999km2HXrooeGee+5Jlv1UEK38yle+Ei644IJk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">
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnModal :open="True" :show_close_button="True" :background_close="True">
     <PnCol>
@@ -4196,6 +4004,7 @@ from vuepy import ref
 | hide          | 隐藏模态框                                                           | ^[None]    |
 | toggle        | 切换模态框显示状态（显示↔隐藏）                                         | ^[None]    |
 | create_button | 创建控制按钮（可配置为show/hide/toggle功能）                           | ^[Button]  |
+
 
 
 
@@ -4369,6 +4178,7 @@ p2.line([0, 1, 2, 3, 4, 5, 6], [0, 1, 2, 3, 2, 1, 0])
 | default | 自定义默认内容      |
 
 
+
 # Card 卡片
 
 卡片组件提供了一个可折叠的容器，带有标题栏，用于组织和展示内容。
@@ -4429,7 +4239,7 @@ from vuepy import ref
 卡片可以使用自定义的头部，而不仅仅是标题文本。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnCard header_background="#2f2f2f" header_color="white" :width="300">
     <template #header>
@@ -4467,7 +4277,7 @@ from vuepy import ref
 可以设置卡片的固定尺寸，或者让它根据内容自适应。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnCol>
     <!-- fixed size -->
@@ -4530,10 +4340,6 @@ p2.scatter([1, 2, 3], [1, 2, 3])
 | header  | 自定义卡片头部       |
 | footer  | 自定义卡片底部       |
 
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -4753,12 +4559,6 @@ sub_fig2.scatter(x, y, color="green", size=8)
 | ---     | ---               |
 | default | GridSpec的内容，应该是PnGridSpecItem组件 |
 
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| --- | --- | --- |
-
-
 ## GridSpecItem API
 
 ### 属性
@@ -4770,49 +4570,15 @@ sub_fig2.scatter(x, y, color="green", size=8)
 | col_start    | 开始列的索引                      | ^[Number]           | 0 |
 | col_end      | 结束列的索引，开区间               | ^[Number]           | `col_start+1` |
 
-
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | 默认内容 |
 
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
-# Column 垂直布局
-
-Column组件允许在垂直容器中排列多个组件。
-
-底层实现为`panel.layout.Column`，参数基本一致，参考文档：https://panel.holoviz.org/reference/layouts/Column.html
-
-
-## 基本用法
-
-Column组件可以垂直排列多个元素。
-
-`Col`是`Column`的同名组件。
-```vue
-<!-- --plugins vpanel --show-code -->
-<template>
-  <PnCol style="background: WhiteSmoke">
-    <PnTextInput name="Text:" />
-  </PnCol>
-</template>
-<script lang='py'>
-from vuepy import ref
-</script>
-
-```
 
 
 
@@ -4832,7 +4598,7 @@ from vuepy import ref
 与直接使用 `VTK` 相比，在 Panel 中使用它有一些区别。由于 VTK 面板处理对象的渲染和与视图的交互，我们不需要调用 `vtkRenderWindow` 的 `Render` 方法（这会弹出传统的 VTK 窗口），也不需要指定 `vtkRenderWindowInteractor`。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnVTK :object="ren_win" :width="500" :height="500" />
 </template>
@@ -4941,7 +4707,7 @@ def add_sphere():
 例如，上面的 VTK 示例可以使用 PyVista 重写如下：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnVTK :object="plotter.ren_win" :width="500" :height="500" />
 </template>
@@ -5009,7 +4775,7 @@ def export_scene():
 `PnVTK` 组件支持键盘绑定和方向部件，以增强用户交互体验：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnVTK 
     :object="plotter.ren_win" 
@@ -5115,11 +4881,6 @@ axes = {
 * **`actors`**：返回场景中的 vtkActors 列表
 * **`vtk_camera`**：返回组件持有的渲染器的 vtkCamera
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
@@ -5135,6 +4896,7 @@ axes = {
 | unlink_camera | 创建一个新的 vtkCamera 对象，允许面板拥有自己的相机 | 无 |
 | link_camera | 设置两个面板共享相同的相机 | other: VTK |
 | export_scene | 导出场景并生成可以被官方 vtk-js 场景导入器加载的文件 | filename: str |
+
 
 
 
@@ -5305,23 +5067,12 @@ specular = ref(0.3)
 | slice_k             | 控制垂直于Z方向的切片位置的参数                                         | ^[int]              | —      |
 | nan_opacity         | 控制切片中NaN值的不透明度的参数                                         | ^[Number]           | 1      |
 
-### Events
-
-| 事件名 | 说明 | 类型 |
-| ------ | ---- | ---- |
-|        |      |      |
-
-### Slots
-
-| 插槽名   | 说明           |
-| -------- | -------------- |
-|          |                |
-
 ### 方法
 
 | 方法名    | 说明                  | 类型                  |
 | --------- | --------------------- | --------------------- |
 | controls  | 返回控制面板组件       | ^[Callable]`(jslink=bool) -> Panel` |
+
 
 
 
@@ -5454,21 +5205,6 @@ waveform_quiet = waveform * 0.3
 | width      | 宽度                 | ^[int, str]                                                    | None    |
 | height     | 高度                 | ^[int, str]                                                    | None    |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-| default | 自定义默认内容      |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -5607,21 +5343,12 @@ def jump_to_middle():
 | margin     | 外边距                        | ^[int, tuple]                                                  | 5       |
 | css_classes| CSS类名列表                   | ^[list]                                                        | []      |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | 自定义默认内容      |
 
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -5637,7 +5364,7 @@ def jump_to_middle():
 `PnFolium` 组件使用 `folium` 提供的内置 HTML 表示来渲染地图：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnFolium :object="m" :width='400' :height="400" />
 </template>
@@ -5655,7 +5382,7 @@ m = folium.Map(location=[52.51, 13.39], zoom_start=12)
 与任何其他组件一样，可以通过设置 `object` 参数来更新 `PnFolium` 组件的视图：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnFolium :object="m" :width='400' :height="400" ref="folium_pane" />
   <PnButton @click="add_marker()">添加标记</PnButton>
@@ -5697,21 +5424,11 @@ def add_marker():
 | margin     | 外边距               | ^[int, tuple]                                                  | 5       |
 | css_classes | CSS类名列表          | ^[list]                                                        | []      |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | 自定义默认内容      |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -5799,7 +5516,7 @@ def update_svg():
 SVG 图像可以使用 base64 编码进行嵌入。使用 `encode` 参数可以控制是否对 SVG 进行编码：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnRow>
     <PnColumn>
@@ -5847,21 +5564,12 @@ SVG 图像可以使用 base64 编码进行嵌入。使用 `encode` 参数可以�
 | margin         | 外边距                        | ^[int, tuple]                                                  | 5       |
 | css_classes    | CSS类名列表                   | ^[list]                                                        | []      |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | 自定义默认内容      |
 
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -5885,7 +5593,7 @@ SVG 图像可以使用 base64 编码进行嵌入。使用 `encode` 参数可以�
 `PnHoloViews` 组件将任何 `HoloViews` 对象自动转换为可显示的面板，同时保持其所有交互功能：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnHoloViews :object="box" :height="300" :width="500" />
 </template>
@@ -5953,7 +5661,7 @@ plot = df.hvplot.box(by="group", y="value", responsive=True, height=300)
 [HoloViews](https://holoviews.org/)（框架）如果 [`HoloMap`](https://holoviews.org/reference/containers/bokeh/HoloMap.html) 或 [DynamicMap](https://holoviews.org/reference/containers/bokeh/DynamicMap.html) 声明了任何键维度，它原生渲染带有小部件的图表。这种方法高效地仅更新图表内的数据，而不是完全替换图表。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnHoloViews :object="dmap" :width='300' :height='300'/>
 </template>
@@ -6128,7 +5836,7 @@ linked_plot = df.hvplot.scatter(x="group", y="value", responsive=True, title="Li
 您可以更改 `theme`：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnHoloViews :object="plot" :height="300" theme="night_sky" />
 </template>
@@ -6154,7 +5862,7 @@ plot = df.hvplot.scatter(x="group", y="value", height=300, responsive=True)
 您可以通过 `center` 参数将图表居中：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
     <PnHoloViews :object='plot' :center="True" sizing_mode="fixed" />
 <!--
@@ -6214,21 +5922,12 @@ plot = df.hvplot.scatter(x="group", y="value", height=100, width=400)
 | max_width       | 最大宽度               | ^[int]                                                         | None    |
 | max_height      | 最大高度               | ^[int]                                                         | None    |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | 自定义默认内容      |
 
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -6465,21 +6164,12 @@ expression_latex = sp.latex(expression) # \frac{x}{2} - ...
 | margin    | 外边距                        | ^[int, tuple]                                                  | 5       |
 | css_classes| CSS类名列表                  | ^[list]                                                        | []      |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | 自定义默认内容      |
 
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -6908,21 +6598,12 @@ ax = df.plot.barh(ax=ax)
 | margin       | 外边距                        | ^[int, tuple]                                                  | 5       |
 | css_classes  | CSS类名列表                   | ^[list]                                                        | []      |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | 自定义默认内容      |
 
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -7027,7 +6708,7 @@ ax = df.plot.barh(ax=ax)
 
 创建后，`PnPlotly` 组件可以通过分配新的图形对象来更新：
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnButton @click="update_fig()">Update</PnButton>
   <PnPlotly :object="fig.value"/>
@@ -7072,7 +6753,7 @@ def update_fig():
 `PnPlotly` 组件支持任意复杂度的布局和子图，允许显示即使是深度嵌套的 Plotly 图形：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnPlotly :object="fig_layout" />
 </template>
@@ -7114,7 +6795,7 @@ fig_layout['layout'].update(height=600, width=600, title='i <3 subplots')
 通过在 Plotly 布局上使用 `autosize` 选项和 `PnPlotly` 组件的响应式 `sizing_mode` 参数，可以使 Plotly 图表具有响应性：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnCol name="## A responsive plot" sizing_mode="stretch_width">
     <PnPlotly :object="fig_responsive" :height="300" sizing_mode="stretch_width" />
@@ -7142,7 +6823,7 @@ fig_responsive.layout.autosize = True
 您可以通过 `config` 参数设置 [Plotly 配置选项](https://plotly.com/javascript/configuration-options/)。让我们尝试配置 `scrollZoom`：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnCol name="## A responsive and scroll zoomable plot" 
          sizing_mode="stretch_width">
@@ -7179,7 +6860,7 @@ fig_responsive.layout.autosize = True
 请注意，增量更新只有在将 `Figure` 定义为字典时才会高效，因为 Plotly 会复制轨迹，这意味着原地修改它们没有效果。修改数组将仅发送该数组（使用二进制协议），从而实现快速高效的更新。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnPlotly :object="fig_patch" ref="plotly_pane_patch" />
   <PnRow>
@@ -7232,7 +6913,7 @@ def reset():
 `PnPlotly` 组件提供对 [Plotly 事件](https://plotly.com/javascript/plotlyjs-events/)的访问，如点击、悬停和选择(使用`Box Select`、`Lasso Select`工具)等：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnPlotly :object="fig" ref="plotly_ref" 
             @click='on_click'
@@ -7320,10 +7001,6 @@ def on_selected(event):
 | ---     | ---               |
 | default | 自定义默认内容      |
 
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -7412,21 +7089,12 @@ def update_pdf():
 | margin      | 外边距                        | ^[int, tuple]                                                  | 5       |
 | css_classes | CSS类名列表                   | ^[list]                                                        | []      |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | 自定义默认内容      |
 
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -7696,21 +7364,11 @@ def df_rx():
 
 * **`widgets`** (ListPanel): 返回位于 `widget_layout` 中的小部件。
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | 自定义默认内容      |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -7802,21 +7460,12 @@ def df_rx():
 | margin         | 外边距                        | ^[int, tuple]                                                  | 5       |
 | css_classes    | CSS类名列表                   | ^[list]                                                        | []      |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | 自定义默认内容      |
 
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -8154,21 +7803,12 @@ good_latex = r"$$\frac{1}{n}$$"
 | margin            | 外边距                        | ^[int, tuple]                                                  | 5       |
 | css_classes       | CSS类名列表                   | ^[list]                                                        | []      |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | markdown内容      |
 
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -8186,7 +7826,7 @@ good_latex = r"$$\frac{1}{n}$$"
 ```vue
 <!-- --plugins vpanel --show-code -->
 <template>
-  <PnPlaceholder object="Hello" />
+  <PnPlaceholder object="Hello" style='color: red'/>
 </template>
 
 ```
@@ -8275,24 +7915,14 @@ async def runProcess():
 | ------------ | -------------------------------------------------------- | ---------- | ------ |
 | value        | 要显示的Panel对象，如果对象不是Panel对象，将使用`panel(...)`函数转换 | ^[Any]     | —      |
 | stylesheets  | 样式表列表                                               | ^[List]    | []     |
-
-### Events
-
-| 事件名 | 说明 | 类型 |
-| ------ | ---- | ---- |
-|        |      |      |
-
-### Slots
-
-| 插槽名   | 说明           |
-| -------- | -------------- |
-|          |                |
+| style | css样式 | ^[str]    | ''     |
 
 ### 方法
 
 | 方法名 | 说明                   | 类型                    |
 | ------ | ---------------------- | ----------------------- |
 | update | 更新占位符中显示的内容 | ^[Callable]`(obj) -> None` |
+
 
 
 
@@ -8314,17 +7944,18 @@ async def runProcess():
 
 让我们从一个非常简单的例子开始：
 
+<img style="width:500px" src="data:image/png;base64,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Vq1a2cILdrIOQVPplrPOYl999Y19N3Jkon31bZx11pa2Wpcu9seff9g7QcsrV26gQog1V1vFZg4KFd7/cKBNnjy5viSqsj0tAd66dStbafnlrE2bOeyjjz+3H0ePLsleifEnHrwrLFxRAczsrVuHx6u12pY77hnxKilRIkMAAhCAAAQgMEMCVRHg+jB45J5+Ye23aq633/2Asj9y5u3Qwe665eowI1ODtHpsv8cMM0UECEAAAhBomEClAny7rTe3vXfb2WadbVZzvZpVO/75oK/s+EDQKxx+0L622T83jmrQtU315wM+GGhnnnuRVqMgQXjgvnta9026Wps554y2uwWl/fL/XrdL+l5fMIaIxPodN15pc845RxhV8b78arAtu8xSUQssbTvjnAttzTVWC7tFxfth//vJZ+3aG/uFxyalpUHSXn3tTTvy0P1smaWXsvnn7RCmO3rMWBsydKjdePNdJRUOVCLAJZLPPvV4W3GFZQuYyniX714XXGo/jRkT5qehf+rmdexRh4RR7n3gUVtv3bXCQg9tuPLaW+zJZ/9T5/C0+KSVTh0D2QABCEAAAhDwgEBVBHiP7v+0nocfEGZffcnUp6yS8NDdt9icc0z/uGqopqaSc3AsBCAAgeZEoD4BvnjQfejSC3rZux98aL3/1dcO3GcP22n7rUKBpxpwF64NuhgtEcxaURwkBDffTk3Vze69/QZrP1e74ij222+/2dY771Ow/bQTe4aDlRVsTFj5dvgIO+iI46M9yy+7jF3+r3Oi9foWZFdceMfjuffKCssvGzbRj+/TIKCLLLygtWzZMr45Wla6d9/3cKMHLytXgOu9evgh+xbMEhIZEVuQPTff3t8efOSJ2Na6izddc6ktEjRFV/ztd9vf1ltnTTvhmMPDiN+PHGX7HlL3vZ0Wn7TSqZsrtkAAAhCAAASyT6AqAvywoNZj2y03C3P/2ptv27kXXlYRiSv6nB+Nin71Dbfa4089V1F6HAwBCECguROoT4DvuesOttduO5maJW+3637WYe657cRAmA0e+q3dcMsdEbZll1rSdt5xa1s7qFV2fcS187Irb7BnX3gpjKdBv0465gibt8M84bpaMan2++nnXrTXg3dDPPzr3DNslZVXDDdpqsrB3wy1d957336dONE2+MfaJtHmQvGYIvvsvpP9Y+01bbFFF3FRbPRPY2z4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uzAWAhCAAAQgAAEIQAACEIAABHwlgAD31XPYDQEIQAACEIAABCAAAQhAAAJeEUCAe+UujIUABCAAAQhAAAIQgAAEIAABXwkgwH31HHZDAAIQgAAEIAABCEAAAhCAgFcEEOBeuQtjIQABCEAAAhCAAAQgAAEIQMBXAghwXz2H3RCAAAQgAAEIQAACEIAABCDgFQEnwP8fAAD//7pmnuwAACTtSURBVO3dd5hddZkH8DeNJEAoEZYSAkvvVQRkkQVBgQeli1QBQfrSkQdxBZQiEhWQHno19KU3MWQpihTpVSCEEhAJEJJJZfaem70305LJzNx5yUw+93mSe+8pv/ecz33/+c5pPQYOHFgfXgQIECBAgAABAgQIECBAgECnCLz00kvlcXsI4J3ia1ACBAgQIECAAAECBAgQIFAWEMA1AgECBAgQIECAAAECBAgQSBAQwBOQlSBAgAABAgQIECBAgAABAgK4HiBAgAABAgQIECBAgAABAgkCAngCshIECBAgQIAAAQIECBAgQEAA1wMECBAgQIAAAQIECBAgQCBBQABPQFaCAAECBAgQIECAAAECBAgI4HqAAAECBAgQIECAAAECBAgkCAjgCchKECBAgAABAgQIECBAgAABAVwPECBAgAABAgQIECBAgACBBAEBPAFZCQIECBAgQIAAAQIECBAgIIDrAQIECBAgQIAAAQIECBAgkCAggCcgK0GAAAECBAgQIECAAAECBARwPUCAAAECBAgQIECAAAECBBIEBPAEZCUIECBAgAABAgQIECBAgIAArgcIECBAgAABAgQIECBAgECCgACegKwEAQIECBAgQIAAAQIECBAQwPUAAQIECBAgQIAAAQIECBBIEBDAE5CVIECAAAECBAgQIECAAAECArgeIECAAAECBAgQIECAAAECCQICeAKyEgQIECBAgAABAgQIECBAQADXAwQIECBAgAABAgQIECBAIEFAAE9AVoIAAQIECBAgQIAAAQIECAjgeoAAAQIECBAgQIAAAQIECCQICOAJyEoQIECAAAECBAgQIECAAAEBXA8QIECAAAECBAgQIECAAIEEAQE8AVkJAgQIECBAgAABAgQIECAggOsBAgQIECBAgAABAgQIECCQICCAJyArQYAAAQIECBAgQIAAAQIEBHA9QIAAAQIECBAgQIAAAQIEEgQE8ARkJQgQIECAAAECBAgQIECAgACuBwgQIECAAAECBAgQIECAQIKAAJ6ArAQBAgQIECBAgAABAgQIEBDA9QABAgQIECBAgAABAgQIEEgQEMATkJUgQIAAAQIECBAgQIAAAQICuB4gQIAAAQIECBAgQIAAAQIJAgJ4ArISBAgQIECAAAECBAgQIEBAANcDBAgQIECAAAECBAgQIEAgQUAAT0BWggABAgQIECBAgAABAgQICOB6gAABAgQIECBAgAABAgQIJAgI4AnIShAgQIAAAQIECBAgQIAAAQFcDxAgQIAAAQIECBAgQIAAgQQBATwBWQkCBAgQIECAAAECBAgQICCA6wECBAgQIECAAAECBAgQIJAgIIAnICtBgAABAgQIECBAgAABAgQEcD1AgAABAgQIECBAgAABAgQSBATwBGQlCBAgQIAAAQIECBAgQICAAK4HCBAgQIAAAQIECBAgQIBAgoAAnoCsBAECBAgQIECAAAECBAgQEMD1AAECBAgQIECAAAECBAgQSBAQwBOQlSBAgAABAgQIECBAgAABAgK4HiBAgAABAgQIECBAgAABAgkCAngCshIECBAgQIAAAQIECBAgQEAA1wMECBAgQIAAAQIECBAgQCBBQABPQFaCAAECBAgQIECAAAECBAgI4HqAAAECBAgQIECAAAECBAgkCAjgCchKECBAgAABAgQIECBAgAABAVwPECBAgAABAgQIECBAgACBBAEBPAFZCQIECBAgQIAAAQIECBAgIIDrAQIECBAgQIAAAQIECBAgkCAggCcgK0GAAAECBAgQIECAAAECBARwPUCAAAECBAgQIECAAAECBBIEBPAEZCUIECBAgAABAgQIECBAgIAArgcIECBAgAABAgQIECBAgECCgACegKwEAQIECBAgQIAAAQIECBAQwPUAAQIECBAgQIAAAQIECBBIEBDAE5CVIECAAAECBAgQIECAAAECArgeIECAAAECBAgQIECAAAECCQICeAKyEgQIECBAgAABAgQIECBAQADXAwQIECBAgAABAgQIECBAIEFAAE9AVoIAAQIECBAgQIAAAQIECAjgeoAAAQIECBAgQIAAAQIECCQICOAJyEoQIECAAAECBAgQIECAAAEBXA8QIECAAAECBAgQIECAAIEEAQE8AVkJAgQIECBAgAABAgQIECAggOsBAgQIECBAgAABAgQIECCQICCAJyArQYAAAQIECBAgQIAAAQIEBHA9QIAAAQIECBAgQIAAAQIEEgQE8ARkJQgQIECAAAECBAgQIECAgACuBwgQIECAAAECBAgQIECAQIKAAJ6ArAQBAgQIECBAgAABAgQIEBDA9QABAgQIECBAgAABAgQIEEgQEMATkJUgQIAAAQIECBAgQIAAAQICuB4gQIAAAQIECBAgQIAAAQIJAgJ4ArISBAgQIECAAAECBAgQIEBAANcDBAgQIECAAAECBAgQIEAgQUAAT0BWggABAgQIECBAgAABAgQICOB6gAABAgQIECBAgAABAgQIJAgI4AnIShAgQIAAAQIECBAgQIAAAQFcDxAgQIAAAQIECBAgQIAAgQQBATwBWQkCBAgQIECAAAECBAgQICCA6wECBAgQIECAAAECBAgQIJAgIIAnICtBgAABAgQIECBAgAABAgQEcD1AgAABAgQIECBAgAABAgQSBATwBGQlCBAgQIAAAQIECBAgQICAAK4HCBAgQIAAAQIECBAgQIBAgoAAnoCsBAECBAgQIECAAAECBAgQEMD1AAECBAgQIECAAAECBAgQSBAQwBOQlSBAgAABAgQIECBAgAABAgK4HiBAgAABAgQIECBAgAABAgkCAngCshIECBAgQIAAAQIECBAgQEAA1wMECBAgQIAAAQIECBAgQCBBQABPQFaCAAECBAgQIECAAAECBAgI4HqAAAECBAgQIECAAAECBAgkCAjgCchKECBAgAABAgQIECBAgAABAVwPECBAgAABAgQIECBAgACBBAEBPAFZCQIECBAgQIAAAQIECBAgIIDrAQIECBAgQIAAAQIECBAgkCAggCcgK0GAAAECBAgQIECAAAECBARwPUCAAAECBAgQIECAAAECBBIEBPAEZCUIECBAgAABAgQIECBAgIAArgcIECBAgAABAgQIECBAgECCgACegKwEAQIECBAgQIAAAQIECBAQwPUAAQIECBAgQIAAAQIECBBIEBDAE5CVIECAAAECBAgQIECAAAECArgeIECAAAECBAgQIECAAAECCQICeAKyEgQIECBAgAABAgQIECBAQADXAwQIECBAgAABAgQIECBAIEFAAE9AVoIAAQIECBAgQIAAAQIECAjgeoAAAQIECBAgQIAAAQIECCQICOAJyEoQIECAAAECBAgQIECAAAEBXA8QIECAAAECBAgQIECAAIEEAQE8AVkJAgQIECBAgAABAgQIECAggOsBAgQIECBAgAABAgQIECCQICCAJyArQYAAAQIECBAgQIAAAQIEBHA9QIAAAQIECBAgQIAAAQIEEgQE8ARkJQgQIECAAAECBAgQIECAgACuBwgQIECAAAECBAgQIECAQIKAAJ6ArAQBAgQIECBAgAABAgQIEBDA9QABAgQIECBAgAABAgQIEEgQEMATkJUgQIAAAQIECBAgQIAAAQICuB4gQIAAAQIECBAgQIAAAQIJAgJ4ArISBAgQIECAAAECBAgQIEBAANcDBAgQIECAAAECBAgQIEAgQUAAT0BWggABAgQIECBAgAABAgQICOB6gAABAgQIECBAgAABAgQIJAgI4AnIShAgQIAAAQIECBAgQIAAAQFcDxAgQIAAAQIECBAgQIAAgQQBATwBWQkCBAgQIECAAAECBAgQICCA6wECBAgQIECAAAECBAgQIJAgIIAnICtBgAABAgQIECBAgAABAgQEcD1AgAABAgQIECBAgAABAgQSBATwBGQlCBAgQIAAAQIECBAgQICAAK4HCBAgQIAAAQIECBAgQIBAgoAAnoCsBAECBAgQIECAAAECBAgQEMD1AAECBAgQIECAAAECBAgQSBAQwBOQlSBAgAABAgQIECBAgAABAgK4HiBAgAABAgQIECBAgAABAgkCAngCshIECBAgQIAAAQIECBAgQEAA1wMECBAgQIAAAQIECBAgQCBBQABPQFaCAAECBAgQIECAAAECBAgI4HqAAAECBAgQIECAAAECBAgkCAjgCchKECBAgAABAgQIECBAgAABAVwPECBAgAABAgQIECBAgACBBAEBPAFZCQIECBAgQIAAAQIECBAgIIDrAQIECBAgQIAAAQIECBAgkCAggCcgK0GAAAECBAgQIECAAAECBARwPUCAAAECBAgQIECAAAECBBIEBPAEZCUIECBAgAABAgQIECBAgIAArgcIECBAgAABAgQIECBAgECCgACegKwEAQIECBAgQIAAAQIECBAQwPUAAQIECBAgQIAAAQIECBBIEBDAE5CVIECAAAECBAgQIECAAAECArgeIECAAAECBAgQIECAAAECCQICeAKyEgQIECBAgAABAgQIECBAQADXAwQIECBAgAABAgQIECBAIEFAAE9AVoIAAQIECBAgQIAAAQIECAjgeoAAAQIECBAgQIAAAQIECCQICOAJyEoQIECAAAECBAgQIECAAAEBXA8QIECAAAECBAgQIECAAIEEAQE8AVkJAgQIECBAgAABAgQIECAggOsBAgQIECBAgAABAgQIECCQICCAJyArQYAAAQIECBAgQIAAAQIEBHA9QIAAAQIECBAgQIAAAQIEEgQE8ARkJQgQIECAAAECBAgQIECAgACuBwgQIECAAAECBAgQIECAQIKAAJ6ArAQBAgQIECBAgAABAgQIEBDA9QABAgQIECBAgAABAgQIEEgQEMATkJUgQIAAAQIECBAgQIAAAQICuB4gQIAAAQIECBAgQIAAAQIJAgJ4ArISBAgQIECAAAECBAgQIEBAANcDBAgQIECAAAECBAgQIEAgQUAAT0BWggABAgQIECBAgAABAgQICOB6gAABAgQIECBAgAABAgQIJAgI4AnIShAgQIAAAQIECBAgQIAAAQFcDxAgQIAAAQIECBAgQIAAgQQBATwBWQkCBAgQIECAAAECBAgQICCA6wECBAgQIECAAAECBAgQIJAgIIAnICtBgAABAgQIECBAgAABAgQEcD1AgAABAgQIECBAgAABAgQSBATwBGQlCBAgQIAAAQIECBAgQICAAK4HCBAgQIAAAQIECBAgQIBAgoAAnoCsBAECBAgQIECAAAECBAgQEMD1AAECBAgQIECAAAECBAgQSBAQwBOQlSBAgAABAgQIECBAgAABAgK4HiBAgAABAgQIECBAgAABAgkCAngCshIECBAgQIAAAQIECBAgQEAA1wMECBAgQIAAAQIECBAgQCBBQABPQFaCAAECBAgQIECAAAECBAgI4HqAAAECBAgQIECAAAECBAgkCAjgCchKECBAgAABAgQIECBAgAABAVwPECBAgAABAgQIECBAgACBBAEBPAFZCQIECBAgQIAAAQIECBAgIIDrAQIECBAgQIAAAQIECBAgkCAggCcgK0GAAAECBAgQIECAAAECBARwPUCAAAECBAgQIECAAAECBBIEBPAEZCUIECBAgAABAgQIECBAgIAArgcIECBAgAABAgQIECBAgECCgACegKwEAQIECBAgQIAAAQIECBAQwPUAAQIECBAgQIAAAQIECBBIEBDAE5CVIECAAAECBAgQIECAAAECArgeIECAAAECBAgQIECAAAECCQICeAKyEgQIECBAgAABAgQIECBAQADXAwQIECBAgAABAgQIECBAIEFAAE9AVoIAAQIECBAgQIAAAQIECAjgeoAAAQIECBAgQIAAAQIECCQICOAJyEoQIECAAAECBAgQIECAAAEBXA8QIECAAAECBAgQIECAAIEEAQE8AVkJAgQIECBAgAABAgQIECAggOsBAgQIECBAgAABAgQIECCQICCAJyArQYAAAQIECBAgQIAAAQIEBHA9QIAAAQIECBAgQIAAAQIEEgQE8ARkJQgQIECAAAECBAgQIECAgACuBwgQIECAAAECBAgQIECAQIKAAJ6ArAQBAgQIECBAgAABAgQIEBDA9QABAgQIECBAgAABAgQIEEgQEMATkJUgQIAAAQIECBAgQIAAAQICuB4gQIAAAQIECBAgQIAAAQIJAgJ4ArISBAgQIECAAAECBAgQIEBAANcDBAgQIECAAAECBAgQIEAgQUAAT0BWggABAgQIECBAgAABAgQICOB6gAABAgQIECBAgAABAgQIJAgI4AnIShAgQIAAAQIECBAgQIAAAQFcDxAgQIAAAQIECBAgQIAAgQQBATwBWQkCBAgQIECAAAECBAgQICCA6wECBAgQIECAAAECBAgQIJAgIIAnICtBgAABAgQIECBAgAABAgQEcD1AgAABAgQIECBAgAABAgQSBATwBGQlCBAgQIAAAQIECBAgQICAAK4HCBAgQIAAAQIECBAgQIBAgoAAnoCsBAECBAgQIECAAAECBAgQEMD1AAECBAgQIECAAAECBAgQSBAQwBOQlSBAgAABAgQIECBAgAABAgK4HiBAgAABAgQIECBAgAABAgkCAngCshIECBAgQIAAAQIECBAgQEAA1wMECBAgQIAAAQIECBAgQCBBQABPQFaCAAECBAgQIECAAAECBAgI4HqAAAECBAgQIECAAAECBAgkCAjgCchKECBAgAABAgQIECBAgACBagBfcc0N6nEQIECAAAECBAgQIDBnCyy3zNJlgPc++CDq6ibM2Rj2nkCNBR6+77byiD0E8BrLGo4AAQIECBAgQIBAFxQQwLvgj2aTu4yAAN5lfiobSoAAAQIECBAgQKDzBQTwzjdWYc4VEMDn3N/enhMgQIAAAQIECBBoJiCANyMxgUDNBATwmlEaiAABAgQIECBAgEDXFxDAu/5vaA9mXwEBfPb9bWwZAQIE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">
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
-  <PnTextual :object="example_app" :width="600" :height="400" />
+  <PnTextual :object="example_app" :width="500" :height="300" />
 </template>
 <script lang='py'>
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal
 from textual.widgets import Button, Footer, Header, Static
 
-QUESTION = "您想了解 Textual CSS 吗？"
+QUESTION = "Do you want to learn about Textual CSS?"
 
 class ExampleApp(App):
     def compose(self) -> ComposeResult:
@@ -8333,8 +7964,8 @@ class ExampleApp(App):
         yield Container(
             Static(QUESTION, classes="question"),
             Horizontal(
-                Button("是", variant="success"),
-                Button("否", variant="error"),
+                Button("yes", variant="success"),
+                Button("no", variant="error"),
                 classes="buttons",
             ),
             id="dialog",
@@ -8348,10 +7979,11 @@ example_app = ExampleApp()
 
 这对于简单的应用程序和更复杂的应用程序都适用。作为示例，这里我们嵌入了 Textual 文档中的计算器示例应用程序：
 
+<img style='height:400px' src="data:image/png;base64,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UZt23313c95550UPxZ9r1qwx559/vmpxFne+yifIT+XAdtxxRzN+/HjTqVOnki9y/0i76aabSm6Tlie15QeBCitZCJTQL40T6X777WfOOOMMYY+Ll6+++mpz7733Fn9SQVXbAUxj312bBg4caG677TbjViErubnVx6OOOspMmzatks2D3Yb8VNa6zp07m4cffth06dKloheceeaZ5rnnnqto25A30pYf7QK1ePkq023djiG33Ou+I1ACTo0T6c9+9jNz6KGHZvbYTZDLli1rs/ddu3bNq333u981S5cuzatpeqDtAKax765f55xzjhk1alRe69yEeOutt2ZqxxxzjNl7773znn/yySfNueeem1dL2wPyU1lHx40bZ/baa6+8je+4445MfoYOHZpZmXIf70W32bNnm4MPPjh6mNqf2vKjVaCcOP30itfNpI++MD/ZbWNzxg+GmI4F/5azC9/mt3//yNzzzCwzcrs+5j8PGpLa3ES/GAIVkSj4qXEi3XXXXTPnKLhdveKKK8yf//zngr025vHHHzfrrLNOpj537lzzgx/8oM02mgraDmAa++769Yc//MEMGDAg27pXXnnFnHLKKdnH7o77uHb99dfP1ubMmWN++MMfZh+n8Q75qayrhfmZOXOmOeSQQ7IvdudVupXq3POifvGLX5gXX3wxu00a72jLj1aB+vtLc82Zt7yTjcD3d9nI/PePt8xKlJOn39w/1dzxROu5l/eM28EMG9At+5o03kGghK5qnUijCdJ9c6bw9p3vfCdz7ktU/+tf/5r5l2X0WONPbQcwrX2/77778r488Mgjj2ROBs7t6YQJE8xWW22VLbmM7L///tnHabxDfirr6mOPPWbcx3jRrdh5TnfffbfZaKONok0yQuVOAUjzTVt+tArU1DlLzAEXvJQXhUiiOtjvIlxy3xRz55Mz855/avzXTWP30ufb5b0gwAcIlNA0rROpsLuZsjvBPPfbWWPGjDHvvNP6r4ZSr63Vc9oOYFr77lYcv/KVr2Tb5D6+datLn3/+eabWu3fvzApU7grC66+/bsaOHZt9TRrvkJ/Kuuq+iZt78nixf1zdc889pl+/ftkB3TlQ7lyoNN+05UerQLkMPPXGfHPyjW/nxWH/r29ouqzT0fzpH7Py6jecuLX5xojW1fC8J1P0AIESmql1IhV2N/Ox3aOPPpo9ybip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">
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
-  <PnTextual :object="calculator" :height="600" :width="400" />
+  <PnTextual :object="calculator" :height="500" :width="300" />
 </template>
 <script lang='py'>
 from decimal import Decimal
@@ -8557,21 +8189,12 @@ calculator = CalculatorApp()
 | margin           | 外边距                        | ^[int, tuple]                                                  | 5       |
 | css_classes      | CSS类名列表                   | ^[list]                                                        | []      |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | 自定义默认内容      |
 
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -8636,21 +8259,12 @@ url = 'https://upload.wikimedia.org/wikipedia/commons/b/b1/Loading_icon.gif'
 | margin      | 外边距               | ^[int, tuple]                                                  | 5       |
 | css_classes | CSS类名列表          | ^[list]                                                        | []      |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | 自定义默认内容      |
 
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -8730,21 +8344,12 @@ url = 'https://upload.wikimedia.org/wikipedia/commons/b/b1/Loading_icon.gif'
 | margin         | 外边距                        | ^[int, tuple]                                                  | 5       |
 | css_classes    | CSS类名列表                   | ^[list]                                                        | []      |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | 自定义默认内容      |
 
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -8824,23 +8429,6 @@ url = 'https://upload.wikimedia.org/wikipedia/commons/b/b1/Loading_icon.gif'
 | link_url      | 链接URL，使图像可点击并链接到其他网站    | ^[str]     | None   |
 | styles        | 指定CSS样式的字典                       | ^[dict]    | {}     |
 
-### Events
-
-| 事件名 | 说明 | 类型 |
-| ------ | ---- | ---- |
-|        |      |      |
-
-### Slots
-
-| 插槽名   | 说明           |
-| -------- | -------------- |
-|          |                |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ------ | ---- | ---- |
-|        |      |      |
 
 
 
@@ -8858,9 +8446,9 @@ url = 'https://upload.wikimedia.org/wikipedia/commons/b/b1/Loading_icon.gif'
 `PnPerspective` 组件将指定为字典列表或数组以及 pandas DataFrame 的数据列呈现为交互式表格：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
-  <PnPerspective :object="df" :width="700" :height='300'/>
+  <PnPerspective :object="df" :width="600" :height='300'/>
 </template>
 <script lang='py'>
 import pandas as pd
@@ -8894,10 +8482,10 @@ df = pd.DataFrame(data)
 默认情况下会显示 `index`。如果您默认不想显示它，可以提供要显示的 `columns` 列表：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnPerspective :object="df" :columns="list(df.columns)" 
-                 :width="700" :height='300'/>
+                 :width="600" :height='300'/>
 </template>
 <script lang='py'>
 import pandas as pd
@@ -8913,7 +8501,11 @@ data = {
     'datetime': [(datetime.now() + timedelta(hours=i)) for i in range(9)],
     'category': ['类别 A', '类别 B', '类别 C', '类别 A', '类别 B',
              '类别 C', '类别 A', '类别 B', '类别 C',],
-    'link': ['https://panel.holoviz.org/', 'https://discourse.holoviz.org/', 'https://github.com/holoviz/panel']*3,
+    'link': [
+        'https://panel.holoviz.org/', 
+        'https://discourse.holoviz.org/', 
+        'https://github.com/holoviz/panel',
+    ] * 3,
 }
 df = pd.DataFrame(data)
 </script>
@@ -8924,7 +8516,7 @@ df = pd.DataFrame(data)
 您也可以通过 `settings` 参数隐藏*配置菜单*：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnPerspective 
     :object="df" 
@@ -8968,12 +8560,12 @@ df = pd.DataFrame(data)
 您还可以通过 `columns_config` 参数以编程方式配置*列*配置：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnPerspective 
     :object="df" 
     :columns="list(df.columns)" 
-    :width="700"
+    :width="600"
     :height='300'
     :columns_config="columns_config" />
 </template>
@@ -8991,7 +8583,10 @@ data = {
     'datetime': [(datetime.now() + timedelta(hours=i)) for i in range(9)],
     'category': ['类别 A', '类别 B', '类别 C', '类别 A', '类别 B',
              '类别 C', '类别 A', '类别 B', '类别 C',],
-    'link': ['https://panel.holoviz.org/', 'https://discourse.holoviz.org/', 'https://github.com/holoviz/panel']*3,
+    'link': [
+        'https://panel.holoviz.org/', 
+        'https://discourse.holoviz.org/', 
+        'https://github.com/holoviz/panel'] * 3,
 }
 df = pd.DataFrame(data)
 
@@ -9022,12 +8617,12 @@ columns_config = {
 如果您的数据不是时区感知的，您可以将它们设置为时区感知。我的服务器时区是 'cet'，我可以按如下方式使它们感知时区：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnColumn>
     <PnTabulator :value="df_aware.head(3)" />
     <PnPerspective :object="df_aware" :columns="list(df.columns)" 
-                   :width="700" :height='300' />
+                   :width="600" :height='300' />
   </PnColumn>
 </template>
 <script lang='py'>
@@ -9059,11 +8654,11 @@ df_aware['datetime'] = df_aware['datetime'].dt.tz_localize("cet")
 如上节所示，您可以强制日期时间以特定时区显示：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnPerspective 
     :object="df_aware" 
-    :width="700"
+    :width="600"
     :height='300'
     :columns="list(df.columns)" 
     :plugin_config="plugin_config" />
@@ -9102,14 +8697,13 @@ plugin_config = {'columns': {'datetime': {"timeZone": "Europe/London", "timeStyl
 `PnPerspective` 组件还支持 `stream` 和 `patch` 方法，使我们能够高效地更新数据：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnPerspective 
     ref="stream_perspective"
     :object="df_stream" 
     plugin="d3_y_line" 
     :columns="['A', 'B', 'C', 'D']" 
-    theme="pro-dark"
     sizing_mode="stretch_width" 
     :height="500" 
     :margin="0" />
@@ -9192,7 +8786,7 @@ def patch_data():
 通过流式处理您想要可见的数据并将 rollover 设置为等于新数据的行数，可以实现删除行。通过这种方式，有效地删除旧行。目前不支持以类似于修补的方式按索引删除特定行。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnPerspective 
     ref="perspective_ref"
@@ -9285,6 +8879,7 @@ def stream_smaller():
 | --- | --- | --- |
 | patch | 更新特定行和列的数据 | dict, rollover=None |
 | stream | 将新数据附加到现有数据上 | obj, rollover=None |
+
 
 
 
@@ -9408,21 +9003,12 @@ pil_image = im
 | margin         | 外边距                        | ^[int, tuple]                                                  | 5       |
 | css_classes    | CSS类名列表                   | ^[list]                                                        | []      |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | 自定义默认内容      |
 
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -9476,21 +9062,11 @@ pil_image = im
 | width           | 宽度                         | ^[int, str]                                                    | None    |
 | height          | 高度                         | ^[int, str]                                                    | None    |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | 自定义默认内容      |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -9505,12 +9081,13 @@ pil_image = im
 
 `PnParam` 组件可以用来查看和编辑参数化模型。下面我们构建一个骑行运动员及其功率曲线的模型作为示例：
 
+
 ## 自定义小部件
 
 我们可以为特定参数自定义小部件类型：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnParam :object="athlete.param" :widgets="widgets"/>
   <hr/>
@@ -9585,7 +9162,7 @@ athlete = Athlete()
 我们可以选择只显示特定参数，并自定义布局：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnParam 
     :object="athlete.param"
@@ -9816,21 +9393,12 @@ grid_layout = new_class(pn.GridBox, ncols=2)
 | margin           | 外边距 | ^[int, tuple]                                                                       | 5       |
 | css_classes      | CSS类名列表 | ^[list]                                                                        | []      |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | Param的字段 | 自定义widget      |
 
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -9940,21 +9508,12 @@ theme = ref('light')
 | margin        | 外边距                        | ^[int, tuple]                                                  | 5       |
 | css_classes   | CSS类名列表                   | ^[list]                                                        | []      |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | 自定义默认内容      |
 
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -10001,7 +9560,7 @@ echart_bar = {
 与所有其他组件一样，`PnECharts` 组件的 `object` 可以更新，要么是就地更新并触发更新：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnECharts :object="echart_bar" :height="480" :width="640" ref="echart_pane_ref" />
   <PnButton @click="change_to_line()">更改为折线图</PnButton>
@@ -10046,7 +9605,7 @@ def change_to_bar():
 ECharts 规范也可以通过声明宽度或高度以匹配容器来进行响应式调整大小：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnECharts :object="responsive_spec" :width='600' :height="400" />
 </template>
@@ -10114,7 +9673,7 @@ def plot():
 ECharts 库支持各种图表类型，由于图表使用 JSON 数据结构表示，我们可以轻松更新数据，然后发出更改事件以更新图表：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnColumn>
     <PnIntSlider v-model='value.value' name='Value' 
@@ -10171,7 +9730,7 @@ def update_gauge():
 让我们从一个简单的点击事件开始，我们想从 Python 监听这个事件。要添加事件监听器，只需使用事件类型（在本例中为 'click'）和 Python 处理程序调用 `on_event` 方法：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
 <PnRow>
   <PnECharts :object="echart_bar" :height="480" :width="640" 
@@ -10225,7 +9784,7 @@ def on_click(event):
 相同的概念适用于 JavaScript，但这里我们传入 JavaScript 代码片段。命名空间允许您访问事件数据 `cb_data` 和 ECharts 图表本身作为 `cb_obj`。这样，您可以访问事件并自己操作图表：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnECharts :object="echart_bar" :height="480" :width="640" 
              @jsclick='on_jsclick()' />
@@ -10301,6 +9860,7 @@ def on_jsclick():
 
 
 
+
 # HTML 文本
 
 `PnHTML` 组件允许在面板中渲染任意 HTML。它可以渲染包含有效 HTML 的字符串以及具有 `_repr_html_` 方法的对象，还可以定义自定义 CSS 样式。
@@ -10316,6 +9876,7 @@ def on_jsclick():
 <!-- --plugins vpanel --show-code -->
 <template>
   <PnHTML :object="html_content" :styles="styles" />
+  <PnHTML :object="html_content" style="border: 2px solid red" />
 </template>
 <script lang='py'>
 styles = {
@@ -10474,6 +10035,7 @@ iframe_html = f'<iframe srcdoc="{escaped_html}" style="height:100%; width:100%" 
 | sanitize_html     | 是否对发送到前端的 HTML 进行净化 | ^[boolean]                                                    | False |
 | sanitize_hook     | 如果 `sanitize_html=True`，应用的净化回调 | ^[Callable]                                        | bleach.clean |
 | styles            | 指定 CSS 样式的字典           | ^[dict]                                                        | {} |
+| style            | 指定 CSS 样式           | ^[]                                                        | '' |
 | sizing_mode       | 尺寸调整模式                   | ^[str]                                                         | 'fixed'  |
 | width             | 宽度                          | ^[int, str]                                                    | None    |
 | height            | 高度                          | ^[int, str]                                                    | None    |
@@ -10484,21 +10046,12 @@ iframe_html = f'<iframe srcdoc="{escaped_html}" style="height:100%; width:100%" 
 | margin            | 外边距                        | ^[int, tuple]                                                  | 5       |
 | css_classes       | CSS类名列表                   | ^[list]                                                        | []      |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | 自定义默认内容      |
 
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -10518,7 +10071,7 @@ iframe_html = f'<iframe srcdoc="{escaped_html}" style="height:100%; width:100%" 
 要显示 `vega` 和 `vega-lite` 规范，只需直接构造一个 `PnVega` 组件：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnVega :object="vegalite" :height="240" />
 </template>
@@ -10759,7 +10312,7 @@ combined_chart = chart1 | chart2
 作为一个例子，我们可以在图表中添加一个 Altair `selection_interval` 选择：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnVega :object="chart" :debounce="10" ref='vega'/>
   <PnColumn>
@@ -10855,21 +10408,12 @@ chart = alt.Chart(cars).mark_circle(size=60).encode(
 | margin       | 外边距                        | ^[int, tuple]                                                  | 5       |
 | css_classes  | CSS类名列表                   | ^[list]                                                        | []      |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | 自定义默认内容      |
 
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -10887,7 +10431,7 @@ chart = alt.Chart(cars).mark_circle(size=60).encode(
 `PnStreamz` 组件使用默认的 Panel 解析方式来确定如何渲染 Stream 返回的对象。默认情况下，该组件只有在显示时才会监视 `Stream`，我们可以通过设置 `always_watch=True` 让它在创建后立即开始监视流：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnStreamz :object="stream_map.value" :always_watch="True"/>
 </template>
@@ -11040,21 +10584,12 @@ def stop_emit():
 | margin           | 外边距                        | ^[int, tuple]                                                  | 5       |
 | css_classes      | CSS类名列表                   | ^[list]                                                        | []      |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | 自定义默认内容      |
 
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -11144,21 +10679,6 @@ Did you notice the use of the divider?
 | margin     | 外边距               | ^[int, tuple]                                                  | 5       |
 | css_classes | CSS类名列表          | ^[list]                                                        | []      |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-| default | 警告消息内容        |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -11381,12 +10901,6 @@ def change_view_angle():
 | max_height                 | 最大高度                      | ^[int]                                                         | None    |
 | margin                     | 外边距                        | ^[int, tuple]                                                  | 5       |
 | css_classes                | CSS类名列表                   | ^[list]                                                        | []      |
-
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
@@ -11398,6 +10912,7 @@ def change_view_angle():
 | 方法名 | 说明 | 参数 |
 | --- | --- | --- |
 | export_scene | 导出场景并生成可以被官方 vtk-js 场景导入器加载的文件 | filename: str |
+
 
 
 
@@ -11470,24 +10985,8 @@ def updateToObject():
 | --------- | ---------------------------------------- | ------------------- | ------ |
 | value     | 要显示的字符串。如果提供非字符串类型，将显示该对象的`repr` | ^[str\|object]     | —      |
 | styles    | 指定CSS样式的字典                       | ^[dict]             | {}     |
+| style    | 指定CSS样式的                      | ^[str]             | ''     |
 
-### Events
-
-| 事件名 | 说明 | 类型 |
-| ------ | ---- | ---- |
-|        |      |      |
-
-### Slots
-
-| 插槽名   | 说明           |
-| -------- | -------------- |
-|          |                |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ------ | ---- | ---- |
-|        |      |      |
 
 
 
@@ -11738,18 +11237,6 @@ def changeToRectangle():
 | duration      | 动画持续时间（毫秒）                      | ^[int]              | 500    |
 | style         | 图表样式配置                             | ^[dict]             | {}     |
 
-### Events
-
-| 事件名 | 说明 | 类型 |
-| ------ | ---- | ---- |
-|        |      |      |
-
-### Slots
-
-| 插槽名   | 说明           |
-| -------- | -------------- |
-|          |                |
-
 ### 方法
 
 | 方法名    | 说明                            | 类型                         |
@@ -11758,6 +11245,7 @@ def changeToRectangle():
 | stream    | 向图表流式传输新数据            | ^[Callable]`(data: dict) -> None` |
 | patch     | 修补数据中的一行或多行          | ^[Callable]`(data: dict) -> None` |
 | controls  | 返回控制面板组件                | ^[Callable]`(jslink=bool) -> Panel` |
+
 
 
 
@@ -11775,7 +11263,7 @@ def changeToRectangle():
 下面是一个使用 Bokeh 创建饼图并将其显示在 Panel 中的示例：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnBokeh :object="p" theme="dark_minimal" />
 </template>
@@ -11825,7 +11313,7 @@ p.grid.grid_line_color = None
 要使用实时服务器更新图表，我们可以简单地修改底层模型。如果我们在 Jupyter notebook 中工作，我们还必须在组件上调用 `pn.io.push_notebook` 辅助函数，或者明确使用 `bokeh_pane.param.trigger('object')` 触发事件：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnBokeh :object="p" ref="bokeh_pane_ref" />
   <PnButton @click="update_colors()">更新颜色</PnButton>
@@ -11870,7 +11358,8 @@ def update_colors():
     bokeh_pane = bokeh_pane_ref.value.unwrap()
     r.data_source.data['color'] = Category20[len(x)]
     bokeh_pane.param.trigger('object')
-    
+
+# in a live server
 def replace_with_div():
     bokeh_pane = bokeh_pane_ref.value.unwrap()
     bokeh_pane.object = Div(text='<h2>This text replaced the pie chart</h2>')
@@ -11884,7 +11373,7 @@ def replace_with_div():
 使用 Panel 渲染 Bokeh 对象的另一个很好的特性是回调将像在服务器上一样工作。因此，您可以简单地将现有的 Bokeh 应用程序包装在 Panel 中，它将可以渲染并开箱即用，无论是在 notebook 中还是作为独立应用程序提供服务：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnBokeh :object="app" />
 </template>
@@ -11963,21 +11452,12 @@ app = row(inputs, plot, width=800)
 | margin     | 外边距               | ^[int, tuple]                                                  | 5       |
 | css_classes | CSS类名列表          | ^[list]                                                        | []      |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 | default | 自定义默认内容      |
 
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
 
 
 
@@ -11993,6 +11473,7 @@ StaticText组件显示文本值但不允许编辑它，适用于展示只读信�
 静态文本组件提供了一种简单的方式来显示不可编辑的文本内容。
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnStaticText 
     name="静态文本" 
@@ -12008,6 +11489,7 @@ StaticText组件显示文本值但不允许编辑它，适用于展示只读信�
 静态文本组件可以与响应式数据结合使用，以显示动态更新的内容。
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnCol>
     <PnStaticText 
@@ -12039,6 +11521,7 @@ def increment():
 可以通过样式参数自定义静态文本的外观。
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnCol>
     <PnStaticText 
@@ -12083,23 +11566,6 @@ pn.extension()
 | name | 组件标题 | ^[string] | — |
 | value | 文本内容 | ^[string] | — |
 
-### Events
-
-| 事件名 | 说明 | 类型 |
-| --- | --- | --- |
-| | | |
-
-### Slots
-
-| 插槽名 | 说明 |
-| --- | --- |
-| | |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
-| | | |
 
 
 
@@ -12237,10 +11703,6 @@ custom_icon = """
 |    default     |          按钮文字        |
 |    icon |          svg 图标 |
 
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -12256,6 +11718,7 @@ custom_icon = """
 基本的整数范围滑块使用：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnIntRangeSlider name="整数范围滑块" 
                    :start="0" 
@@ -12281,6 +11744,7 @@ def update_value(event):
 可以设置`step`参数来控制值的间隔：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnIntRangeSlider name="步长为2" 
                    :start="0" 
@@ -12302,6 +11766,7 @@ value = ref((4, 12))
 滑块可以设置为垂直方向显示：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnRow>
     <PnIntRangeSlider name="垂直范围滑块" 
@@ -12322,6 +11787,7 @@ from vuepy import ref
 可以自定义滑块条的颜色和方向：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnIntRangeSlider name="蓝色范围滑块" 
                    bar_color="#3498db"
@@ -12367,16 +11833,6 @@ from vuepy import ref
 | ------------- | -------------------------- | -------------------------------------- |
 | change        | 当值更改时触发的事件         | ^[Callable]`(value) -> None`          |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -12482,12 +11938,6 @@ current_value = ref(0)
 | ---   | ---                  | ---                                    |
 | change | 当当前值变化时触发的事件 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-|         |                   |
-
 ### 方法
 
 | 方法名 | 说明 | 类型 |
@@ -12495,6 +11945,7 @@ current_value = ref(0)
 | pause | 暂停播放 | ^[Callable]`() -> None` |
 | play  | 开始播放 | ^[Callable]`() -> None` |
 | reverse | 反向播放 | ^[Callable]`() -> None` |
+
 
 
 
@@ -12576,7 +12027,7 @@ def update_value(event):
 复选框通常用于控制其他组件的显示或行为：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' --app app -->
+<!-- --plugins vpanel --show-code --backend='panel' --app app -->
 <template>
   <PnCheckbox name="显示内容" v-model="is_checked.value" />
   <PnRow v-if="is_checked.value">
@@ -12612,16 +12063,6 @@ def update_value(value):
 | ------ | ------------------ | ----------------------------- |
 | change | 当状态改变时触发的事件 | ^[Callable]`(value) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -13470,6 +12911,7 @@ df = ref(pd.DataFrame({
 | patch | 更新数据表格 | ^[Callable]`(...) -> None` |
 
 
+
 # DiscreteSlider 离散滑块
 
 离散滑块组件允许使用滑块从离散列表或字典中选择值，提供了类似Select组件的选择功能，但使用滑块作为交互界面。
@@ -13603,16 +13045,6 @@ value2 = ref('C')
 | ------------- | -------------------------- | -------------------------------------- |
 | change        | 当值更改时触发的事件         | ^[Callable]`(value) -> None`          |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -13632,6 +13064,7 @@ value2 = ref('C')
 <template>
   <PnPasswordInput name="password" 
                   placeholder="input password"
+                  description="tooltip"
                   v-model="pw.value" />
 </template>
 <script lang='py'>
@@ -13660,16 +13093,6 @@ pw = ref('')
 | ------ | ------------------ | ----------------------------- |
 | change | 当密码更改时触发的事件 | ^[Callable]`(value) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -13680,12 +13103,13 @@ pw = ref('')
 底层实现为`panel.widgets.TextEditor`，参数基本一致，参考文档：https://panel.holoviz.org/reference/widgets/TextEditor.html
 
 
+
 ## 基本用法
 
 基本的文本编辑器使用：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnTextEditor name="基本编辑器" 
                v-model="content.value"/>
@@ -13705,7 +13129,7 @@ content = ref("这是一个文本编辑器示例")
 可以设置工具栏的位置和是否显示：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnRow>
     <PnTextEditor name="基础文本格式" 
@@ -13769,16 +13193,6 @@ pn.config.sizing_mode = 'stretch_width'
 | ---   | ---                  | ---                                    |
 | change | 当文本内容变化时触发的事件 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -13793,7 +13207,9 @@ pn.config.sizing_mode = 'stretch_width'
 
 基本的多选框使用：
 
+
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
  <PnCol :height='150'>
   <PnMultiSelect name="Fruit" 
@@ -13816,6 +13232,7 @@ selected = ref([])
 `options`参数也接受一个字典，其键将作为下拉菜单的标签：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnMultiSelect name="Code" 
                 :options="{'Python': 'py', 'JavaScript': 'js', 'Java': 'java', 'C++': 'cpp'}"
@@ -13840,6 +13257,7 @@ def update_value(new_value):
 可以通过`size`参数控制选择区域显示的选项数量：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnMultiSelect name="3 items" 
                 :options="['opt1', 'opt2', 'opt3', 'opt4']"
@@ -13885,16 +13303,6 @@ def update_value2(new_value):
 | ------ | ------------------ | ------------------------------ |
 | change | 当选择改变时触发的事件 | ^[Callable]`(value) -> None`  |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -14016,16 +13424,6 @@ nested_dict = {
 | ---   | ---                  | ---                                    |
 | change | 当输入值变化时触发的事件 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -14196,10 +13594,6 @@ def click1(ev):
 |    default     |          按钮文字        |
 |    icon |          svg 图标 |
 
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -14219,6 +13613,7 @@ SpeechToText组件通过封装[HTML5 `SpeechRecognition` API](https://developer.
 > 在像Chrome这样的浏览器上，在网页上使用语音识别涉及基于服务器的识别引擎。**您的音频会被发送到网络服务进行识别处理，因此它无法离线工作**。这对您的用例来说是否足够安全和保密，需要您自行评估。
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnSpeechToText 
     button_type="light"
@@ -14241,6 +13636,7 @@ speech_text = ref("")
 可以通过设置`button_type`、`button_not_started`和`button_started`参数来自定义按钮的外观。
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnRow>
     <PnSpeechToText 
@@ -14267,6 +13663,7 @@ custom_text = ref("")
 通过设置`continuous=True`，语音识别服务会保持打开状态，允许您连续说多个语句。
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnSpeechToText 
     button_type="warning" 
@@ -14290,6 +13687,7 @@ continuous_text = ref("")
 可以使用`GrammarList`限制识别服务识别的单词或单词模式。
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnCol>
     <PnStaticText value="尝试说出一种颜色（英文）如red, blue, green等" />
@@ -14322,6 +13720,7 @@ grammar_text = ref("")
 可以通过`results`属性获取更详细的结果，包括置信度级别。
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnCol>
     <PnSpeechToText 
@@ -14378,18 +13777,13 @@ def update_results(event):
 | --- | --- | --- |
 | change | 当识别结果改变时触发 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名 | 说明 |
-| --- | --- |
-| | |
-
 ### 方法
 
 | 属性名 | 说明 | 类型 |
 | --- | --- | --- |
 | results_deserialized | 获取识别的结果，RecognitionResult对象列表 | ^[property] |
 | results_as_html | 获取格式化为HTML的结果 | ^[property] |
+
 
 
 
@@ -14512,17 +13906,6 @@ vertical_range = ref((dt.datetime(2017, 3, 15), dt.datetime(2018, 6, 10)))
 | --- | --- | --- |
 | change | 当选择改变时触发 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名 | 说明 |
-| --- | --- |
-| | |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
-| | | |
 
 
 
@@ -14538,6 +13921,7 @@ ColorMap组件允许从包含色彩映射的字典中选择一个值。该组件
 色彩映射选择器可以提供色彩映射选项让用户进行选择，选项必须是一个包含色彩列表的字典。
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <p>选择的色彩映射: {{selected_map.value}}</p>
   <PnRow :height='200'>
@@ -14572,6 +13956,7 @@ def on_change(event):
 可以通过设置`ncols`参数以及`swatch_width`和`swatch_height`选项来控制色彩映射的显示方式。
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
  <PnCol :height='300'>
   <PnColorMap 
@@ -14598,6 +13983,7 @@ selected_palette = ref(cc.b_circle_mgbm_67_c31)
 组件也支持matplotlib色彩映射：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
  <PnCol :height='200'>
   <PnColorMap 
@@ -14638,18 +14024,6 @@ selected_mpl = ref(Reds)
 | --- | --- | --- |
 | change | 当选择改变时触发 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名 | 说明 |
-| --- | --- |
-| | |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
-| | | |
-
 
 
 # JSONEditor JSON编辑器
@@ -14664,7 +14038,7 @@ JSONEditor组件提供了一个可视化编辑器，用于编辑JSON可序列化
 JSON编辑器提供了一个直观的界面来查看和编辑JSON数据。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnJSONEditor 
     :width="400"
@@ -14709,7 +14083,7 @@ def on_change(event):
 JSON编辑器有多种模式，提供不同的查看和编辑`JSONEditor.value`的方式。注意，要启用对`mode='code'`的支持，必须使用`pn.extension('ace')`加载ace编辑器。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnCol>
     <PnStaticText value="tree 树形模式" />
@@ -14757,7 +14131,7 @@ json_data = {
 JSONEditor通过提供JSON Schema可以对`value`进行验证。JSON Schema描述了JSON对象必须具有的结构，如必需的属性或值必须具有的类型。更多信息请参见 http://json-schema.org/。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnJSONEditor 
     :schema="schema" 
@@ -14822,17 +14196,6 @@ person_data = {
 | --- | --- | --- |
 | change | 当JSON数据改变时触发 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名 | 说明 |
-| --- | --- |
-| | |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
-| | | |
 
 
 
@@ -14850,7 +14213,7 @@ Debugger是一个不可编辑的Card布局组件，可以在前端显示仪表�
 注意：调试器基于terminal组件，需要调用`pn.extension('terminal')`。
 
 ```vue
-<!-- --plugins vpanel --show-code -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnRow>
     <PnDebugger name="我的调试器" />
@@ -14870,7 +14233,7 @@ pn.extension('terminal', console_output='disable')
 调试器可以捕获和显示应用程序中发生的错误，帮助用户了解交互过程中遇到的问题。
 
 ```vue
-<!-- --plugins vpanel --show-code -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnCol>
     <PnRadioButtonGroup 
@@ -14964,18 +14327,6 @@ def log_message(event):
 | logger_names | 将提示到终端的记录器名称列表 | ^[list] | ['panel'] |
 | name | 组件标题 | ^[string] | — |
 
-### Events
-
-| 事件名 | 说明 | 类型 |
-| --- | --- | --- |
-| | | |
-
-### Slots
-
-| 插槽名 | 说明 |
-| --- | --- |
-| | |
-
 ### 方法
 
 | 属性名 | 说明 | 类型 |
@@ -14996,6 +14347,7 @@ EditableIntSlider组件允许用户在设定范围内通过滑块选择整数值
 可编辑整数滑块提供了滑块和输入框两种方式来选择和输入整数值。
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnEditableIntSlider 
     name="整数滑块" 
@@ -15025,6 +14377,7 @@ def on_change(event):
 通过设置`fixed_start`和`fixed_end`参数，可以限制value的范围，使其不能超出这个范围。
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnEditableIntSlider 
     name="固定范围滑块" 
@@ -15052,6 +14405,7 @@ fixed_value = ref(5)
 可以通过format参数自定义整数的显示格式。
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnCol>
     <PnEditableIntSlider 
@@ -15090,6 +14444,7 @@ formatter = PrintfTickFormatter(format='%d 只鸭子')
 通过设置bar_color和orientation等属性可以自定义滑块样式。
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnEditableIntSlider 
     name="水平自定义滑块" 
@@ -15150,17 +14505,6 @@ vertical_value = ref(7)
 | --- | --- | --- |
 | change | 当值改变时触发 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名 | 说明 |
-| --- | --- |
-| | |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
-| | | |
 
 
 
@@ -15321,17 +14665,6 @@ date_format = ref(dt.datetime(2019, 2, 8))
 | --- | --- | --- |
 | change | 当选择改变时触发 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名 | 说明 |
-| --- | --- |
-| | |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
-| | | |
 
 
 
@@ -15347,6 +14680,7 @@ date_format = ref(dt.datetime(2019, 2, 8))
 基本的文件输入框使用：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnFileInput name="上传文件" @change="on_change" />
 </template>
@@ -15368,6 +14702,7 @@ def on_change(event):
 可以通过设置`multiple=True`支持多文件上传：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnFileInput name="上传多个文件" :multiple="True" @change="on_change" />
 </template>
@@ -15388,6 +14723,7 @@ def on_change(event):
 可以通过`accept`参数限制可接受的文件类型：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnFileInput name="上传图片" 
               accept=".jpg,.jpeg,.png,.gif" 
@@ -15431,16 +14767,6 @@ def on_change_pdf(event):
 | ------ | ------------------ | ----------------------------- |
 | change | 当文件上传时触发的事件 | ^[Callable]`(event) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -15455,10 +14781,88 @@ TextToSpeech组件为Panel带来文本转语音功能，它封装了[HTML5 Speec
 
 文本转语音组件可以将文本转换为语音并播放出来。请注意，该组件本身在视觉上不显示任何内容，但仍需添加到应用程序中才能使用。
 
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCol>
+    <PnTextToSpeech 
+      name="语音合成" 
+      value="你好，欢迎使用Panel的文本转语音组件。"
+      @change="on_change"
+    />
+    <PnButton 
+      name="点击播放" 
+      button_type="primary" 
+      @click="speak()"
+    />
+  </PnCol>
+</template>
+<script lang='py'>
+import panel as pn
+from vuepy import ref
+
+text_to_speech_ref = ref(None)
+
+def speak():
+    text_to_speech_ref.value.speak = True
+    
+def on_change(event):
+    text_to_speech_ref.value = event['owner']
+    print(f"语音状态变化: {event}")
+</script>
+
+```
+
 
 ## 自动播放
 
 当`auto_speak`设置为true时（默认值），每当`value`更改时，都会自动播放语音。
+
+```vue
+<!-- --plugins vpanel --show-code -->
+<template>
+  <PnCol>
+    <PnTextToSpeech 
+      name="自动播放" 
+      :value="text.value"
+      :auto_speak="True"
+      ref="tts"
+    />
+    <PnTextAreaInput 
+      v-model="text.value"
+      rows="3"
+      placeholder="输入文本，修改后会自动播放"
+    />
+    <PnRow>
+      <PnButton label="暂停" @click="pause()" />
+      <PnButton label="恢复" @click="resume()" />
+      <PnButton label="取消" @click="cancel()" />
+    </PnRow>
+  </PnCol>
+</template>
+<script lang='py'>
+import panel as pn
+from vuepy import ref
+
+text = ref("输入文本，修改后会自动播放")
+
+def pause():
+    tts = pn.state.curdoc.select_one({'name': '自动播放'})
+    if tts:
+        tts.pause = True
+
+def resume():
+    tts = pn.state.curdoc.select_one({'name': '自动播放'})
+    if tts:
+        tts.resume = True
+        
+def cancel():
+    tts = pn.state.curdoc.select_one({'name': '自动播放'})
+    if tts:
+        tts.cancel = True
+</script>
+
+```
 
 
 ## 语音参数调整
@@ -15500,18 +14904,6 @@ TextToSpeech组件可以处理较长的文本内容。
 | --- | --- | --- |
 | change | 当组件状态改变时触发 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名 | 说明 |
-| --- | --- |
-| | |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
-| | | |
-
 
 
 # FileDropper 文件拖放上传器
@@ -15526,7 +14918,7 @@ FileDropper组件允许用户将一个或多个文件上传到服务器。它基
 FileDropper提供了一个拖放区域，允许用户通过拖放或点击选择上传文件。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnFileDropper 
     v-model="uploaded_files.value"
@@ -15554,7 +14946,7 @@ def on_change(event):
 通过`accepted_filetypes`参数可以限制用户可以选择的文件类型。这包括一个也允许通配符的mime类型列表。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnCol>
     <PnStaticText value="只允许上传PNG和JPEG图片" />
@@ -15577,7 +14969,7 @@ def on_change(event):
 通过设置`multiple=True`可以允许上传多个文件。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnFileDropper 
     multiple
@@ -15602,7 +14994,7 @@ FileDropper支持几种不同的布局选项：
 - `"circle"`: 圆形上传区域，适用于个人资料图片上传
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnCol>
     <PnFileDropper layout="compact" />
@@ -15622,7 +15014,7 @@ FileDropper支持几种不同的布局选项：
 与FileInput组件不同，FileDropper组件通过分块上传绕过了网络浏览器、Bokeh、Tornado、笔记本等对最大文件大小的限制。这使得上传比以前可能的大得多的文件变得可行。默认的`chunk_size`是10MB（表示为10000000字节）。您可以配置`max_file_size`、`max_total_file_size`（如果设置了`multiple=True`，则限制总上传大小）和`max_files`，以提供对可上传数据量的上限。
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnCol>
     <PnStaticText value="限制单个文件大小为1MB" />
@@ -15672,17 +15064,6 @@ limited_total = ref({})
 | --- | --- | --- |
 | change | 当上传文件改变时触发 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名 | 说明 |
-| --- | --- |
-| | |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
-| | | |
 
 
 
@@ -15698,6 +15079,7 @@ limited_total = ref({})
 基本的多项选择器使用：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
  <PnCol :height='400'>
   <PnMultiChoice name="Fruit" 
@@ -15720,6 +15102,7 @@ selected = ref(['Apple'])
 可以使用字典作为选项，其中键是显示的标签，值是实际的数据值：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
  <PnCol :height='400'>
   <PnMultiChoice name="City" 
@@ -15760,16 +15143,6 @@ selected = ref(['BJ', 'SZ'])
 | ---   | ---                  | ---                                    |
 | change | 当选择变化时触发的事件 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -15796,6 +15169,7 @@ VideoStream组件可以显示来自本地流（例如网络摄像头）的视频
 ## 截图功能
 
 可以调用`snapshot`方法触发组件的`value`更新，以获取当前视频帧的图像。
+
 
 ```vue
 <!-- --plugins vpanel --show-code -->
@@ -15931,17 +15305,6 @@ pn.extension()
 | --- | --- | --- |
 | change | 当组件状态（特别是value）改变时触发 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名 | 说明 |
-| --- | --- |
-| | |
-
-### 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
-| | | |
 
 
 
@@ -15957,6 +15320,7 @@ pn.extension()
 基本的选择器使用：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnSelect :options="['Apple', 'Orange', 'Banana']" 
             v-model='selection.value' />
@@ -15976,6 +15340,7 @@ selection = ref('Apple')
 `options`参数也接受一个字典，其键将作为下拉菜单的标签：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnSelect :options="{'Apple': 1, 'Orange': 2, 'Banana': 3}"
             v-model='selection.value' />
@@ -15995,6 +15360,7 @@ selection = ref(1)
 可以使用`disabled_options`参数禁用部分选项：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnSelect :options="['Apple', 'Orange', 'xxx', 'Banana']" 
             :disabled_options="['xxx']"
@@ -16015,6 +15381,7 @@ selection = ref('Apple')
 可以使用`groups`参数对选项进行分组显示（也称为*optgroup*）：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnSelect 
     :groups="{'Europe': ['Greece', 'France'], 'Asia': ['China', 'Japan']}"
@@ -16036,6 +15403,7 @@ selection = ref('France')
 通过设置`size`参数大于1，可以从列表中选择一个选项，而不是使用下拉菜单：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnSelect 
     :options="['Apple', 'Orange', 'xxx', 'Banana']" 
@@ -16073,16 +15441,6 @@ selection = ref('Apple')
 | ------ | ------------------ | ------------------------------ |
 | change | 当选择改变时触发的事件 | ^[Callable]`(value) -> None`  |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -16098,6 +15456,7 @@ selection = ref('Apple')
 基本的切换开关使用：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnToggle name="切换开关" button_type="success" 
             v-model='is_toggled.value'/>
@@ -16117,6 +15476,7 @@ is_toggled = ref(False)
 按钮的颜色可以通过设置`button_type`来改变，而`button_style`可以是`'solid'`或`'outline'`：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnRow>
     <PnCol v-for="style in ['solid', 'outline']">
@@ -16142,6 +15502,7 @@ button_types = ['default', 'primary', 'success', 'warning', 'danger', 'light']
 Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-icons.io](https://tabler-icons.io) 的命名图标或自定义SVG：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnRow>
     <PnToggle :name="u'\u25c0'" :width="50" />
@@ -16193,16 +15554,6 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 | ------ | ------------------ | ----------------------------- |
 | change | 当状态改变时触发的事件 | ^[Callable]`(value) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -16218,6 +15569,7 @@ Toggle组件可以添加图标，支持Unicode、Emoji字符，以及 [tabler-ic
 基本的颜色选择器使用：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnColorPicker name="basic" value="#99ef78" @change="update_color" />
   <div>color: {{ color.value }}</div>
@@ -16239,6 +15591,7 @@ def update_color(value):
 可以通过设置`value`参数来指定默认颜色：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnRow>
     <PnColorPicker name="red" value="#ff0000" @change="update_red" />
@@ -16271,6 +15624,7 @@ def update_blue(value):
 可以通过设置`disabled`参数为`True`使颜色选择器处于禁用状态：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnRow>
     <PnColorPicker name="可用状态" value="#ff9900" />
@@ -16285,6 +15639,7 @@ def update_blue(value):
 颜色选择器可以用于实时更新网页元素的样式：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnRow>
     <PnColorPicker name="背景色" v-model="bg_color.value" />
@@ -16327,16 +15682,6 @@ def update_text(value):
 | ------ | ------------------ | ----------------------------- |
 | change | 当颜色改变时触发的事件 | ^[Callable]`(value) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -16383,16 +15728,6 @@ is_on = ref(False)
 | ------ | ------------------ | ----------------------------- |
 | change | 当状态改变时触发的事件 | ^[Callable]`(value) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -16408,6 +15743,7 @@ is_on = ref(False)
 基本的日期时间选择器使用：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
  <PnCol style='height:420px;'>
   <PnDatetimePicker name="选择日期时间" v-model='datetime.value' />
@@ -16430,6 +15766,7 @@ datetime = ref(None)
 可以使用`start`和`end`参数限制可选择的日期范围：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
  <PnCol style='height:420px;'>
   <PnDatetimePicker name="7天内选择" 
@@ -16456,6 +15793,7 @@ datetime = ref(None)
 可以使用`enable_time`、`enable_seconds`和`military_time`参数自定义时间选择功能：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
  <PnCol style='height:420px;'>
   <PnDatetimePicker name="仅日期" 
@@ -16504,16 +15842,6 @@ datetime = ref(None)
 | ------ | ------------------ | ------------------------------------ |
 | change | 当选择更改时触发的事件 | ^[Callable]`(value) -> None`        |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -16657,18 +15985,13 @@ months = ['一月', '二月', '三月', '四月', '五月', '六月',
 | ---   | ---                  | ---                                    |
 | change | 当当前值变化时触发的事件 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-|         |                   |
-
 ### 方法
 
 | 方法名 | 说明 | 类型 |
 | ----- | ---- | ---- |
 | pause | 暂停播放 | ^[Callable]`() -> None` |
 | play  | 开始播放 | ^[Callable]`() -> None` |
+
 
 
 
@@ -16700,6 +16023,7 @@ months = ['一月', '二月', '三月', '四月', '五月', '六月',
 | box        | radio    | RadioBoxGroup         |
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnToggleGroup name="ToggleGroup" 
                 :options="['opt1', 'opt2', 'opt3']" 
@@ -16720,6 +16044,7 @@ selected = ref([])
 可以设置为CheckBox样式：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnToggleGroup name="Checkbox" 
                 :options="['Opt1', 'Opt2', 'Opt3']" 
@@ -16738,6 +16063,7 @@ from vuepy import ref
 可以设置为垂直布局：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnToggleGroup name="垂直布局" 
                 :options="['选项1', '选项2', '选项3']" 
@@ -16752,6 +16078,7 @@ from vuepy import ref
 可以使用字典作为选项，其中键是显示的标签，值是实际的数据值：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnToggleGroup name="使用字典" 
                 :options="city_options"
@@ -16791,16 +16118,6 @@ selected_city = ref(['BJ'])
 | ---   | ---                  | ---                                    |
 | change | 当选择变化时触发的事件 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -16927,16 +16244,6 @@ def date(year, month, day):
 | ---   | ---                  | ---                                    |
 | change | 当选择变化时触发的事件 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -17064,7 +16371,7 @@ df1 = pd.DataFrame(data={
 
 利用 `Display` 组件集成基于 ipywidgets/Panel 的任意 widget。
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnDisplay :obj="btn"/>
 </template>
@@ -17079,17 +16386,13 @@ btn = pn.widgets.Button(name='btn')
 
 ## Display API
 
-### Display 属性
+### 属性
 
 | 属性名        | 说明                 | 类型                                                           | 默认值 |
 | --------     | ------------------- | ---------------------------------------------------------------| ------- |
 | obj | 支持 IPython display 的对象 | ^[any]                                                         | —       |
 
-### Display 方法
-
-| 属性名 | 说明 | 类型 |
-| --- | --- | --- |
-
+其他属性和[Column](/panel_vuepy/layouts/Column)相同。
 
 
 # FileSelector 文件选择器
@@ -17104,6 +16407,7 @@ btn = pn.widgets.Button(name='btn')
 基本的文件选择器使用：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnFileSelector name="选择文件"
                   directory="/Users/test"
@@ -17127,6 +16431,7 @@ def on_change(event):
 可以控制是否显示隐藏文件：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnFileSelector name="显示隐藏文件"
                   directory="/Users/test"
@@ -17141,6 +16446,7 @@ def on_change(event):
 可以通过正则表达式过滤文件：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnFileSelector name="只显示Python文件"
                   directory="/Users/test"
@@ -17153,6 +16459,7 @@ def on_change(event):
 
 利用 [fsspec](https://filesystem-spec.readthedocs.io/en/latest/) 的强大功能，我们可以连接到远程文件系统。在下面的示例中，我们使用 s3fs 包连接到远程 S3 服务器。
 ```vue
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnFileSelector :fs='fs'
                   directory="s3://datasets.holoviz.org" />
@@ -17189,16 +16496,6 @@ fs = s3fs.S3FileSystem(anon=True)
 | ---   | ---                  | ---                                    |
 | change | 当选择变化时触发的事件 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -17214,6 +16511,7 @@ fs = s3fs.S3FileSystem(anon=True)
 基本的日期时间范围输入框使用：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnDatetimeRangeInput name="日期时间范围" 
                        :value="(dt(2023, 3, 1, 8, 0), dt(2023, 3, 15, 18, 0))"
@@ -17241,6 +16539,7 @@ def on_change(event):
 可以通过format参数自定义日期时间的解析和显示格式：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnDatetimeRangeInput name="标准格式" 
                        :value="(dt(2023, 3, 1), dt(2023, 3, 15))" />
@@ -17263,6 +16562,7 @@ def dt(year, month, day, hour=0, minute=0, second=0):
 可以设置日期时间的上下限：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnDatetimeRangeInput name="有范围限制" 
                        :value="(dt(2023, 2, 15), dt(2023, 3, 15))"
@@ -17298,16 +16598,6 @@ def dt(year, month, day, hour=0, minute=0, second=0):
 | ---   | ---                  | ---                                    |
 | change | 当输入值变化时触发的事件 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -17323,7 +16613,7 @@ def dt(year, month, day, hour=0, minute=0, second=0):
 创建一个基本的终端界面：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnTerminal 
     output="Welcome to the Panel Terminal!\nI'm based on xterm.js\n\n"
@@ -17341,7 +16631,7 @@ from vuepy import ref
 可以设置各种终端参数，如字体大小、是否显示光标等：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnTerminal :height='200' :width='300' output='> hello'
               :options="{
@@ -17365,7 +16655,7 @@ from vuepy import ref
 终端还可以通过命令随时更新：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnRow>
     <PnButton name="run python" @click="run_py()" />
@@ -17418,12 +16708,6 @@ def run():
 | ---   | ---                  | ---                                    |
 | change | 当终端内容变化时触发   | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-|         |                   |
-
 ### 方法
 
 | 方法名 | 说明 | 类型 |
@@ -17432,6 +16716,7 @@ def run():
 | write | 向终端写入内容 | ^[Callable]`(content: str) -> None` |
 | subprocess.run | 运行命令子进程 | ^[Callable]`(command: List[str]) -> None` |
 | subprocess.kill | 杀死命令子进程 | |
+
 
 
 
@@ -17447,6 +16732,7 @@ def run():
 基本的浮点滑块使用：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnFloatSlider name="浮点滑块" 
                 :start="0" 
@@ -17468,6 +16754,7 @@ value = ref(1.57)
 可以使用自定义格式字符串或Bokeh TickFormatter来格式化滑块值：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnFloatSlider name="距离（字符串格式）" 
                 format="1[.]00"
@@ -17497,6 +16784,7 @@ tick_formatter = PrintfTickFormatter(format='%.3f 米')
 滑块可以设置为垂直方向显示：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnRow>
     <PnFloatSlider name="水平滑块" 
@@ -17525,6 +16813,7 @@ from vuepy import ref
 可以自定义滑块条的颜色和方向：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnFloatSlider name="蓝色滑块" 
                 bar_color="#3498db"
@@ -17574,16 +16863,6 @@ from vuepy import ref
 | ------------- | -------------------------- | -------------------------------------- |
 | change        | 当值更改时触发的事件         | ^[Callable]`(value) -> None`          |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -17599,6 +16878,7 @@ from vuepy import ref
 基本的整数输入框使用：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnIntInput name="数量" 
               v-model="i.value" />
@@ -17617,6 +16897,7 @@ i = ref(0)
 可以使用`start`和`end`参数设定值的范围：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnIntInput name="评分 (1-10)" 
               :start="1"
@@ -17637,6 +16918,7 @@ i = ref(5)
 可以使用`step`参数定义上下调整时的步进值：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnIntInput name="调整(步长10)" 
               :value="10"
@@ -17673,16 +16955,6 @@ i = ref(10)
 | ------------- | -------------------------- | -------------------------------------- |
 | change        | 当值更改时触发的事件         | ^[Callable]`(value) -> None`          |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -17698,6 +16970,7 @@ i = ref(10)
 基本的菜单按钮使用，定义按钮名称和菜单项列表：菜单项可以是单个字符串或元组，用None分隔为不同组。
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
  <PnCol :height='200'>
   <PnMenuButton name="Dropdown" 
@@ -17732,6 +17005,7 @@ def on_click(event):
 
 在`split`模式下，如果点击按钮本身，将报告`name`参数的值。
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
  <PnCol :height='200'>
   <PnMenuButton name="Split Menu" 
@@ -17766,6 +17040,7 @@ def on_click(event):
 可以通过设置`button_type`来改变按钮的颜色：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnCol>
     <PnMenuButton v-for="type in button_types" 
@@ -17789,6 +17064,7 @@ button_types = ['default', 'primary', 'success', 'warning', 'light', 'danger']
 菜单按钮的名称和菜单项可以包含Unicode字符和表情符号，为常见的图形按钮提供了一种便捷的方式：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
  <PnCol style='height: 200px'>
   <PnRow style="border-bottom: 1px solid black">
@@ -17817,6 +17093,7 @@ help_items = ["⚖️ License", None, "\U0001F6C8 About"]
 对于按钮本身，可以通过提供SVG `icon`值或从[tabler-icons.io](https://tabler-icons.io)加载的命名`icon`来使用更高级的图标：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnRow>
     <PnMenuButton icon="alert-triangle-filled" 
@@ -17867,16 +17144,6 @@ help_items = ["⚖️ License", None, "\U0001F6C8 About"]
 | ---   | ---                  | ---                                    |
 | click | 当菜单项被点击时触发的事件 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -18038,16 +17305,6 @@ def dt(year, month, day, hour=0, minute=0, second=0):
 | ---   | ---                  | ---                                    |
 | change | 当选择变化时触发的事件 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -18174,16 +17431,6 @@ button_types = ['default', 'primary', 'success', 'warning', 'danger', 'light']
 | ---   | ---                  | ---                                    |
 | change | 当选择变化时触发的事件 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -18306,16 +17553,6 @@ button_types = ['default', 'primary', 'success', 'warning', 'danger', 'light']
 | ---   | ---                  | ---                                    |
 | change | 当选择变化时触发的事件 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -18331,6 +17568,7 @@ button_types = ['default', 'primary', 'success', 'warning', 'danger', 'light']
 基本的范围滑块，通过拖动两个手柄选择一个范围：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnRangeSlider name="RangeSlider" 
                 :start="0" 
@@ -18354,6 +17592,7 @@ value = ref((25, 75))
 可以使用自定义格式字符串或Bokeh TickFormatter来格式化滑块值：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnRangeSlider name="Price" 
                 format="$%d"
@@ -18377,6 +17616,7 @@ value = ref((200, 800))
 滑块可以设置为垂直方向显示：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnRow>
     <PnRangeSlider name="垂直" 
@@ -18396,6 +17636,7 @@ value = ref((200, 800))
 可以自定义滑块条的颜色和方向：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnRangeSlider name="Blue RangeSlider" 
                 bar_color="#3498db"
@@ -18440,16 +17681,6 @@ from vuepy import ref
 | ------------- | -------------------------- | -------------------------------------- |
 | change        | 当值更改时触发的事件         | ^[Callable]`(value) -> None`          |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -18465,6 +17696,7 @@ from vuepy import ref
 基本的浮点数输入框使用：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnFloatInput name="数值" 
                v-model="f.value" />
@@ -18484,6 +17716,7 @@ f = ref(0.0)
 可以使用`start`和`end`参数设定值的范围：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnFloatInput name="温度 (-10.0 到 50.0)" 
                :value="25.5"
@@ -18506,6 +17739,7 @@ f = ref(25.5)
 可以使用`step`参数定义上下调整时的步进值：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnFloatInput name="调整(步长0.1)" 
                :value="1.0"
@@ -18544,16 +17778,6 @@ f = ref(1.0)
 | ------------- | -------------------------- | -------------------------------------- |
 | change        | 当值更改时触发的事件         | ^[Callable]`(value) -> None`          |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -18788,22 +18012,12 @@ from vuepy import ref
 | label        | 下载按钮的自定义标签     | ^[str]                                             | None    |
 | name         | 组件标题              | ^[str]                                             | ""      |
 
-### Events
-
-| 事件名 | 说明                  | 类型                                   |
-| ---   | ---                  | ---                                    |
-|       |                      |                                        |
-
 ### Slots
 
 | 插槽名   | 说明               |
 | ---     | ---               |
 |   icon      |          svg 图标         |
 
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -18901,16 +18115,6 @@ def dt(year, month, day, hour=0, minute=0, second=0):
 | ---   | ---                  | ---                                    |
 | change | 当输入值变化时触发的事件 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -18926,6 +18130,7 @@ def dt(year, month, day, hour=0, minute=0, second=0):
 基本的图标切换组件使用：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnToggleIcon size="4em" 
                description="favorite desc" 
@@ -18948,6 +18153,7 @@ is_toggled = ref(False)
 
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnRow>
     <PnToggleIcon icon="thumb-down" 
@@ -18973,6 +18179,7 @@ from vuepy import ref
 可以使用SVG字符串作为图标：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
 <PnToggleIcon size="3em">
   <template #icon>
@@ -19007,16 +18214,6 @@ from vuepy import ref
 | ---   | ---                  | ---                                    |
 | change | 当切换状态变化时触发的事件 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -19032,9 +18229,11 @@ from vuepy import ref
 基本的文本输入框，可以输入和获取字符串：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnTextInput name="Text Input" 
                placeholder="Enter a string here..." 
+               description="tooltip" 
                v-model="text.value"/>
   <p>value: {{ text.value }}</p>
 </template>
@@ -19052,6 +18251,7 @@ text = ref("")
 TextInput 组件提供了`value_input`参数，可以在每次按键时更新：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnTextInput name="Text Input" 
                placeholder="Enter a string here..." 
@@ -19078,6 +18278,7 @@ text = ref("")
 | disabled     | 是否禁用                 | ^[bool]  | False     |
 | max_length   | 输入字段的最大字符长度     | ^[int]   | 5000      |
 | name         | 组件标题                 | ^[str]   | ""        |
+| description  | 鼠标悬停时显示的描述      | ^[str]      | ""        |
 | placeholder  | 未输入值时显示的占位字符串  | ^[str]   | ""        |
 
 ### Events
@@ -19087,16 +18288,6 @@ text = ref("")
 | change        | 当值更改时触发的事件         | ^[Callable]`(event: dict) -> None`    |
 | enter_pressed | 当按下Enter键时触发的事件    | ^[Callable]`() -> None`               |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -19234,16 +18425,6 @@ def dt(year, month, day, hour=0, minute=0, second=0):
 | ---   | ---                  | ---                                    |
 | change | 当滑块值变化时触发的事件 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -19440,16 +18621,6 @@ def list_options(level, value):
 | ---   | ---                  | ---                                    |
 | change | 当选择发生变化时触发的事件 | ^[Callable]`(event: dict) -> None` |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ---     | ---               |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -19465,6 +18636,7 @@ def list_options(level, value):
 基本的时间选择器使用：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
  <PnCol :height='150'>
   <PnTimePicker name="TimePicker" v-model='time.value'/>
@@ -19486,6 +18658,7 @@ time = ref(None)
 可以使用`start`和`end`参数限制可选择的时间范围：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
  <PnCol :height='150'>
   <PnTimePicker name="TimePicker" 
@@ -19510,6 +18683,7 @@ time = ref(dt.time(12, 0))
 可以使用`format`参数自定义时间的显示格式：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
  <p>value: {{ time1.value }}</p>
  <PnCol :height='150'>
@@ -19550,6 +18724,7 @@ time3 = ref(dt.time(14, 30, 45))
 可以通过`hour_increment`、`minute_increment`和`second_increment`参数控制时、分、秒的调整步长：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
  <PnCol :height='150'>
   <PnTimePicker name="小时步长:2 分钟步长:15" 
@@ -19608,16 +18783,6 @@ format:
 | ------ | ------------------ | ------------------------------------ |
 | change | 当时间更改时触发的事件 | ^[Callable]`(value) -> None`        |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -19780,7 +18945,7 @@ annotations = [
 如果设置了`filename`属性，编辑器会根据文件扩展名自动检测语言：
 
 ```vue
-<!-- --plugins vpanel --show-code --codegen-backend='panel' -->
+<!-- --plugins vpanel --show-code --backend='panel' -->
 <template>
   <PnSelect name="文件" 
             :options="files"
@@ -19830,16 +18995,6 @@ selected_file = ref('test.py')
 | ------------- | -------------------------- | -------------------------------------- |
 | change        | 当值更改时触发的事件         | ^[Callable]`(event: dict) -> None`    |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -19855,6 +19010,7 @@ selected_file = ref('test.py')
 基本的可编辑范围滑块，可以通过滑动两个手柄或直接输入数字来选择范围：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnEditableRangeSlider name="范围滑块" 
                         :start="0" 
@@ -19884,6 +19040,7 @@ def on_change(event):
 滑块的`value`默认没有界限，可以超过`end`或低于`start`。如果需要将`value`固定在特定范围内，可以使用`fixed_start`和`fixed_end`：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnEditableRangeSlider name="固定范围滑块" 
                         :start="0" 
@@ -19904,6 +19061,7 @@ from vuepy import ref
 可以使用自定义格式字符串或Bokeh TickFormatter来格式化滑块值：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnEditableRangeSlider name="距离（字符串格式）" 
                         format="0.0a"
@@ -19953,16 +19111,6 @@ tick_formatter = PrintfTickFormatter(format='%.3f 米')
 | ------------- | -------------------------- | -------------------------------------- |
 | change        | 当值更改时触发的事件         | ^[Callable]`(event: dict) -> None`    |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -20059,16 +19207,6 @@ from vuepy import ref
 | ------------- | -------------------------- | -------------------------------------- |
 | change        | 当值更改时触发的事件         | ^[Callable]`(event: Event) -> None`    |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -20084,6 +19222,7 @@ from vuepy import ref
 可以通过拖动手柄调整滑块的开始和结束日期，也可以通过拖动选定范围来整体移动范围：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <div>当前选择范围: {{ value.value }}</div>
   <PnDateRangeSlider name="日期范围滑块"
@@ -20112,6 +19251,7 @@ value = ref(initial_value)
 可以使用自定义格式字符串来格式化滑块值：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnDateRangeSlider name="自定义格式日期范围"
                     :start="start_date"
@@ -20137,6 +19277,7 @@ initial_value = (dt.datetime(2017, 1, 1), dt.datetime(2018, 1, 10))
 滑块可以设置为垂直方向显示：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
  <PnColumn style='height:400px;'>
   <PnDateRangeSlider name="垂直日期范围滑块"
@@ -20184,16 +19325,6 @@ initial_value = (dt.datetime(2017, 3, 1), dt.datetime(2018, 9, 10))
 | ------------- | -------------------------- | -------------------------------------- |
 | change        | 当值更改时触发的事件         | ^[Callable]`(event: dict) -> None`    |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -20289,16 +19420,6 @@ value = ref([1, 3])
 | ------------- | -------------------------- | -------------------------------------- |
 | change        | 当value更改时触发的事件         | ^[Callable]`(event: dict) -> None`    |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -20314,6 +19435,7 @@ value = ref([1, 3])
 日期选择器使用浏览器依赖的日历小部件来选择日期：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
  <PnColumn style='height:400px;'>
   <PnDatePicker name="日期选择器" 
@@ -20340,6 +19462,7 @@ def on_change(event):
 可以通过`start`和`end`参数限制可选日期的范围：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
  <PnColumn style='height:400px;'>
   <PnDatePicker name="限制范围" 
@@ -20362,6 +19485,7 @@ end_date = dt.date(2024, 12, 31)
 可以通过`disabled_dates`和`enabled_dates`参数设置不可用和可用的日期：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
  <PnColumn style='height:400px;'>
   <PnDatePicker name="禁用特定日期: 禁用周末"
@@ -20410,16 +19534,6 @@ enabled_dates = [(month_start + dt.timedelta(days=i-1)) for i in range(1, 31, 2)
 | ------------- | -------------------------- | -------------------------------------- |
 | change        | 当值更改时触发的事件         | ^[Callable]`(event: dict) -> None`    |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -20445,6 +19559,7 @@ enabled_dates = [(month_start + dt.timedelta(days=i-1)) for i in range(1, 31, 2)
                       search_strategy="includes"
                       placeholder="Select a fruit: apple, ..."
                       v-model="value.value"
+                      description='tooltip'
                       @change="on_change" />
 </PnCol>
 </template>
@@ -20547,6 +19662,7 @@ fruits = ['Apple', 'Banana', 'Orange', 'Pear', 'Grape', 'Mango', 'Strawberry', '
 | disabled        | 是否禁用                       | ^[bool]                            | False     |
 | name            | 组件标题                       | ^[str]                             | ""        |
 | placeholder     | 未选择选项时显示的占位符字符串     | ^[str]                             | ""        |
+| description      | 鼠标悬停时显示的描述      | ^[str]      | ""        |
 | min_characters  | 用户必须输入多少字符才会显示自动完成 | ^[int]                           | 2         |
 
 ### Events
@@ -20555,16 +19671,6 @@ fruits = ['Apple', 'Banana', 'Orange', 'Pear', 'Grape', 'Mango', 'Strawberry', '
 | ------------- | -------------------------- | -------------------------------------- |
 | change        | 当值更改时触发的事件         | ^[Callable]`(event: dict) -> None`    |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -20583,6 +19689,7 @@ fruits = ['Apple', 'Banana', 'Orange', 'Pear', 'Grape', 'Mango', 'Strawberry', '
 * 按钮，用于将值从未选择列表移动到已选择列表（`>>`）或反之（`<<`）
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnCrossSelector name="Fruits" 
                   :value="['Apple', 'Pear']" 
@@ -20606,6 +19713,7 @@ def on_change(event):
 可以自定义过滤函数来控制如何根据搜索模式过滤选项：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnCrossSelector name="Cities" 
                   :options="cities"
@@ -20631,6 +19739,7 @@ def custom_filter(pattern, option):
 通过`definition_order`参数可以控制是否在过滤后保留定义顺序：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnCrossSelector name="保持定义顺序" 
                   definition_order
@@ -20669,17 +19778,6 @@ initial_value = ['选项2', '选项4']
 | 事件名         | 说明                       | 类型                                   |
 | ------------- | -------------------------- | -------------------------------------- |
 | change        | 当值更改时触发的事件         | ^[Callable]`(event: dict) -> None`    |
-
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -20756,16 +19854,6 @@ value = ref(101)
 | ------------- | -------------------------- | -------------------------------------- |
 | change        | 当值更改时触发的事件         | ^[Callable]`(event: dict) -> None`    |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -20781,6 +19869,7 @@ value = ref(101)
 基本的整数滑块，可以通过滑动选择整数值：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnIntSlider name="整数滑块" 
               :start="0" 
@@ -20803,6 +19892,7 @@ value = ref(4)
 可以使用自定义格式字符串或Bokeh TickFormatter来格式化滑块值：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnIntSlider name="计数" 
                :format="tick_formatter" 
@@ -20825,6 +19915,7 @@ tick_formatter = PrintfTickFormatter(format='%d 只鸭子')
 滑块可以设置为垂直方向显示：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnIntSlider name="垂直滑块" 
                orientation="vertical" 
@@ -20865,16 +19956,6 @@ from vuepy import ref
 | ------------- | -------------------------- | -------------------------------------- |
 | change        | 当值更改时触发的事件         | ^[Callable]`(event: dict) -> None`    |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -20985,16 +20066,6 @@ tick_formatter = PrintfTickFormatter(format='%.3f m')
 | ------------- | -------------------------- | -------------------------------------- |
 | change        | 当值更改时触发的事件         | ^[Callable]`(event: dict) -> None`    |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
 
@@ -21010,8 +20081,10 @@ tick_formatter = PrintfTickFormatter(format='%.3f m')
 基本的多行文本输入框，可以输入和获取多行字符串：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnTextAreaInput name="TextAreaInput" 
+                   description='tooltip'
                    placeholder='Enter a string here...'
                    v-model="text.value" 
                    sizing_mode='stretch_width'/>
@@ -21031,6 +20104,7 @@ text = ref("")
 自动增长的 TextAreaInput 会根据输入的文本自动调整高度。设置 `rows` 和 `auto_grow` 可以设置行数下限，而设置 `max_rows` 可以提供上限：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnTextAreaInput name="Growing TextArea" 
                   :auto_grow="True" 
@@ -21059,6 +20133,7 @@ This text area will grow when newlines are added to the text:
 可以设置文本区域只在垂直方向可调整大小：
 
 ```vue
+<!-- --plugins vpanel --show-code -->
 <template>
   <PnTextAreaInput name="垂直可调整文本框" resizable="height" />
 </template>
@@ -21084,6 +20159,7 @@ from vuepy import ref
 | max_rows     | 当auto_grow=True时文本输入字段的最大行数 | ^[int] | None |
 | name         | 组件标题                 | ^[str]   | ""        |
 | placeholder  | 未输入值时显示的占位字符串  | ^[str]   | ""        |
+| description      | 鼠标悬停时显示的描述      | ^[str]      | ""        |
 | rows         | 文本输入字段的行数         | ^[int]   | 2         |
 | resizable    | 布局是否可交互调整大小，如果是，则指定哪个维度：height、width、both、False | ^[bool\|str] | 'both' |
 
@@ -21093,15 +20169,5 @@ from vuepy import ref
 | ------------- | -------------------------- | -------------------------------------- |
 | change        | 当值更改时触发的事件         | ^[Callable]`(event: dict) -> None`    |
 
-### Slots
-
-| 插槽名   | 说明               |
-| ------- | ----------------- |
-|         |                   |
-
-### 方法
-
-| 方法名 | 说明 | 类型 |
-| ----- | ---- | ---- |
 
 
