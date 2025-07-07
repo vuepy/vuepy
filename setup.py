@@ -16,7 +16,7 @@ with open(os.path.join(HERE, "README.md")) as fid:
 # This call to setup() does all the work
 setup(
     name="vuepy-core",
-    version="0.1.10",
+    version="0.1.11-alpha",
     description="Vue.py is a progressive, incrementally-adoptable Python framework for building web interface in Jupyter Notebook.",
     long_description=README,
     long_description_content_type="text/markdown",
