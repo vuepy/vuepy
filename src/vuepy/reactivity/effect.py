@@ -32,6 +32,11 @@ class DepStore:
         if key not in self._store:
             self._store[key] = createDep(key=key)
         return self._store[key]
+    
+    @property
+    def values(self) -> List[Dep]:
+        return self._store.values()
+
 
     def get(self, target) -> Dep:
         return self._store.get(gen_hash_key(target))

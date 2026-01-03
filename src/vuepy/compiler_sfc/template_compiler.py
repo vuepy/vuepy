@@ -235,7 +235,11 @@ class DomCompiler(HTMLParser):
             # v-for in process
             else:
                 pass
-            _node.parent.add_child(widget)
+
+            if hasattr(widget.unwrap(), 'attach'):
+                widget.unwrap().attach()
+            else:
+                _node.parent.add_child(widget)
 
         # ./_gen_element
 
@@ -301,7 +305,7 @@ class DomCompiler(HTMLParser):
 
         return tag, attr
 
-    def compile(self, html):
+    def compile(self, html, parent=None):
         self.html_lines = [line for line in html.splitlines()]
         try:
             self.feed(html)
@@ -313,6 +317,7 @@ class DomCompiler(HTMLParser):
             return self.widgets.children[0]
 
         # return widgets.VBox(self.widgets.children)
-        node = self.app.codegen_backend.gen_widget_collection_node()
-        node.replace_children(self.widgets.children)
+        node = self.app.codegen_backend.gen_widget_collection_node(self.widgets.children)
+        # parent.mount(node.unwrap())
+        # node.replace_children(self.widgets.children)
         return node

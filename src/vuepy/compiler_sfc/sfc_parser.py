@@ -110,6 +110,8 @@ class SFCMetadata:
     template: str
     script_src: str
     script_py: str
+    style_src: str
+    style_str: str
 
     @classmethod
     def load(cls, sfc_file):
@@ -125,6 +127,8 @@ class SFCMetadata:
 
         script_src_tag_attrs = {}
         script_py_tag: SFCTag = None
+        style_src_tag_attrs = {}
+        style_str_tag: SFCTag = None
         template_tag = None
         for tag in sfc_tags:
             if tag.name == 'template':
@@ -136,6 +140,11 @@ class SFCMetadata:
                     script_src_tag_attrs = tag.attrs
                 elif tag.attrs.get('lang', '').lower() == 'py':
                     script_py_tag = tag
+            elif tag.name == 'style':
+                if 'src' in tag.attrs:
+                    style_src_tag_attrs = tag.attrs
+                else:
+                    style_str_tag = tag
 
         if template_tag is None:
             raise ValueError(f"can't find <template> in {file_path}")
@@ -146,6 +155,8 @@ class SFCMetadata:
             template=template_tag.inner_html,
             script_src=script_src_tag_attrs.get("src"),
             script_py=script_py_tag and script_py_tag.inner_html,
+            style_src=style_src_tag_attrs.get("src"),
+            style_str=style_str_tag and style_str_tag.inner_html,
         )
         if instance.script_py and instance.script_src:
             raise ValueError(

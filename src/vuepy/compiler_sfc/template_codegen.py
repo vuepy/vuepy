@@ -44,12 +44,15 @@ class VueCompCodeGen:
         # v-if
         if comp_ast.v_if:
             # dummy = widgets.VBox()
-            dummy: INode = app.codegen_backend.gen_widget_collection_node()
 
             def _if_cond():
                 return comp_ast.v_if.eval(ns)
 
-            @watch(_if_cond, WatchOptions(immediate=True))
+            dummy: INode = app.codegen_backend.gen_widget_collection_node(
+                (cls._gen(comp_ast, node.children, vm, ns, app),) if _if_cond() else ()
+            )
+
+            @watch(_if_cond, WatchOptions(immediate=False))
             def _change_v_if_widget(cond, old, on_cleanup):
                 # dummy.children = (cls._gen(comp_ast, node.children, vm, ns, app),) if cond else ()
                 dummy.replace_children(
@@ -59,13 +62,16 @@ class VueCompCodeGen:
         # v-show
         elif comp_ast.v_show:
             # dummy = widgets.VBox()
-            dummy: INode = app.codegen_backend.gen_widget_collection_node()
             w = cls._gen(comp_ast, node.children, vm, ns, app)
 
             def _if_show():
                 return comp_ast.v_show.eval(ns)
 
-            @watch(_if_show, WatchOptions(immediate=True))
+            dummy: INode = app.codegen_backend.gen_widget_collection_node(
+                (w,) if _if_show() else ()
+            )
+
+            @watch(_if_show, WatchOptions(immediate=False))
             def _show_widget(curr_show, old, on_cleanup):
                 # dummy.children = (w,) if curr_show else ()
                 dummy.replace_children((w,) if curr_show else ())
@@ -94,6 +100,7 @@ class VueCompCodeGen:
                 slots[slot_name] = child
 
         ctx = {
+            'app': app,
             'attrs': {**comp_ast.kwargs},
             'slots': slots,
             'emit': '',
@@ -126,7 +133,12 @@ class VueCompCodeGen:
             _slot = vm._context.get('slots', {}).get(_slot_name)
             if _slot:
                 # widget.children = _slot
-                widget.replace_children(_slot)
+                # widget.replace_children(_slot)
+                widget = component.render(
+                    {**ctx, 'slots': {'default': _slot}},
+                    props,
+                    {},
+                )
 
         # v-slot
         if comp_ast.v_slot:

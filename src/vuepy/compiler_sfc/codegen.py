@@ -39,8 +39,11 @@ class VueComponent(metaclass=abc.ABCMeta):
 
     v_model_default = 'value'
 
-    def __init__(self, setup_ret: dict = None, template: str = '', app: "App" = None):
+    def __init__(self, setup_ret: dict = None, template: str = '', 
+                 style_str: str = '', style_src: str = '', app: "App" = None):
         self.template = template
+        self.style_str = style_str
+        self.style_src = style_src
         self._data: dict = setup_ret
         self.app = app
 

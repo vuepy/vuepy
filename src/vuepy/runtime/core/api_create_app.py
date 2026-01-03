@@ -9,6 +9,7 @@ from dataclasses import field
 from typing import Any
 from typing import Type
 from typing import Union
+import sys
 
 from IPython.display import clear_output
 from IPython.display import display
@@ -16,7 +17,7 @@ from IPython.display import display
 from vuepy import log
 from vuepy.compiler_core.options import CompilerOptions
 from vuepy.compiler_sfc import codegen_backends
-from vuepy.compiler_sfc.codegen_backends import CodegenBackendMgr
+from vuepy.compiler_sfc.codegen_backends import TEXTUAL_BACKEND, CodegenBackendMgr
 from vuepy.compiler_sfc.codegen_backends.backend import ICodegenBackend
 from vuepy.compiler_sfc.codegen_backends.backend import IDocumentNode
 from vuepy.compiler_sfc.codegen_backends.backend import INode
@@ -58,6 +59,7 @@ class App:
     def __init__(
         self, 
         root_component: RootComponent, 
+        props: dict = None,
         backend: str | None = codegen_backends.ipywidgets.NAME, 
         servable: bool = False,
         debug: bool = False, 
@@ -74,19 +76,19 @@ class App:
         self.config: AppConfig = AppConfig()
 
         self._installed_plugins = []
-        self._props: dict = {}
+        self._props: dict = props or {}
         self._context: AppContext = AppContext(self, self.config, {}, {})
         self._instance: VueComponent = None
 
         if isinstance(root_component, dict):
             root_component = VueOptions(**root_component)
 
-        props = {}
+        # props = {}
         context = {}
         if isinstance(root_component, SFCType):
-            self.root_component: SFC = root_component.gen(props, context, self)
+            self.root_component: SFC = root_component.gen(self._props, context, self)
         elif issubclass(root_component, VueComponent):
-            self.root_component = root_component(props, context, self)
+            self.root_component = root_component(self._props, context, self)
         else:
             raise ValueError(
                 f"root_component only support {RootComponent}, {type(root_component)} found."
@@ -96,7 +98,9 @@ class App:
         self._components = {}
         self.component('template', self.codegen_backend.get_template_component())
 
-        self.document: IDocumentNode = self.codegen_backend.gen_document_node()
+        self.document: IDocumentNode = self.codegen_backend.gen_document_node(
+            self.root_component
+        )
         self.dom: INode = None
 
         self._proxy_methods()
@@ -187,7 +191,10 @@ class App:
         plugin.install(self, options)
         return self
 
-    def mount(self, el=None):
+    def mount(self, *args, **kwargs):
+        if self.codegen_backend.NAME == TEXTUAL_BACKEND:
+            return self._mount_textual(*args, **kwargs)
+
         # self._call_if_callable(self.options.before_mount)
         self.render()
         # self._call_if_callable(self.options.mounted)
@@ -199,6 +206,20 @@ class App:
         if self.servable:
             widget.servable()
         return widget
+
+    def _mount_textual(self, *args, **kwargs):
+        def on_mount(tt_app):
+            self.render()
+            self.document.body.append(self.dom)
+
+        self.tt_app = self.document.unwrap()
+        self.tt_app.set_on_mount(on_mount)
+        # todo 接收参数
+        self.tt_app.run(*args, **kwargs)
+
+        if self.tt_app.message_:
+            print(self.tt_app.message_)
+        sys.exit(self.tt_app.return_code)
 
 
 class VuePlugin:
@@ -219,7 +240,7 @@ def create_app(
     backend: str = codegen_backends.ipywidgets.NAME,
     servable: bool = False,
     debug: bool = False,
-    **root_props
+    root_props: dict = None,
 ) -> App:
     """create a app instance.
     app = create_app(App)
@@ -233,8 +254,20 @@ def create_app(
     :param root_props: root component props
     :return:
     """
-    app = App(root_component, backend=backend, debug=debug, servable=servable)
-    if use_wui:
-        from ipywui import wui
-        app.use(wui)
+    app = App(
+        root_component,
+        backend=backend,
+        debug=debug,
+        servable=servable,
+        props=root_props,
+    )
+
+    if backend == TEXTUAL_BACKEND:
+        from textual_vuepy import vtextual
+        app.use(vtextual)
+    else:
+        if use_wui:
+            from ipywui import wui
+            app.use(wui)
+
     return app

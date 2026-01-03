@@ -44,6 +44,7 @@ class ICodegenBackend(metaclass=ABCMeta):
     """
     codegen backend interface
     """
+    NAME = ''
 
     @classmethod
     def get_template_component(cls) -> Type[VueComponent]:

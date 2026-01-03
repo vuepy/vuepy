@@ -9,6 +9,9 @@ from IPython.display import display
 from vuepy.reactivity import config
 
 LOGGER_NAME = 'vuepy'
+LOGGER_FORMATTER = logging.Formatter(
+    '%(asctime)s [%(levelname)s] %(filename)s:%(lineno)s:%(funcName)s - %(message)s'
+)
 logout = widgets.Output()
 
 
@@ -44,10 +47,7 @@ def getLogger(name=LOGGER_NAME):
 
 def init():
     handler = OutputWidgetHandler(logout)
-    formatter = logging.Formatter(
-        '%(asctime)s [%(levelname)s] %(filename)s:%(lineno)s:%(funcName)s - %(message)s'
-    )
-    handler.setFormatter(formatter)
+    handler.setFormatter(LOGGER_FORMATTER)
 
     logger = getLogger(LOGGER_NAME)
     logger.addHandler(handler)

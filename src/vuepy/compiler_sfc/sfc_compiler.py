@@ -28,5 +28,7 @@ def compile(sfc_file, raw_content=False) -> SFCType:
     return SFCType(**{
         'setup': setup_fn,
         'template': sfc_meta.template,
+        'style_str': sfc_meta.style_str,
+        'style_src': sfc_meta.style_src,
         '_file': sfc_meta.file,
     })

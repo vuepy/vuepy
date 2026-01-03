@@ -36,6 +36,8 @@ class SFC(VueComponent):
             props: dict,
             setup_ret: dict,
             template: str,
+            style_str: str,
+            style_src: str,
             app: "App",
             render: Callable[[SetupContext | dict, dict, dict], VNode] = None,
             file: str = None,
@@ -43,6 +45,8 @@ class SFC(VueComponent):
         super().__init__()
         self.app = app
         self.template = template
+        self.style_str = style_str
+        self.style_src = style_src
         self.setup_returned = setup_ret
         self._context = context
         self._props = props
@@ -65,6 +69,8 @@ class SFC(VueComponent):
             self.sfc_widget_node.on(SFCLifeCycle.ON_BEFORE_MOUNT, cb.callback)
         for _, cb in self._get_var_by_type(OnMounted):
             self.sfc_widget_node.on(SFCLifeCycle.ON_MOUNTED, cb.callback)
+        
+        self._is_rerender = False
 
     def _init_static_props(self, attrs):
         if not self.define_props:
@@ -157,7 +163,10 @@ class SFC(VueComponent):
         props: dict = None,
         setup_returned: dict = None
     ) -> INode:
-        logger.info(f"🔥 Rerender {self}")
+        if self._is_rerender:
+            logger.info(f"🔥 Rerender {self}")
+        else:
+            logger.info(f"🔥 Render {self}")
         self.scope.clear()
 
         # beforeMount
@@ -169,9 +178,14 @@ class SFC(VueComponent):
                 dom = self._render(self._context, self._props, self.setup_returned)
             else:
                 from vuepy.compiler_sfc.template_compiler import DomCompiler
-                dom = DomCompiler(self, self.app).compile(self.template)
+                sfc_widget = self.sfc_widget_node.unwrap()
+                dom = DomCompiler(self, self.app).compile(self.template, sfc_widget)
 
-        self.sfc_widget_node.replace_children([dom])
+        if self._is_rerender:
+            self.sfc_widget_node.replace_children([dom])
+        else:
+            self.sfc_widget_node.create_widget([dom])
+            self._is_rerender = True
 
         # mounted
         self.sfc_widget_node.emit(SFCLifeCycle.ON_MOUNTED)
@@ -184,10 +198,22 @@ class SFCType:
     # (props: dict, context: SetupContext, app: App) -> dict | Callable[[], h]:
     setup: Callable[[dict, SetupContext | dict, 'App'], dict | Callable] = None
     template: str = ''
+    style_str: str = ''
+    style_src: str = ''
     # (self, ctx, props, setup_returned) -> VNode:
     render: Callable[[SetupContext | dict, dict, dict], VNode] = None
     _file: str = ''
 
     def gen(self, props: dict, context: SetupContext | dict, app: "App") -> "SFC":
         setup_ret = self.setup(props, context, app) if self.setup else {}
-        return SFC(context, props, setup_ret, self.template, app, self.render, self._file)
+        return SFC(
+            context,
+            props,
+            setup_ret,
+            self.template,
+            self.style_str,
+            self.style_src,
+            app,
+            self.render,
+            self._file,
+        )
