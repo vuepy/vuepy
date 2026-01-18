@@ -17,16 +17,16 @@ def has_changed(value, old) -> bool:
         if isinstance(ret, Iterable):
             return any(ret)
         else:
-            logger.warning(f"{value}, {old}, ref={ret}")
+            logger.debug("%s != %s = %s", value, old, ret)
             return bool(ret)
     except ValueError as e:
         try:
             return ret.any()
         except Exception as e:
-            logger.warning(f"Run has_changed failed, {e}")
+            logger.debug("Run has_changed failed, %s", e)
             return True
     except Exception as e:
-        logger.warning(f"Run has_changed failed, {e}")
+        logger.warning("Run has_changed failed, %s", e)
         return True
 
 

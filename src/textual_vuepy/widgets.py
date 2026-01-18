@@ -6,7 +6,7 @@ from __future__ import annotations
 from types import MethodType
 
 from textual import widgets
-from textual.containers import HorizontalScroll
+from textual.containers import Horizontal
 from textual.containers import Vertical
 from textual.reactive import reactive
 from textual.screen import ModalScreen
@@ -244,6 +244,7 @@ class Input(widgets.Input, _WidgetMixin):
         super().__init__(*args, **kwargs)
         self._cb = {}
 
+    # v-model for reactive attr
     def observe(self, attr: str, cb, remove=False):
         def wrap(v):
             cb(v)
@@ -266,7 +267,7 @@ class VBox(Vertical, _WidgetMixin):
     pass
 
 
-class HBox(HorizontalScroll, _WidgetMixin):
+class HBox(Horizontal, _WidgetMixin):
     pass
 
 
@@ -305,12 +306,23 @@ class Log(widgets.Log, _WidgetMixin):
 
 
 class Markdown(widgets.Markdown, _WidgetMixin):
-    pass
+    @property
+    def markdown(self):
+        return self.source
+
+    @markdown.setter
+    def markdown(self, value):
+        self.update(value)
 
 
 class MarkdownViewer(widgets.MarkdownViewer, _WidgetMixin):
-    pass
+    @property
+    def markdown(self):
+        return self.document.source
 
+    @markdown.setter
+    def markdown(self, value):
+        self.document.update(value)
 
 class MaskedInput(widgets.MaskedInput, _WidgetMixin):
     pass
@@ -361,6 +373,13 @@ class Sparkline(widgets.Sparkline, _WidgetMixin):
 
 
 class Static(widgets.Static, _WidgetMixin):
+    # @property
+    # def value(self):
+    #     return self._content
+
+    # @value.setter
+    # def value(self, value):
+    #     self.update(value)
     pass
 
 
@@ -385,7 +404,15 @@ class Tabs(widgets.Tabs, _WidgetMixin):
 
 
 class TextArea(widgets.TextArea, _WidgetMixin):
-    pass
+    # v-model for no reactive attr
+    def observe(self, attr: str, cb, remove=False):
+        if attr == 'text':
+            def on_text_area_changed(event):
+                print('text area changed')
+                cb(event.text_area.text)
+            self.vp_register_on('text_area_changed', on_text_area_changed)
+        else:
+            super().observe(attr, cb, remove)
 
 
 class Tooltip(widgets.Tooltip, _WidgetMixin):

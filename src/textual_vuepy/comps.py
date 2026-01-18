@@ -53,6 +53,7 @@ class Button(VTextualComponent):
     PARAMS_STORE_TRUE = [
         ('disabled', False),
     ]
+    CONTENT_SLOT = ('default', 'label')
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}
@@ -155,6 +156,14 @@ class Header(VTextualComponent):
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}
+        title = _params.pop('title', None)
+        subtitle = _params.pop('subtitle', None)
+        def _set_title(app):
+            if title is not None:
+                app.title = title
+            if subtitle is not None:
+                app.subtitle = subtitle
+        _set_title(ctx['app'].tt_app)
         return widgets.Header(**_params)
 
 
@@ -173,6 +182,7 @@ class Input(VTextualComponent):
     v_model_default = 'value'
     PARAMS_STORE_TRUE = [
         ('disabled', False),
+        ('compact', False),
     ]
 
     def _render(self, ctx, attrs, props, params, setup_returned):
@@ -194,6 +204,7 @@ class KeyPanel(VTextualComponent):
 class Label(VTextualComponent):
     v_model_default = 'label'
     PARAMS_STORE_TRUE = []
+    CONTENT_SLOT = ('default', 'label')
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}
@@ -259,6 +270,7 @@ class Log(VTextualComponent):
 class Markdown(VTextualComponent):
     v_model_default = 'markdown'
     PARAMS_STORE_TRUE = []
+    CONTENT_SLOT = ('default', 'markdown')
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}
@@ -269,6 +281,7 @@ class Markdown(VTextualComponent):
 class MarkdownViewer(VTextualComponent):
     v_model_default = 'markdown'
     PARAMS_STORE_TRUE = []
+    CONTENT_SLOT = ('default', 'markdown')
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}
@@ -434,8 +447,9 @@ class Sparkline(VTextualComponent):
 
 @vtextual.ns_register()
 class Static(VTextualComponent):
-    v_model_default = 'value'
+    v_model_default = 'content'
     PARAMS_STORE_TRUE = []
+    CONTENT_SLOT = ('default', 'content')
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}
@@ -504,7 +518,7 @@ class Tabs(VTextualComponent):
 
 @vtextual.ns_register()
 class TextArea(VTextualComponent):
-    v_model_default = 'value'
+    v_model_default = 'text'
     PARAMS_STORE_TRUE = []
 
     def _render(self, ctx, attrs, props, params, setup_returned):

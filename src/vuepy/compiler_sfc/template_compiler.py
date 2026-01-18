@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import functools
+import textwrap
 import traceback
 from html.parser import HTMLParser
 from typing import List
@@ -29,6 +30,26 @@ from vuepy.runtime.core.api_create_app import App
 from vuepy.utils.common import Nil
 
 logger = log.getLogger()
+
+
+def normalize_text_content(text: str) -> str:
+    """
+    规范化模板文本内容（基于 textwrap.dedent）：
+    1. 移除所有行的公共前导空白（最小缩进）
+    2. 保留相对缩进
+    3. 保留行内和行尾的空格
+    4. 保留只有空格的行
+    5. 去除首尾完全为空（长度为0）的行
+    
+    例如：
+    输入: '\n  hello world  \n    {{ count.value}}\n    \n'
+    输出: 'hello world  \n  {{ count.value}}\n  '
+    
+    输入: '\n      hello world \n      {{ count.value}}\n    '
+    输出: 'hello world \n{{ count.value}}'
+    """
+    dedented = textwrap.dedent(text)
+    return dedented.strip()
 
 
 class DomCompiler(HTMLParser):
@@ -179,6 +200,9 @@ class DomCompiler(HTMLParser):
 
         if not data.strip():
             return
+        
+        # 规范化文本内容：去除前导/尾随空白和每行的缩进
+        data = normalize_text_content(data)
 
         tag = self._tag
 
@@ -236,7 +260,7 @@ class DomCompiler(HTMLParser):
             else:
                 pass
 
-            if hasattr(widget.unwrap(), 'attach'):
+            if hasattr(widget, 'unwrap') and hasattr(widget.unwrap(), 'attach'):
                 widget.unwrap().attach()
             else:
                 _node.parent.add_child(widget)

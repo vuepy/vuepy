@@ -13,6 +13,7 @@ from typing import Tuple
 from ipywui.core import has_and_pop
 from vuepy import App
 from vuepy import VueComponent
+from vuepy.compiler_sfc.codegen_backends.backend import IHTMLNode
 from vuepy.compiler_sfc.codegen_backends.textual import TextualNode
 from vuepy.compiler_sfc.codegen_backends.textual import TextualWidget
 from vuepy.runtime.core.api_create_app import VuePlugin
@@ -47,6 +48,10 @@ class vtextual(VuePlugin, metaclass=FactoryMeta):
 
 
 class VTextualComponent(VueComponent, ABC):
+    _PARAMS_STORE_TRUE: List[Tuple[str, bool]] = [
+        ('disabled', False),
+        ('compact', False),
+    ]
     PARAMS_STORE_TRUE: List[Tuple[str, bool]] = []
     TextualNodeClass: TextualNode = TextualNode
 
@@ -55,11 +60,16 @@ class VTextualComponent(VueComponent, ABC):
         'border_title',
         'border_subtitle',
     ]
+    CONTENT_SLOT: tuple[str, str] = None # ('default', 'content')
 
     def _process_store_true_params(self, attrs, props):
         params = {}
-        for key, default in self.PARAMS_STORE_TRUE:
-            params[key] = bool(has_and_pop(attrs, key) or has_and_pop(props, key) or default)
+        for key, default in self._PARAMS_STORE_TRUE + self.PARAMS_STORE_TRUE:
+            if key in attrs:
+                params[key] = attrs.pop(key) != False
+            elif key in props:
+                params[key] = props.pop(key) != False
+            
         return params
 
     def _convert_slot_nodes_to_widgets(self, slots: Dict | None):
@@ -94,9 +104,24 @@ class VTextualComponent(VueComponent, ABC):
         postset_attrs = self._process_postset_attrs(attrs, props)
         self._convert_class_to_classes(attrs)
         self._convert_class_to_classes(props)
+        content_slot_node = None
+        if self.CONTENT_SLOT:
+            slot_name, content_attr = self.CONTENT_SLOT
+            content_slot = ctx.get('slots', {}).get(slot_name, [])
+            content_slot_node: IHTMLNode = content_slot[0] if content_slot else None
+            if content_slot_node:
+                attrs[content_attr] = content_slot_node.outer_html
+
         self._convert_slot_nodes_to_widgets(ctx.get('slots'))
 
         widget = self._render(ctx, attrs, props, params, setup_returned)
+
+        if content_slot_node:
+            def _update_attr(change):
+                val = change['new'] if isinstance(change, dict) else change
+                setattr(widget, content_attr, val)
+
+            content_slot_node.on_change(_update_attr)
 
         # post create
         for attr, value in postset_attrs.items():

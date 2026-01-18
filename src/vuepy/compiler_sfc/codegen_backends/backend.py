@@ -51,7 +51,7 @@ class ICodegenBackend(metaclass=ABCMeta):
         raise NotImplementedError
 
     @classmethod
-    def gen_widget_collection_node(cls) -> "INode":
+    def gen_widget_collection_node(cls, children=None) -> "INode":
         raise NotImplementedError
 
     @classmethod
@@ -63,7 +63,7 @@ class ICodegenBackend(metaclass=ABCMeta):
         raise NotImplementedError
 
     @classmethod
-    def gen_document_node(cls) -> 'IDocumentNode':
+    def gen_document_node(cls, vue_root) -> 'IDocumentNode':
         raise NotImplementedError
 
     @classmethod
@@ -206,6 +206,9 @@ class ISFCNode(INode[W], ABC):
         else:
             # len(default) == 0 raise AttributeError
             return getattr(self._widget, name)
+    
+    def create_widget(self, children):
+        self.replace_children(children)
 
 
 W_ROOT_WIDGET = TypeVar('W_ROOT_WIDGET')

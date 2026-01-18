@@ -208,13 +208,17 @@ class App:
         return widget
 
     def _mount_textual(self, *args, **kwargs):
+        run = kwargs.pop('run', True)
         def on_mount(tt_app):
             self.render()
             self.document.body.append(self.dom)
 
         self.tt_app = self.document.unwrap()
         self.tt_app.set_on_mount(on_mount)
-        # todo 接收参数
+
+        if not run:
+            return self.tt_app
+
         self.tt_app.run(*args, **kwargs)
 
         if self.tt_app.message_:

@@ -179,11 +179,14 @@ class IwCodegenBackend(ICodegenBackend):
         return Template
 
     @classmethod
-    def gen_widget_collection_node(cls) -> "IwNodeCollection":
+    def gen_widget_collection_node(cls, children=None) -> "IwNodeCollection":
         """
         for dummy, slot node
         """
-        return IwNodeCollection()
+        node = IwNodeCollection()
+        if children:
+            node.replace_children(children)
+        return node
 
     @classmethod
     def gen_sfc_widget_node(
@@ -194,7 +197,7 @@ class IwCodegenBackend(ICodegenBackend):
         return IwSFCNode(props, emitter)
 
     @classmethod
-    def gen_document_node(cls) -> IwDocumentNode:
+    def gen_document_node(cls, vue_root) -> IwDocumentNode:
         return IwDocumentNode()
 
     @classmethod

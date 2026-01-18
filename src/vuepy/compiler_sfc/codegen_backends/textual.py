@@ -46,9 +46,9 @@ class TextualDocRootWidget(App):
 
     def __init__(self, *args, **kwargs):
         self._on_mount = []
-        if kwargs.get('css'):
+        if 'css' in kwargs:
             self.CSS = kwargs.pop('css')
-        if kwargs.get('css_path'):
+        if 'css_path' in kwargs:
             self.CSS_PATH = kwargs.pop('css_path')
 
         super().__init__(*args, **kwargs)
@@ -250,18 +250,32 @@ class TextualHTMLNode(
         if not isinstance(widget, TextualHTMLWidget):
             raise ValueError(f"widget {widget} should be {TextualHTMLWidget}")
         super().__init__(widget, *args, **kwargs)
+        self._vp_change_callbacks = []
 
     @property
     def outer_html(self):
-        return self._widget.render()
+        # return self._widget.render()
+        return self._widget.content
 
     @outer_html.setter
     def outer_html(self, val):
+        # Trigger change callbacks if value changed
+        print("outer_html chagned")
         self._widget.update(val)
+        if self._vp_change_callbacks:
+            for callback in self._vp_change_callbacks:
+                try:
+                    callback({'new': val})
+                except TypeError:
+                    # If callback doesn't accept dict, pass value directly
+                    callback(val)
 
     def on_change(self, callback, remove=False):
-        # Textual does not have direct change events for Static
-        pass
+        if remove:
+            if callback in self._vp_change_callbacks:
+                self._vp_change_callbacks.remove(callback)
+        else:
+            self._vp_change_callbacks.append(callback)
 
 
 class TextualCodegenBackend(ICodegenBackend):

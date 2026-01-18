@@ -153,7 +153,7 @@ class VueCompCodeGen:
             def _get_v_bind_value(_exp_ast=exp_ast):
                 return _exp_ast.eval(ns)
 
-            @watch(_get_v_bind_value, WatchOptions(immediate=True))
+            @watch(_get_v_bind_value, WatchOptions(immediate=False))
             def _v_bind_update_vm_to_view(curr, old, on_cleanup, _widget=widget, _widget_attr=widget_attr):
                 # _old_val = to_raw(getattr(_widget, _widget_attr, Nil))
                 _old_val = to_raw(_widget.getattr(_widget_attr, Nil))
@@ -173,12 +173,13 @@ class VueCompCodeGen:
             def _get_v_model_value(_attr_chain=attr_chain):
                 return to_raw(ns.getattr(_attr_chain))
 
-            @watch(_get_v_model_value, WatchOptions(immediate=True))
+            # textual select在未mount时，设置value会导致选项显示为空，所以immediate=False
+            @watch(_get_v_model_value, WatchOptions(immediate=False))
             def _v_model_update_vm_to_view(curr, old, on_cleanup, _widget=widget, _widget_attr=widget_attr):
                 # _old_val = to_raw(getattr(_widget, _widget_attr, Nil))
                 _old_val = to_raw(_widget.getattr(_widget_attr, Nil))
                 curr = to_raw(curr)
-                logger.info(f'val changed curr: {curr}; old: {_old_val}')
+                logger.debug(f'{_widget}.{_widget_attr} updated: curr: {curr}; old: {_old_val}')
                 if has_changed(curr, _old_val):
                     # setattr(_widget, _widget_attr, curr)
                     _widget.setattr(_widget_attr, curr)

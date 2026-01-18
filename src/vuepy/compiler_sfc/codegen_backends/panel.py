@@ -184,11 +184,14 @@ class PnCodegenBackend(ICodegenBackend):
         return Column
 
     @classmethod
-    def gen_widget_collection_node(cls) -> "PnNodeCollection":
+    def gen_widget_collection_node(cls, children=None) -> "PnNodeCollection":
         """
         for dummy, slot node
         """
-        return PnNodeCollection()
+        node = PnNodeCollection()
+        if children:
+            node.replace_children(children)
+        return node
 
     @classmethod
     def gen_sfc_widget_node(
@@ -199,7 +202,7 @@ class PnCodegenBackend(ICodegenBackend):
         return PnSFCNode(props, emitter)
 
     @classmethod
-    def gen_document_node(cls) -> PnDocumentNode:
+    def gen_document_node(cls, vue_root) -> PnDocumentNode:
         return PnDocumentNode()
 
     @classmethod
