@@ -170,5 +170,5 @@ def toRefs(obj):
             ret[key] = propertyToRef(obj, key)
         return ret
     else:
-        logger.warn(f"toRefs() expects a reactive object but received a plain one.")
+        logger.warn("toRefs() expects a reactive object but received a plain one.")
         return {}

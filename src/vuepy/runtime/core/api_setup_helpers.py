@@ -119,12 +119,12 @@ def get_caller_args(frame):
     caller_name = frame.f_code.co_name
     caller_func = frame.f_globals.get(caller_name)
     if not caller_func:
-        logger.warn(f"can't get caller_func<{caller_name}>")
+        logger.warn("can't get caller_func<%s>", caller_name)
         return []
 
     argspec = inspect.getfullargspec(caller_func)
     if not argspec.args:
-        logger.warn(f"get caller_func<{caller_name}> args is None")
+        logger.warn("get caller_func<%s> args is None", caller_name)
         return []
 
     return [frame.f_locals.get(arg_name) for arg_name in argspec.args]

@@ -247,7 +247,7 @@ def trigger(
     if not depsMap:
         return
 
-    logger.debug(f"trigger %s.%s %s", target, key, msg)
+    logger.debug("trigger %s.%s %s", target, key, msg)
 
     deps: List[Dep] = []
     if trigger_type in (TriggerOpTypes.CLEAR, TriggerOpTypes.ITER):
@@ -297,7 +297,7 @@ def triggerEffects(
     for effect in list(effects):
         if not effect.computed:
             trigggerEffect(effect, debuggerEventExtraInfo)
-    logger.debug(f"effects%s len(%s) end🚀", id(effects), len(effects))
+    logger.debug("effects%s len(%s) end🚀", id(effects), len(effects))
     logger.debug("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
 
 

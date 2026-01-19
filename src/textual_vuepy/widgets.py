@@ -21,7 +21,6 @@ class _WidgetMixin:
         self._on_keyup_cb = {}
 
     def _watch_style(self) -> None:
-        print(f'style changed: {self.style}')
         self.set_styles(self.style)
 
     def observe(self, attr: str, cb, remove=False):
@@ -136,7 +135,6 @@ class Modal(ModalScreen, _WidgetMixin):
     def _watch_style(self):
         if not hasattr(self, 'dialog'):
             return
-        print(f'custom style changed: {self.style}')
         self.dialog.set_styles(self.style)
 
     # @property
@@ -408,7 +406,6 @@ class TextArea(widgets.TextArea, _WidgetMixin):
     def observe(self, attr: str, cb, remove=False):
         if attr == 'text':
             def on_text_area_changed(event):
-                print('text area changed')
                 cb(event.text_area.text)
             self.vp_register_on('text_area_changed', on_text_area_changed)
         else:

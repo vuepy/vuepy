@@ -37,5 +37,5 @@ def fix_stdin() -> io.TextIOWrapper:
         return pipe_stdin
 
     except Exception as e:
-        print(f"无法重置终端输入: {e}")
+        print(f"can't reset terminal input: {e}")
         sys.exit(1)

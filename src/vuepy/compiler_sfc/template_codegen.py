@@ -179,7 +179,7 @@ class VueCompCodeGen:
                 # _old_val = to_raw(getattr(_widget, _widget_attr, Nil))
                 _old_val = to_raw(_widget.getattr(_widget_attr, Nil))
                 curr = to_raw(curr)
-                logger.debug(f'{_widget}.{_widget_attr} updated: curr: {curr}; old: {_old_val}')
+                logger.debug('%s.%s updated: curr: %s; old: %s', _widget, _widget_attr, curr, _old_val)
                 if has_changed(curr, _old_val):
                     # setattr(_widget, _widget_attr, curr)
                     _widget.setattr(_widget_attr, curr)

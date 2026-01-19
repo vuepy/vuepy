@@ -110,7 +110,6 @@ class DataTable(VTextualComponent):
         def on_mount(self):
             self.add_columns(*cols)
             self.add_rows(rows)
-            print('on_mount')
 
         # todo
         # setattr(table, 'on_mount', MethodType(on_mount, table))
