@@ -10,7 +10,10 @@ from typing import Generic
 from typing import Type
 from typing import TypeVar
 
+from vuepy.compiler_core.ast import VueCompAst
+from vuepy.compiler_core.utils import VueCompNamespace
 from vuepy.compiler_sfc.codegen import VueComponent
+from vuepy.reactivity.watch import WatchOptions, watch
 from vuepy.runtime.core.api_setup_helpers import DefineProp
 from vuepy.runtime.core.api_setup_helpers import defineEmits
 from vuepy.utils.factory import FactoryMeta
@@ -69,6 +72,14 @@ class ICodegenBackend(metaclass=ABCMeta):
     @classmethod
     def gen_html_node(cls) -> 'IHTMLNode':
         raise NotImplementedError
+    
+    @classmethod
+    def get_dynamic_component(cls) -> Type[VueComponent]:
+        """
+        Get the dynamic component class for <component :is="..."> support.
+        Returns None if not implemented, which will fall back to inline implementation.
+        """
+        return DynamicComponent
     
     @classmethod
     def is_servable(cls) -> bool:
@@ -261,3 +272,51 @@ class IHTMLNode(INode[W], ABC):
     @abstractmethod
     def on_change(self, callback, remove=False):
         raise NotImplementedError
+
+
+class DynamicComponent(VueComponent):
+    """
+    Dynamic component class, for <component :is="..."> support
+    """
+    _name = 'component'
+
+    def __init__(
+        self,
+        vm: 'VueComponent',
+        ns: VueCompNamespace,
+        app: 'App',
+        comp_ast: VueCompAst,
+        children: list,
+        setup_ret: dict = None,
+        **kwargs
+    ):
+        super().__init__(setup_ret=setup_ret, app=app)
+        self.vm = vm
+        self.ns = ns
+        self.comp_ast = comp_ast
+        self.v_is_expr = comp_ast.v_binds.pop('is')
+        self.children = children
+        self._container_node: INode = None
+
+    def _convert_slot_nodes_to_widgets(self, slots: Dict):
+        pass
+
+    def _render_component(self, component_cls):
+        from vuepy.compiler_sfc.template_codegen import VueCompCodeGen
+        self.comp_ast.tag = component_cls
+        return VueCompCodeGen._gen(self.comp_ast, self.children, self.vm, self.ns, self.app)
+
+    def render(self, ctx, props, setup_returned) -> INode:
+        component_name_or_cls = self.v_is_expr.eval(self.ns)
+        widget = self._render_component(component_name_or_cls)
+        self._container_node = self.app.codegen_backend.gen_widget_collection_node((widget,))
+
+        def _get_is_value():
+            return self.v_is_expr.eval(self.ns)
+
+        @watch(_get_is_value, WatchOptions(immediate=False))
+        def _is_change_handler(new_component_name_or_cls, old, on_cleanup):
+            new_widget = self._render_component(new_component_name_or_cls)
+            self._container_node.replace_children([new_widget])
+
+        return self._container_node

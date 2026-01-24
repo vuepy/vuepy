@@ -89,7 +89,25 @@ class VueCompCodeGen:
             ns: VueCompNamespace,
             app: "App"
     ):
-        component_cls: Type[VueComponent] = vm.component(comp_ast.tag)
+        if comp_ast.tag.lower() == 'component':
+            if 'is' not in comp_ast.v_binds:
+                raise ValueError('<component> tag requires :is attribute')
+
+            DynamicComponentClass = app.codegen_backend.get_dynamic_component()
+            dynamic_component = DynamicComponentClass(
+                vm=vm,
+                ns=ns,
+                app=app,
+                comp_ast=comp_ast,
+                children=children,
+            )
+            return dynamic_component.render({}, {}, {})
+        
+        component_cls: Type[VueComponent] = (
+            comp_ast.tag 
+            if isinstance(comp_ast.tag, VueComponent) 
+            else vm.component(comp_ast.tag)
+        )
         slots = {'default': []}
         for child in children or []:
             slot_name = getattr(child, 'v_slot', 'default')
