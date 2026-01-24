@@ -278,6 +278,17 @@ def callWithErrorHandling(fn, instance, type, args: List = None):
     try:
         res = fn(*args) if args else fn()
     except Exception as err:
+        import inspect
+        try:
+            fn_source = inspect.getsource(fn)
+            print(f"Source code for {fn}:\n{fn_source}")
+        except Exception as source_err:
+            if hasattr(fn, "__name__") and fn.__name__ == "<lambda>":
+                    import dis
+                    print("Disassembly for lambda function:")
+                    dis.dis(fn)
+            else:
+                print(f"Cannot get source for {fn}: {source_err}")
         print(f"call {fn}({ args }) {type} failed, {err}")
         raise err
     return res

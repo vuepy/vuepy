@@ -11,6 +11,7 @@ from IPython.core.magic import register_line_magic
 
 from ipywui import wui
 from vuepy import log
+from vuepy.compiler_sfc import sfc_compiler
 from vuepy.compiler_sfc.codegen_backends import ipywidgets as iw_backend
 from vuepy.compiler_sfc.sfc_parser import SFCMetadata
 from vuepy.runtime.core.api_create_app import create_app
@@ -72,7 +73,13 @@ def vuepy_import(vue_sfc, cell=''):
     if cell:
         component_var_name = vue_sfc.strip()
         ipython = IPython.get_ipython()
-        ipython.user_ns[component_var_name] = import_sfc(cell, raw_content=True)
+        cell_file_name = f"<magic-vuepy_import>"
+        ipython.user_ns[component_var_name] = sfc_compiler.compile(
+            cell,
+            raw_content=True,
+            source_file=cell_file_name,
+            source_start_line=2
+        )
         print(f"import Component {component_var_name} success.")
     else:
         return import_sfc(vue_sfc)
@@ -254,7 +261,14 @@ def vuepy_run(vue_file, cell=''):
         add_codegen_backend_params(parser)
         add_servable_params(parser)
         args, _ = parser.parse_known_args(shlex.split(vue_file))
-        App = import_sfc(cell, raw_content=True)
+
+        cell_file_name = f"<magic-vuepy_run>"
+        App = sfc_compiler.compile(
+            cell,
+            raw_content=True,
+            source_file=cell_file_name,
+            source_start_line=2
+        )
     else:
         add_vue_file_params(parser)
         add_plugins_params(parser)

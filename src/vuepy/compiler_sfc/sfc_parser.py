@@ -105,13 +105,14 @@ class SFCParser(HTMLParser):
 
 @dataclasses.dataclass
 class SFCMetadata:
-    file: pathlib.Path
+    file: pathlib.Path | str
     content: str
     template: str
     script_src: str
     script_py: str
     style_src: str
     style_str: str
+    script_py_start_line: int = None  # 脚本块的起始行号（从1开始）
 
     @classmethod
     def load(cls, sfc_file):
@@ -122,7 +123,7 @@ class SFCMetadata:
         return cls.loads(raw_content, sfc_file)
 
     @classmethod
-    def loads(cls, sfc_content, file_path='__tmp_for_str.vue') -> SFCMetadata:
+    def loads(cls, sfc_content, file_path='<string>') -> SFCMetadata:
         sfc_tags = SFCParser().parse(sfc_content)
 
         script_src_tag_attrs = {}
@@ -149,12 +150,19 @@ class SFCMetadata:
         if template_tag is None:
             raise ValueError(f"can't find <template> in {file_path}")
 
+        script_py_start_line = None
+        if script_py_tag:
+            tag_start_row, tag_start_col = script_py_tag.start_pos
+            # find the position of > after the tag
+            script_py_start_line = tag_start_row
+
         instance = cls(
-            file=pathlib.Path(file_path),
+            file=file_path,
             content=sfc_content,
             template=template_tag.inner_html,
             script_src=script_src_tag_attrs.get("src"),
             script_py=script_py_tag and script_py_tag.inner_html,
+            script_py_start_line=script_py_start_line,
             style_src=style_src_tag_attrs.get("src"),
             style_str=style_str_tag and style_str_tag.inner_html,
         )

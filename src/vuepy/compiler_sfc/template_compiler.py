@@ -85,6 +85,8 @@ class DomCompiler(HTMLParser):
         ns = VueCompNamespace(self.vm.to_ns(), self.vm.to_ns(), local_vars)
         if self.vm.component(node.tag):
             widget = VueCompCodeGen.gen(node, self.vm, ns, self.app)
+        elif node.tag.lower() == 'component':
+            widget = VueCompCodeGen.gen(node, self.vm, ns, self.app)
         else:
             widget = VueHtmlCompCodeGen.gen(node, ns, self.app)
 
@@ -128,7 +130,10 @@ class DomCompiler(HTMLParser):
 
         raw_tag = self._get_raw_tag(case_insensitive_tag)
         tag = self._to_camel_case_tag(raw_tag)
-        node_type = NodeAstType.WIDGET if self.vm.component(tag) else NodeAstType.HTML
+        if self.vm.component(tag) or tag.lower() == 'component':
+            node_type = NodeAstType.WIDGET
+        else:
+            node_type = NodeAstType.HTML
         self._tag = tag
         attrs = dict(attrs)
         self._transformer_node_attrs(attrs)
