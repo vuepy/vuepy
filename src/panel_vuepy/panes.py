@@ -10,43 +10,26 @@ from typing import Dict
 
 import panel as pn
 
-from panel_vuepy.core import VPanelComponent, vpanel
+from vuepy.log import getLogger
 from vuepy.compiler_sfc.codegen_backends.panel import CollectionRootWidget
+from panel_vuepy.core import VPanelComponent, vpanel
 
+logger = getLogger()
 
 # todo markdown
 @vpanel.ns_register()
 class Alert(VPanelComponent):
-    v_model_default = 'active'
+    v_model_default = 'object'
     PARAMS_STORE_TRUE = [
     ]
+    CONTENT_SLOT = ('default', 'object')
 
     def _convert_slot_nodes_to_widgets(self, slots: Dict | None):
         pass
 
     def _render(self, ctx, attrs, props, params, setup_returned):
-        slots = ctx.get('slots', {})
         _params = {**props, **attrs, **params}
-        # <slot name='default'>
-        slot_labels = slots.get('default', [])
-        slot_label_node = slot_labels[0] if slot_labels else None
-        slot_value = ''
-        if slot_label_node:
-            slot_value = slot_label_node.outer_html
-        
-        _value = _params.pop(self.v_model_default, '')
-        if _value and slot_value:
-            raise ValueError(f'{self.v_model_default} and default slot cannot both be provided')
-
-        w = pn.pane.Alert(slot_value or _value, **_params)
-        # handle <slot name='default'> content change
-        if slot_label_node:
-            def _update_button_name(change):
-                val = change['new'] if isinstance(change, dict) else change
-                w.object = val
-
-            slot_label_node.on_change(_update_button_name)
-
+        w = pn.pane.Alert(**_params)
         return w
 
 
@@ -241,13 +224,17 @@ class Json(VPanelComponent):
 
 @vpanel.ns_register(name=['Latex', 'LaTeX'])
 class Latex(VPanelComponent):
-    v_model_default = 'content'
+    v_model_default = 'object'
     PARAMS_STORE_TRUE = [
     ]
+    CONTENT_SLOT = ('default', 'object')
 
     @classmethod
     def _load_extension(cls):
         pn.extension('katex', 'mathjax')
+
+    def _convert_slot_nodes_to_widgets(self, slots: Dict | None):
+        pass
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}
@@ -259,6 +246,7 @@ class Markdown(VPanelComponent):
     v_model_default = 'object'
     PARAMS_STORE_TRUE = [
     ]
+    CONTENT_SLOT = ('default', 'object')
 
     @classmethod
     def _load_extension(cls):
@@ -268,30 +256,8 @@ class Markdown(VPanelComponent):
         pass
 
     def _render(self, ctx, attrs, props, params, setup_returned):
-        slots = ctx.get('slots', {})
         _params = {**props, **attrs, **params}
-        # <slot name='default'>
-        slot_labels = slots.get('default', [])
-        slot_label_node = slot_labels[0] if slot_labels else None
-        slot_value = ''
-        if slot_label_node:
-            slot_value = slot_label_node.outer_html
-        
-        _value = _params.pop(self.v_model_default, '')
-        if _value and slot_value:
-            raise ValueError(f'{self.v_model_default} and default slot cannot both be provided')
-
-        w = pn.pane.Markdown(slot_value or _value, **_params)
-
-        # handle <slot name='default'> content change
-        if slot_label_node:
-            def _update_button_name(change):
-                val = change['new'] if isinstance(change, dict) else change
-                w.object = val
-
-            slot_label_node.on_change(_update_button_name)
-
-        return w
+        return pn.pane.Markdown(**_params)
 
 
 @vpanel.ns_register()
@@ -453,6 +419,10 @@ class Str(VPanelComponent):
     v_model_default = 'object'
     PARAMS_STORE_TRUE = [
     ]
+    CONTENT_SLOT = ('default', 'object')
+
+    def _convert_slot_nodes_to_widgets(self, slots: Dict | None):
+        pass
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}

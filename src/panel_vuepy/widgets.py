@@ -40,18 +40,13 @@ class ButtonComponent(VPanelComponent):
         ('loading', False),
         ('disabled', False),
     ]
+    CONTENT_SLOT = ('default', 'name')
 
     def _convert_slot_nodes_to_widgets(self, slots: Dict | None):
         pass
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
-
-        # <slot name='default'>
-        slot_labels = slots.get('default', [])
-        slot_label_node: IHTMLNode = slot_labels[0] if slot_labels else None
-        if slot_label_node:
-            attrs[self.v_model_default] = slot_label_node.outer_html
 
         # <slot name='icon'>
         icon_slot: INode = slots.get('icon')
@@ -60,14 +55,6 @@ class ButtonComponent(VPanelComponent):
 
         _params = {**props, **attrs, **params}
         w = self._cls(**_params)
-
-        # handle <slot name='default'> content change
-        if slot_label_node:
-            def _update_button_name(change):
-                val = change['new'] if isinstance(change, dict) else change
-                w.name = val
-
-            slot_label_node.on_change(_update_button_name)
 
         return w
 
@@ -97,35 +84,13 @@ class ActiveIconComponent(VPanelComponent):
     PARAMS_STORE_TRUE = [
         ('disabled', False),
     ]
-    # tuple of (slot_name, widget_attr_name, slot_node_attr_name)
-    SLOTS = [
-        ('default', 'name' 'outer_name'),
-        ('icon', 'icon' 'inner_html'),
-        ('active-icon', 'active_icon' 'inner_html'),
-    ]
+    CONTENT_SLOT = ('default', 'name')
 
     def _convert_slot_nodes_to_widgets(self, slots: Dict | None):
         pass
 
-    def _process_slots(self, slots: Dict | None) -> Dict:
-        if slots is None:
-            return {}
-
-        slot_attrs = {}
-        for slot_name, widget_attr_name, slot_node_attr_name in self.SLOTS:
-            slot_node = slots.get(slot_name)
-            if not slot_node:
-                continue
-            slot_attrs[widget_attr_name] = getattr(slot_node, slot_node_attr_name)
-        return slot_attrs
-
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
-        # <slot name='default'>
-        slot_labels = slots.get('default', [])
-        slot_label_node = slot_labels[0] if slot_labels else None
-        if slot_label_node:
-            attrs['name'] = slot_label_node.outer_html
 
         # <slot name='icon'>
         icon_slot: INode = slots.get('icon')
@@ -142,13 +107,6 @@ class ActiveIconComponent(VPanelComponent):
             raise ValueError(f"{self._cls.__name__} is not supported in this version of Panel")
 
         w = self._cls(**_params)
-
-        if slot_label_node:
-            def _update_button_name(change):
-                val = change['new'] if isinstance(change, dict) else change
-                w.name = val
-
-            slot_label_node.on_change(_update_button_name)
 
         return w
 
@@ -861,6 +819,10 @@ class StaticText(VPanelComponent):
     PARAMS_STORE_TRUE = [
         ('disabled', False),
     ]
+    CONTENT_SLOT = ('default', 'value')
+
+    def _convert_slot_nodes_to_widgets(self, slots: Dict | None):
+        pass
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}

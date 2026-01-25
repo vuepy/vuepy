@@ -16,6 +16,7 @@ import panel as pn
 from ipywui.core import has_and_pop
 from vuepy import App
 from vuepy import VueComponent
+from vuepy.compiler_sfc.codegen_backends.backend import IHTMLNode
 from vuepy.compiler_sfc.codegen_backends.panel import PnNode
 from vuepy.compiler_sfc.codegen_backends.panel import PnWidget
 from vuepy.runtime.core.api_create_app import VuePlugin
@@ -53,6 +54,7 @@ class VPanelComponent(VueComponent, ABC):
     PARAMS_STORE_TRUE: List[Tuple[str, bool]] = []
     LOAD_EXTENSION = False
     PnNodeClass: PnNode = PnNode
+    CONTENT_SLOT: tuple[str, str] = None # ('default', 'content')
 
     @classmethod
     def _load_extension(cls):
@@ -115,12 +117,33 @@ class VPanelComponent(VueComponent, ABC):
         self._process_style(attrs)
         self._process_style(props)
 
+        content_slot_node = None
+        if self.CONTENT_SLOT:
+            slot_name, content_attr = self.CONTENT_SLOT
+            content_slot = ctx.get('slots', {}).get(slot_name, [])
+            content_slot_node: IHTMLNode = content_slot[0] if content_slot else None
+            if content_slot_node:
+                attrs[content_attr] = content_slot_node.outer_html
+
         # process slots
         self._convert_slot_nodes_to_widgets(ctx.get('slots'))
         widget = self._render(ctx, attrs, props, params, setup_returned)
 
         # Inject on_change support
         self._inject_on_change_register(widget)
+
+        if content_slot_node:
+            def _update_attr(change):
+                if isinstance(change, dict):
+                    val = change['new']
+                # Event from panel
+                elif hasattr(change, 'new'):
+                    val = change.new
+                else:
+                    val = change
+                setattr(widget, content_attr, val)
+
+            content_slot_node.on_change(_update_attr)
 
         return self.PnNodeClass(widget)
 
