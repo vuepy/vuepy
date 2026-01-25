@@ -103,7 +103,13 @@ class Button(IPywidgetsComponent):
 
         if slot_label:
             def _update_button_name(change):
-                val = change['new'] if isinstance(change, dict) else change
+                if isinstance(change, dict):
+                    val = change['new']
+                # Event from panel
+                elif hasattr(change, 'new'):
+                    val = change.new
+                else:
+                    val = change
                 setattr(widget, self.v_model_default, val)
 
             slot_label.on_change(_update_button_name)
@@ -346,7 +352,13 @@ class Label(IPywidgetsComponent):
 
         if slot_label:
             def _update_html_widget_value(change):
-                val = change['new'] if isinstance(change, dict) else change
+                if isinstance(change, dict):
+                    val = change['new']
+                # Event from panel
+                elif hasattr(change, 'new'):
+                    val = change.new
+                else:
+                    val = change
                 setattr(widget, self.v_model_default, val)
 
             slot_label.observe(_update_html_widget_value, 'value')
