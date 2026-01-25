@@ -21,7 +21,7 @@ setup(
     long_description=README,
     long_description_content_type="text/markdown",
     url="https://www.vuepy.org",
-    keywords=["vue", "Web UI", "MVVM"],
+    keywords=["vue", "Web UI", "MVVM", "Jupyter", "Panel", "Textual"],
     author="vuepy.org",
     author_email="leilux.dev@gmail.com",
     license="MIT",
@@ -42,5 +42,6 @@ setup(
     extras_require={
         'vleaflet': ['ipyleaflet'],
         'panel': ['panel', 'jupyter_bokeh', 'ipywidgets_bokeh'],
+        'textual': ['textual'],
     },
 )
