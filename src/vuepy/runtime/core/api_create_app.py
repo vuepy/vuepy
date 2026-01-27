@@ -11,9 +11,6 @@ from typing import Type
 from typing import Union
 import sys
 
-from IPython.display import clear_output
-from IPython.display import display
-
 from vuepy import log
 from vuepy.compiler_core.options import CompilerOptions
 from vuepy.compiler_sfc import codegen_backends
@@ -60,7 +57,7 @@ class App:
         self, 
         root_component: RootComponent, 
         props: dict = None,
-        backend: str | None = codegen_backends.ipywidgets.NAME, 
+        backend: str | None = codegen_backends.IPYWIDGETS_BACKEND, 
         servable: bool = False,
         debug: bool = False, 
     ):
@@ -241,7 +238,7 @@ RootComponent = Union[Type[VueComponent], SFCType, dict]
 def create_app(
     root_component: RootComponent, 
     use_wui: bool = True,
-    backend: str = codegen_backends.ipywidgets.NAME,
+    backend: str = codegen_backends.IPYWIDGETS_BACKEND,
     servable: bool = False,
     debug: bool = False,
     root_props: dict = None,

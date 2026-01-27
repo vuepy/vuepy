@@ -13,7 +13,7 @@ from ipywui.widgets import WidgetCssStyle
 from ipywui.widgets.custom.message import MessageService
 from vuepy import App
 from vuepy import VueComponent
-from vuepy.compiler_sfc.codegen_backends import ipywidgets as iw_backend
+from vuepy.compiler_sfc.codegen_backends import IPYWIDGETS_BACKEND
 from vuepy.compiler_sfc.codegen_backends.ipywidgets import IwNode
 from vuepy.compiler_sfc.codegen_backends.ipywidgets import IwWidget
 from vuepy.runtime.core.api_create_app import VuePlugin
@@ -29,7 +29,7 @@ class wui(VuePlugin, metaclass=FactoryMeta):
 
         app.message = MessageService(app_instance=app)
         # todo panel时如何使用message？
-        if app.codegen_backend == iw_backend.NAME:
+        if app.codegen_backend == IPYWIDGETS_BACKEND:
             app.document.body.prepend_child(app.message.widget)
         # app.document.body_node.appendLeftChild(app.message.widget)
 

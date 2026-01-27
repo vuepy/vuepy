@@ -1,8 +1,13 @@
 from vuepy.compiler_sfc.codegen_backends.backend import CodegenBackendMgr
-from vuepy.compiler_sfc.codegen_backends.ipywidgets import IwCodegenBackend
 
+IPYWIDGETS_BACKEND = 'ipywidgets'
 PANEL_BACKEND = 'panel'
 TEXTUAL_BACKEND = 'textual'
+
+
+CodegenBackendMgr.register_lazy(
+    IPYWIDGETS_BACKEND, 'vuepy.compiler_sfc.codegen_backends.ipywidgets.IwCodegenBackend'
+)
 
 CodegenBackendMgr.register_lazy(
     PANEL_BACKEND, 'vuepy.compiler_sfc.codegen_backends.panel.PnCodegenBackend'
@@ -14,5 +19,4 @@ CodegenBackendMgr.register_lazy(
 
 __all__ = [
     'CodegenBackendMgr',
-    'IwCodegenBackend',
 ]

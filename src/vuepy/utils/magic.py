@@ -6,17 +6,20 @@ import shlex
 from pathlib import Path
 
 import IPython
+from IPython.display import display
 from IPython.core.magic import register_line_cell_magic
 from IPython.core.magic import register_line_magic
-
+import ipywidgets as widgets
 from ipywui import wui
 from vuepy import log
 from vuepy.compiler_sfc import sfc_compiler
-from vuepy.compiler_sfc.codegen_backends import ipywidgets as iw_backend
+from vuepy.compiler_sfc.codegen_backends import IPYWIDGETS_BACKEND
 from vuepy.compiler_sfc.sfc_parser import SFCMetadata
 from vuepy.runtime.core.api_create_app import create_app
 from vuepy.runtime.core.import_sfc import import_sfc
 from vuepy.utils.appstore import VuepyAppStore
+
+logout = widgets.Output()
 
 
 def get_curr_ipynb_dir():
@@ -133,8 +136,8 @@ def vuepy_log(cmd):
     :return:
     """
     if cmd == 'clear':
-        log.logout.clear_output()
-    return log.logout
+        logout.clear_output()
+    return logout
 
 
 @register_line_cell_magic
@@ -211,7 +214,7 @@ def vuepy_run(vue_file, cell=''):
         parser.add_argument(
             '--backend',
             type=str,
-            default=iw_backend.NAME,
+            default=IPYWIDGETS_BACKEND,
             help='backend of codegen: ipywidgets, panel, etc. default: ipywidgets'
         )
         return parser
@@ -315,5 +318,33 @@ def load_ipython_extension(ipython):
 
     ipython.set_hook('complete_command', vuepy_run_complete, re_key='%vuepy_run')
 
+
+class OutputWidgetHandler(logging.Handler):
+    """ Custom logging handler sending logs to an output widget """
+
+    def __init__(self, out, *args, **kwargs):
+        super(OutputWidgetHandler, self).__init__(*args, **kwargs)
+        self.out = out
+
+    def emit(self, record):
+        """ Overload of logging.Handler method """
+        formatted_record = self.format(record)
+        new_output = {
+            'name': 'stdout',
+            'output_type': 'stream',
+            'text': formatted_record + '\n'
+        }
+        self.out.outputs = (new_output,) + self.out.outputs
+
+    def show_logs(self):
+        """ Show the logs """
+        display(self.out)
+
+    def clear_logs(self):
+        """ Clear the current logs """
+        self.out.clear_output()
+
+
+log.add_handler(OutputWidgetHandler(logout))
 
 load_ipython_extension(IPython.get_ipython())

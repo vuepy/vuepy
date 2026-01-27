@@ -25,8 +25,6 @@ DocRootWidget = iw.VBox
 DocBodyWidget = iw.VBox
 HTMLWidget = iw.HTMLMath
 
-NAME = 'ipywidgets'
-
 
 class IwNode(INode[IwWidget]):
     def on(self, ev: str, cb: callable, remove=False):
@@ -167,7 +165,6 @@ class IwHTMLNode(
         self.observe(callback, 'value', remove)
 
 
-@CodegenBackendMgr.register(NAME)
 class IwCodegenBackend(ICodegenBackend):
     """
     ipywidgets codegen backend

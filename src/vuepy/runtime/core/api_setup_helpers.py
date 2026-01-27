@@ -4,14 +4,46 @@
 from __future__ import annotations
 
 import inspect
-from typing import List
-
-from ipywidgets import CallbackDispatcher
+from typing import Any, List
 
 from vuepy import log
 from vuepy.reactivity.ref import ref
 
 logger = log.getLogger()
+
+
+class CallbackDispatcher:
+    """A structure for registering and running callbacks"""
+    def __init__(self):
+        self.callbacks: List[Any] = []
+
+    def __call__(self, *args, **kwargs):
+        """Call all of the registered callbacks."""
+        value = None
+        for callback in self.callbacks:
+            try:
+                local_value = callback(*args, **kwargs)
+            except Exception as e:
+                print(f"Exception in callback {callback}: {e}")
+            else:
+                value = local_value if local_value is not None else value
+        return value
+
+    def register_callback(self, callback, remove=False):
+        """(Un)Register a callback
+
+        Parameters
+        ----------
+        callback: method handle
+            Method to be registered or unregistered.
+        remove=False: bool
+            Whether to unregister the callback."""
+
+        # (Un)Register the callback.
+        if remove and callback in self.callbacks:
+            self.callbacks.remove(callback)
+        elif not remove and callback not in self.callbacks:
+            self.callbacks.append(callback)
 
 
 def defineProps(props: dict | list):
