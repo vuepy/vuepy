@@ -41,6 +41,7 @@ class SFC(VueComponent):
             app: "App",
             render: Callable[[SetupContext | dict, dict, dict], VNode] = None,
             file: str = None,
+            is_root: bool = False,
     ):
         super().__init__()
         self.app = app
@@ -62,7 +63,9 @@ class SFC(VueComponent):
         for event in self._get_events():
             emitter.add_event(event)
 
-        self.sfc_widget_node: ISFCNode = self.app.codegen_backend.gen_sfc_widget_node(props, emitter)
+        self.sfc_widget_node: ISFCNode = (
+            self.app.codegen_backend.gen_sfc_widget_node(props, emitter, self, is_root)
+        )
         self._init_static_props(context.get('attrs', {}))
 
         for _, cb in self._get_var_by_type(OnBeforeMount):
@@ -204,7 +207,9 @@ class SFCType:
     render: Callable[[SetupContext | dict, dict, dict], VNode] = None
     _file: str = ''
 
-    def gen(self, props: dict, context: SetupContext | dict, app: "App") -> "SFC":
+    def gen(
+        self, props: dict, context: SetupContext | dict, app: "App", is_root=False
+    ) -> "SFC":
         setup_ret = self.setup(props, context, app) if self.setup else {}
         return SFC(
             context,
@@ -216,4 +221,5 @@ class SFCType:
             app,
             self.render,
             self._file,
+            is_root,
         )

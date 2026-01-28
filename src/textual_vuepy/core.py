@@ -10,7 +10,6 @@ from typing import Iterable
 from typing import List
 from typing import Tuple
 
-from ipywui.core import has_and_pop
 from vuepy import App
 from vuepy import VueComponent
 from vuepy.compiler_sfc.codegen_backends.backend import IHTMLNode

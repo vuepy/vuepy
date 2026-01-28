@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import enum
 from abc import ABC
 from abc import ABCMeta
@@ -61,7 +62,9 @@ class ICodegenBackend(metaclass=ABCMeta):
     def gen_sfc_widget_node(
         cls,
         props: Dict[str, DefineProp],
-        emitter: defineEmits
+        emitter: defineEmits,
+        sfc: "SFC" = None,
+        is_root: bool = False,
     ) -> 'ISFCNode':
         raise NotImplementedError
 
@@ -202,7 +205,7 @@ class ISFCNode(INode[W], ABC):
         elif name in self._props:
             self._props[name].value = value
         else:
-            raise AttributeError(f"Attribute {name} not found in widget or props")
+            raise AttributeError(f"Attribute {name} not found in widget {self._widget} or props {self._props}")
 
     def getattr(self, name, *default):
         if len(default) > 1:
@@ -293,22 +296,26 @@ class DynamicComponent(VueComponent):
         super().__init__(setup_ret=setup_ret, app=app)
         self.vm = vm
         self.ns = ns
-        self.comp_ast = comp_ast
-        self.v_is_expr = comp_ast.v_binds.pop('is')
+        self.comp_ast = copy.deepcopy(comp_ast)
+        self.v_is_expr = self.comp_ast.v_binds.pop('is')
         self.children = children
         self._container_node: INode = None
 
     def _convert_slot_nodes_to_widgets(self, slots: Dict):
         pass
 
-    def _render_component(self, component_cls):
+    def _render_component(self, component_cls, comp_ast):
         from vuepy.compiler_sfc.template_codegen import VueCompCodeGen
-        self.comp_ast.tag = component_cls
-        return VueCompCodeGen._gen(self.comp_ast, self.children, self.vm, self.ns, self.app)
+        if isinstance(component_cls, str):
+            comp_ast.tag = component_cls
+            return VueCompCodeGen._gen(comp_ast, self.children, self.vm, self.ns, self.app)
+        else:
+            comp_ast.tag = str(component_cls)
+            return VueCompCodeGen._gen(comp_ast, self.children, self.vm, self.ns, self.app, component_cls)
 
     def render(self, ctx, props, setup_returned) -> INode:
         component_name_or_cls = self.v_is_expr.eval(self.ns)
-        widget = self._render_component(component_name_or_cls)
+        widget = self._render_component(component_name_or_cls, self.comp_ast)
         self._container_node = self.app.codegen_backend.gen_widget_collection_node((widget,))
 
         def _get_is_value():
@@ -316,7 +323,7 @@ class DynamicComponent(VueComponent):
 
         @watch(_get_is_value, WatchOptions(immediate=False))
         def _is_change_handler(new_component_name_or_cls, old, on_cleanup):
-            new_widget = self._render_component(new_component_name_or_cls)
+            new_widget = self._render_component(new_component_name_or_cls, self.comp_ast)
             self._container_node.replace_children([new_widget])
 
         return self._container_node

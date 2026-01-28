@@ -266,7 +266,11 @@ class VBox(Vertical, _WidgetMixin):
 
 
 class HBox(Horizontal, _WidgetMixin):
-    pass
+    DEFAULT_CSS = '''
+        HBox {
+            height: auto;
+        }
+    '''
 
 
 class KeyPanel(widgets.KeyPanel, _WidgetMixin):

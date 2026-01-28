@@ -518,11 +518,17 @@ class Tabs(VTextualComponent):
 @vtextual.ns_register()
 class TextArea(VTextualComponent):
     v_model_default = 'text'
-    PARAMS_STORE_TRUE = []
+    PARAMS_STORE_TRUE = [
+        ('code_editor', False),
+    ]
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}
-        return widgets.TextArea(**_params)
+        code_editor = _params.pop('code_editor', False)
+        if code_editor:
+            return widgets.TextArea.code_editor(**_params)
+        else:
+            return widgets.TextArea(**_params)
 
 
 @vtextual.ns_register()

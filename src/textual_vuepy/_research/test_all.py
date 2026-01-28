@@ -23,7 +23,7 @@ App = import_sfc("""
       <Input placeholder="Input" />
       <MaskedInput template="99-99-9999" placeholder="MaskedInput (date)" />
       <Switch />
-      <Select :options="[('Option A', 'a'), ('Option B', 'b')]" />
+      <Select v-model='sel.value' :options="[('Option A', 'a'), ('Option B', 'b')]" />
 
 # RadioSet
       <RadioSet>
@@ -130,6 +130,7 @@ App = import_sfc("""
 <script lang="py">
 from vuepy import ref
 
+sel = ref('b', debug_msg='sel')
 </script>
 <style>
 /* CSS / TCSS styles */

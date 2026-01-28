@@ -197,7 +197,9 @@ class PnCodegenBackend(ICodegenBackend):
     def gen_sfc_widget_node(
         cls,
         props: Dict[str, DefineProp],
-        emitter: defineEmits
+        emitter: defineEmits,
+        sfc: "SFC" = None,
+        is_root: bool = False,
     ) -> PnSFCNode:
         return PnSFCNode(props, emitter)
 

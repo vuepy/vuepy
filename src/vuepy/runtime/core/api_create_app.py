@@ -83,7 +83,9 @@ class App:
         # props = {}
         context = {}
         if isinstance(root_component, SFCType):
-            self.root_component: SFC = root_component.gen(self._props, context, self)
+            self.root_component: SFC = (
+                root_component.gen(self._props, context, self, is_root=True)
+            )
         elif issubclass(root_component, VueComponent):
             self.root_component = root_component(self._props, context, self)
         else:

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Callable, Dict, Type, TypeVar
 
+from vuepy.compiler_sfc.sfc_codegen import SFC
+
 try:
     from textual.widget import Widget
     from textual.widgets.option_list import Option as OptionItem
@@ -61,24 +63,25 @@ class TextualDocRootWidget(App):
         for cb in self._on_mount:
             cb(self)
     
-    def _print_dom_tree(self, widget, indent=0, s=''):
-        """递归打印DOM树结构"""
+    def _print_dom_tree(self, widget, indent=0, s='', show_styles=False):
+        """recursive print DOM tree structure"""
         indent_str = "  " * indent
         widget_id = f" (id={widget.id})" if widget.id else ""
         widget_classes = f" [classes={widget.classes}]" if widget.classes else ""
+        widget_styles = f" [styles={widget.styles}]" if widget.styles and show_styles else ""
 
-        s += f"{indent_str}{widget.__class__.__name__}{widget_id}{widget_classes}\n"
+        s += f"{indent_str}{widget.__class__.__name__}{widget_id}{widget_classes}{widget_styles}\n"
 
         for child in widget.children:
-            s = self._print_dom_tree(child, indent + 1, s)
+            s = self._print_dom_tree(child, indent + 1, s, show_styles)
 
         return s
 
-    def print_dom_tree(self, widget=None):
-        """打印DOM树结构"""
+    def print_dom_tree(self, widget=None, show_styles=False):
+        """print DOM tree structure"""
         if widget is None:
             widget = self
-        s = self._print_dom_tree(widget)
+        s = self._print_dom_tree(widget, show_styles=show_styles)
         print(s)
     
     # def action_keyup(self, key, *args):
@@ -200,12 +203,30 @@ class TextualSFCNode(
     ISFCNode[TextualRootWidget],
     TextualNode[TextualRootWidget],
 ):
-    def __init__(self, props: Dict[str, DefineProp], emitter: defineEmits):
-        super().__init__(TextualRootWidget(id='sfc_root'), props, emitter)
+    def __init__(
+        self, props: Dict[str, DefineProp], emitter: defineEmits, sfc: SFC,
+        is_root_component: bool = False
+    ):
+        self._id = f'sfc-{id(self)}'
+        if is_root_component:
+            self._id = "sfc-root"
+
+        self.cls = TextualRootWidget
+        if (not is_root_component) and sfc.style_str:
+            _SFCRootWidget = type(
+                f'_SFCRootWidget_{id(self)}',
+                (TextualRootWidget,),
+                {
+                    'DEFAULT_CSS': sfc.style_str,
+                }
+            )
+            self.cls = _SFCRootWidget
+
+        super().__init__(self.cls(id=self._id), props, emitter)
     
     def create_widget(self, children):
         _children = [self.convert_to_widget(c) for c in children]
-        self._widget = TextualRootWidget(*_children, id='sfc_root')
+        self._widget = self.cls(*_children, id=self._id)
 
 
 TextualDocBodyWidget = Screen
@@ -236,8 +257,8 @@ class TextualNodeCollection(TextualNode[TextualCollectionRootWidget]):
         if not widget:
             children = kwargs.pop('children', [])
             _children = [self.convert_to_widget(c) for c in children]
-            widget = TextualCollectionRootWidget(*_children, id='collec')
-            widget.set_styles('width: auto;')
+            widget = TextualCollectionRootWidget(*_children)
+            widget.set_styles('width: auto; height: auto;')
         super().__init__(widget, *args, **kwargs)
 
 
@@ -298,9 +319,11 @@ class TextualCodegenBackend(ICodegenBackend):
     def gen_sfc_widget_node(
         cls,
         props: Dict[str, DefineProp],
-        emitter: defineEmits
+        emitter: defineEmits,
+        sfc: SFC,
+        is_root: bool = False,
     ) -> TextualSFCNode:
-        return TextualSFCNode(props, emitter)
+        return TextualSFCNode(props, emitter, sfc, is_root)
 
     @classmethod
     def gen_document_node(cls, vue_root) -> TextualDocumentNode:
