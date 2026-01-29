@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import Callable, Dict, Type, TypeVar
 
 from vuepy.compiler_sfc.sfc_codegen import SFC
@@ -27,13 +28,32 @@ from vuepy.compiler_sfc.codegen_backends.backend import INode
 from vuepy.compiler_sfc.codegen_backends.backend import ISFCNode
 from vuepy.runtime.core.api_setup_helpers import DefineProp, defineEmits
 
+
+class TextualProvides(Enum):
+    APP_MIXIN = 'APP_MIXIN'
+
+
 _TEXTUAL_WIDGET_TYPES = (Widget, OptionItem, SelectionItem)
 TextualWidget = TypeVar('TextualWidget', bound=Widget)
 
-TextualRootWidget = VerticalScroll
 TextualDocBodyWidget = Vertical
-TextualCollectionRootWidget = VerticalScroll
 TextualHTMLWidget = Static
+
+class TextualRootWidget(VerticalScroll):
+    DEFAULT_CSS = """
+    TextualRootWidget {
+        width: auto;
+        height: auto;
+    }
+    """
+
+class CollectionRootWidget(Widget): # VerticalScroll
+    DEFAULT_CSS = """
+    CollectionRootWidget {
+        width: auto;
+        height: auto;
+    }
+    """
 
 
 # todo _WidgetMixin
@@ -55,8 +75,8 @@ class TextualDocRootWidget(App):
 
         super().__init__(*args, **kwargs)
         self.message_ = ''
-    
-    def set_on_mount(self, cb: Callable):
+
+    def set_on_mount(self, cb: Callable[[TextualDocRootWidget], None]):
         self._on_mount.append(cb)
 
     def on_mount(self):
@@ -252,12 +272,12 @@ class TextualDocumentNode(
         # self._widget.push_screen(body.unwrap())
 
 
-class TextualNodeCollection(TextualNode[TextualCollectionRootWidget]):
+class TextualNodeCollection(TextualNode[CollectionRootWidget]):
     def __init__(self, widget=None, *args, **kwargs):
         if not widget:
             children = kwargs.pop('children', [])
             _children = [self.convert_to_widget(c) for c in children]
-            widget = TextualCollectionRootWidget(*_children)
+            widget = CollectionRootWidget(*_children)
             widget.set_styles('width: auto; height: auto;')
         super().__init__(widget, *args, **kwargs)
 
@@ -327,7 +347,19 @@ class TextualCodegenBackend(ICodegenBackend):
 
     @classmethod
     def gen_document_node(cls, vue_root) -> TextualDocumentNode:
-        root_widget = TextualDocRootWidget(
+        app_mixin = (
+            vue_root.app.inject(TextualProvides.APP_MIXIN)
+            or vue_root.app.inject(TextualProvides.APP_MIXIN.value)
+        )
+        _TextualDocRootWidget = TextualDocRootWidget
+        if app_mixin:
+            _TextualDocRootWidget = type(
+                f"TextualDocRootWidget_{app_mixin.__name__}_{id(vue_root)}",
+                (app_mixin, TextualDocRootWidget),
+                {}
+            )
+
+        root_widget = _TextualDocRootWidget(
             css=vue_root.style_str, 
             css_path=vue_root.style_src,
         )

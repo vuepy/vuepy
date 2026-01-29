@@ -262,8 +262,11 @@ class Input(widgets.Input, _WidgetMixin):
 
 
 class VBox(Vertical, _WidgetMixin):
-    pass
-
+    DEFAULT_CSS = '''
+        VBox {
+            height: auto;
+        }
+    '''
 
 class HBox(Horizontal, _WidgetMixin):
     DEFAULT_CSS = '''
