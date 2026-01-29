@@ -97,12 +97,26 @@ class App:
         self._components = {}
         self.component('template', self.codegen_backend.get_template_component())
 
-        self.document: IDocumentNode = self.codegen_backend.gen_document_node(
-            self.root_component
-        )
+        self._document: IDocumentNode = None
         self.dom: INode = None
 
         self._proxy_methods()
+
+    @property
+    def document(self) -> IDocumentNode:
+        if self._document is None:
+            self._document = self.codegen_backend.gen_document_node(
+                self.root_component
+            )
+        return self._document
+
+    def provide(self, key: str, value: Any):
+        if key in self._context.provides:
+            logger.warning(f"provide {key} already exists, value: {self._context.provides[key]}")
+        self._context.provides[key] = value
+
+    def inject(self, key: str) -> Any:
+        return self._context.provides.get(key, None)
 
     @property
     def version(self):

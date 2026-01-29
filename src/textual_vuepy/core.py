@@ -29,7 +29,10 @@ class vtextual(VuePlugin, metaclass=FactoryMeta):
         for name, component in components.items():
             app.component(name, component)
 
-        app.message = app.document.unwrap().notify
+        def textual_app_notify(*args, **kwargs):
+            app.document.unwrap().notify(*args, **kwargs)
+
+        app.message = textual_app_notify
 
     @classmethod
     def ns_register(cls, name=None):
