@@ -49,7 +49,8 @@ class VueCompCodeGen:
                 return comp_ast.v_if.eval(ns)
 
             dummy: INode = app.codegen_backend.gen_widget_collection_node(
-                (cls._gen(comp_ast, node.children, vm, ns, app),) if _if_cond() else ()
+                (cls._gen(comp_ast, node.children, vm, ns, app),) if _if_cond() else (),
+                kind="v-if",
             )
 
             @watch(_if_cond, WatchOptions(immediate=False))
@@ -68,7 +69,8 @@ class VueCompCodeGen:
                 return comp_ast.v_show.eval(ns)
 
             dummy: INode = app.codegen_backend.gen_widget_collection_node(
-                (w,) if _if_show() else ()
+                (w,) if _if_show() else (),
+                kind="v-show",
             )
 
             @watch(_if_show, WatchOptions(immediate=False))

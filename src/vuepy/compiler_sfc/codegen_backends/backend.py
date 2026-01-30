@@ -55,7 +55,11 @@ class ICodegenBackend(metaclass=ABCMeta):
         raise NotImplementedError
 
     @classmethod
-    def gen_widget_collection_node(cls, children=None) -> "INode":
+    def gen_widget_collection_node(
+        cls,
+        children=None,
+        kind: str = "",
+    ) -> "INode":
         raise NotImplementedError
 
     @classmethod
@@ -316,7 +320,9 @@ class DynamicComponent(VueComponent):
     def render(self, ctx, props, setup_returned) -> INode:
         component_name_or_cls = self.v_is_expr.eval(self.ns)
         widget = self._render_component(component_name_or_cls, self.comp_ast)
-        self._container_node = self.app.codegen_backend.gen_widget_collection_node((widget,))
+        self._container_node = self.app.codegen_backend.gen_widget_collection_node(
+            (widget,), kind="component",
+        )
 
         def _get_is_value():
             return self.v_is_expr.eval(self.ns)

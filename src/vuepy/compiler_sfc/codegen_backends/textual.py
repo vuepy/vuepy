@@ -47,7 +47,7 @@ class TextualRootWidget(VerticalScroll):
     }
     """
 
-class CollectionRootWidget(Widget): # VerticalScroll
+class CollectionRootWidget(VerticalScroll):
     DEFAULT_CSS = """
     CollectionRootWidget {
         width: auto;
@@ -273,12 +273,12 @@ class TextualDocumentNode(
 
 
 class TextualNodeCollection(TextualNode[CollectionRootWidget]):
-    def __init__(self, widget=None, *args, **kwargs):
+    def __init__(self, widget=None, kind: str = "collection", *args, **kwargs):
         if not widget:
             children = kwargs.pop('children', [])
             _children = [self.convert_to_widget(c) for c in children]
-            widget = CollectionRootWidget(*_children)
-            widget.set_styles('width: auto; height: auto;')
+            widget = CollectionRootWidget(*_children, id=f'{kind}-{id(self)}')
+
         super().__init__(widget, *args, **kwargs)
 
 
@@ -330,10 +330,14 @@ class TextualCodegenBackend(ICodegenBackend):
         from textual_vuepy.comps import VBox
         from functools import partial
         return partial(VBox, id='template')
-    
+
     @classmethod
-    def gen_widget_collection_node(cls, children=None) -> "TextualNodeCollection":
-        return TextualNodeCollection(children=children)
+    def gen_widget_collection_node(
+        cls,
+        children=None,
+        kind: str = "collection",
+    ) -> "TextualNodeCollection":
+        return TextualNodeCollection(children=children, kind=kind)
 
     @classmethod
     def gen_sfc_widget_node(

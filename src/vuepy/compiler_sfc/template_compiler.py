@@ -346,7 +346,9 @@ class DomCompiler(HTMLParser):
             return self.widgets.children[0]
 
         # return widgets.VBox(self.widgets.children)
-        node = self.app.codegen_backend.gen_widget_collection_node(self.widgets.children)
+        node = self.app.codegen_backend.gen_widget_collection_node(
+            self.widgets.children, kind="html",
+        )
         # parent.mount(node.unwrap())
         # node.replace_children(self.widgets.children)
         return node

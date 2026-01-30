@@ -176,7 +176,11 @@ class IwCodegenBackend(ICodegenBackend):
         return Template
 
     @classmethod
-    def gen_widget_collection_node(cls, children=None) -> "IwNodeCollection":
+    def gen_widget_collection_node(
+        cls,
+        children=None,
+        kind: str = "collection",
+    ) -> "IwNodeCollection":
         """
         for dummy, slot node
         """

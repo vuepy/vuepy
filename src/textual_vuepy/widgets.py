@@ -6,7 +6,7 @@ from __future__ import annotations
 from types import MethodType
 
 from textual import widgets
-from textual.containers import Horizontal
+from textual.containers import HorizontalScroll, VerticalScroll
 from textual.containers import Vertical
 from textual.reactive import reactive
 from textual.screen import ModalScreen
@@ -128,8 +128,9 @@ class Modal(ModalScreen, _WidgetMixin):
         self.__footer = kwargs.pop('footer', [])
         # self.__style = kwargs.pop('style', "")
 
+        value = kwargs.pop('value', False)
         super().__init__(*args, **kwargs)
-
+        self.value = value
         self.emits = defineEmits(['open', 'close'])
 
     def _watch_style(self):
@@ -158,6 +159,10 @@ class Modal(ModalScreen, _WidgetMixin):
         yield self.dialog
 
     def attach(self):
+        """
+        template_compiler::handle_endtag will call attach method to install 
+        ModalScreen to app, not add to parent node.
+        """
         name = self._name
         self.app._modes[name] = name
         self.app.uninstall_screen(name)
@@ -261,17 +266,21 @@ class Input(widgets.Input, _WidgetMixin):
     # #         cb(event.input.value)
 
 
-class VBox(Vertical, _WidgetMixin):
+class VBox(VerticalScroll, _WidgetMixin):
     DEFAULT_CSS = '''
         VBox {
             height: auto;
+            overflow-x: auto;
+            overflow-y: auto;
         }
     '''
 
-class HBox(Horizontal, _WidgetMixin):
+class HBox(HorizontalScroll, _WidgetMixin):
     DEFAULT_CSS = '''
         HBox {
             height: auto;
+            overflow-x: auto;
+            overflow-y: auto;
         }
     '''
 

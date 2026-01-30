@@ -184,7 +184,11 @@ class PnCodegenBackend(ICodegenBackend):
         return Column
 
     @classmethod
-    def gen_widget_collection_node(cls, children=None) -> "PnNodeCollection":
+    def gen_widget_collection_node(
+        cls,
+        children=None,
+        kind: str = "collection",
+    ) -> "PnNodeCollection":
         """
         for dummy, slot node
         """
