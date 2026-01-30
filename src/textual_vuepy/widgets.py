@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from types import MethodType
+from typing import Callable
 
 from textual import widgets
 from textual.containers import HorizontalScroll, VerticalScroll
@@ -11,14 +12,29 @@ from textual.containers import Vertical
 from textual.reactive import reactive
 from textual.screen import ModalScreen
 
+from vuepy import log
 from vuepy.runtime.core.api_setup_helpers import defineEmits
 
+logger = log.getLogger(__name__)
 
 class _WidgetMixin:
     style: reactive[str] = reactive("", init=False)
 
     def __init__(self) -> None:
         self._on_keyup_cb = {}
+        self._vp_on_mount_cb = []
+    
+    def vp_set_on_mount(self, cb: Callable[["Self"], None]):
+        if not hasattr(self, '_vp_on_mount_cb'):
+            self._vp_on_mount_cb = []
+        self._vp_on_mount_cb.append(cb)
+    
+    def on_mount(self):
+        if not hasattr(self, '_vp_on_mount_cb'):
+            return
+
+        for cb in self._vp_on_mount_cb:
+            cb(self)
 
     def _watch_style(self) -> None:
         self.set_styles(self.style)
@@ -247,23 +263,12 @@ class Input(widgets.Input, _WidgetMixin):
         super().__init__(*args, **kwargs)
         self._cb = {}
 
-    # v-model for reactive attr
-    def observe(self, attr: str, cb, remove=False):
-        def wrap(v):
-            cb(v)
-
-        self.app.watch(self, attr, wrap)
-        # if attr != 'value':
-        #     raise AttributeError(f"Observing {attr} not supported in {self}")
-
-    #     # if attr in self._cb:
-    #     #     del self._cb[attr]
-    #     # self._cb[attr] = cb
-
-    # # def on_input_changed(self, event: TInput.Changed) -> None:
-    # #     cb = self._cb.get('value')
-    # #     if cb:
-    # #         cb(event.input.value)
+    # # v-model for reactive attr
+    # def observe(self, attr: str, cb, remove=False):
+    #     def wrap(v):
+    #         cb(v)
+    #
+    #     self.app.watch(self, attr, wrap)
 
 
 class VBox(VerticalScroll, _WidgetMixin):
@@ -363,7 +368,39 @@ class RadioButton(widgets.RadioButton, _WidgetMixin):
 
 
 class RadioSet(widgets.RadioSet, _WidgetMixin):
-    pass
+    def __init__(self, vp_selected_index: int, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        def _init_selected_index(self):
+            self.selected_index = vp_selected_index
+
+        self.vp_set_on_mount(_init_selected_index)
+    
+    @property
+    def selected_index(self) -> int:
+        return self.pressed_index
+
+    @selected_index.setter
+    def selected_index(self, index: int) -> None:
+        buttons = list(self.query(widgets.RadioButton))
+        # if not (0 <= index < len(buttons)):
+        #     msg = f"Invalid index {index} for RadioSet {self}"
+        #     logger.warning(msg)
+        #     raise ValueError(msg)
+
+        # 1. set radio set selected index
+        self._selected = index
+        # 2.set radio button value
+        for i, btn in enumerate(buttons):
+            btn.value = i == index
+    
+    def observe(self, attr: str, cb, remove=False):
+        if attr == 'selected_index':
+            def on_vp_selected_index_changed(event):
+                cb(event.radio_set.selected_index)
+            self.vp_register_on('radio_set_changed', on_vp_selected_index_changed)
+        else:
+            super().observe(attr, cb, remove)
 
 
 class RichLog(widgets.RichLog, _WidgetMixin):

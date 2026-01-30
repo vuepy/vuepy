@@ -362,24 +362,31 @@ class ProgressBar(VTextualComponent):
 
 @vtextual.ns_register()
 class RadioButton(VTextualComponent):
-    v_model_default = 'selected'
-    PARAMS_STORE_TRUE = []
-
-    def _render(self, ctx, attrs, props, params, setup_returned):
-        _params = {**props, **attrs, **params}
-        return widgets.RadioButton(**_params)
-
-
-@vtextual.ns_register()
-class RadioSet(VTextualComponent):
     v_model_default = 'value'
     PARAMS_STORE_TRUE = []
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}
+        button_inner = _params.pop('button_inner', None)
+        widget = widgets.RadioButton(**_params)
+        if button_inner is not None:
+            widget.BUTTON_INNER = button_inner
+        return widget
+
+
+@vtextual.ns_register()
+class RadioSet(VTextualComponent):
+    v_model_default = 'selected_index'
+    PARAMS_STORE_TRUE = []
+
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        _params = {**props, **attrs, **params}
+        # Textual RadioSet.__init__ 不接受 value，v-model 的 value 由 widget 创建后 setattr 设置
+        vp_selected_index = _params.pop(self.v_model_default, None)
+        # vp_selected_index = _params.pop('_selected', None)
         slots = ctx.get('slots', {})
         children = slots.get('default', [])
-        return widgets.RadioSet(*children, **_params)
+        return widgets.RadioSet(vp_selected_index, *children, **_params)
 
 
 @vtextual.ns_register()
