@@ -299,15 +299,25 @@ class MaskedInput(VTextualComponent):
 
 @vtextual.ns_register()
 class OptionList(VTextualComponent):
-    v_model_default = 'options'
+    v_model_default = 'selected'
     PARAMS_STORE_TRUE = []
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}
+        selected = _params.pop('selected', None)
+        highlighted = _params.pop('highlighted', None)
         slots = ctx.get('slots', {})
         children = slots.get('default', [])
-        print(children)
-        return widgets.OptionList(*children, **_params)
+        opt_list = widgets.OptionList(*children, **_params)
+
+        def set_initial(w):
+            if highlighted is not None:
+                w.highlighted = highlighted
+            if selected is not None:
+                w.selected = selected
+
+        opt_list.vp_set_on_mount(set_initial)
+        return opt_list
 
 
 @vtextual.ns_register()

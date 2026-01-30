@@ -348,7 +348,72 @@ class MaskedInput(widgets.MaskedInput, _WidgetMixin):
 
 
 class OptionList(widgets.OptionList, _WidgetMixin):
-    pass
+    """v-model 绑定 selected（Enter 确认的选项索引）；v-model:highlighted 绑定当前高亮索引。"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._last_selected_index: int | None = None
+        self._vp_selected_cbs = []
+        self._vp_highlighted_cbs = []
+        self._vp_option_selected_handler_set = False
+
+    @property
+    def selected(self) -> int | None:
+        return self._last_selected_index
+
+    @selected.setter
+    def selected(self, value: int | None) -> None:
+        self._last_selected_index = value
+        if value is not None:
+            self.highlighted = value
+
+    def _get_option_index(self, event):
+        return getattr(event, 'option_index', getattr(event, 'index', None))
+
+    def _on_option_selected(self, event):
+        idx = self._get_option_index(event)
+        self._last_selected_index = idx
+        selected_cbs = list(self._vp_selected_cbs)
+        highlighted_cbs = list(self._vp_highlighted_cbs)
+
+        def run_callbacks():
+            for c in selected_cbs:
+                c(idx)
+            for c in highlighted_cbs:
+                c(idx)
+
+        if self.app.is_running:
+            self.app.call_later(run_callbacks)
+        else:
+            run_callbacks()
+
+    def observe(self, attr_or_cb, cb_or_attr=None, remove=False):
+        # 兼容 node.observe(attr, callback) 与 node.observe(callback, attr) 两种调用顺序
+        if callable(attr_or_cb) and isinstance(cb_or_attr, str):
+            attr, cb = cb_or_attr, attr_or_cb
+        else:
+            attr, cb = attr_or_cb, cb_or_attr
+
+        if attr == 'selected':
+            self._vp_selected_cbs.append(cb)
+            if not self._vp_option_selected_handler_set:
+                self._vp_option_selected_handler_set = True
+                self.vp_register_on('option_list_option_selected', self._on_option_selected)
+        elif attr == 'highlighted':
+            self._vp_highlighted_cbs.append(cb)
+            if len(self._vp_highlighted_cbs) == 1:
+
+                def on_option_highlighted(event):
+                    idx = self._get_option_index(event)
+                    for c in self._vp_highlighted_cbs:
+                        c(idx)
+
+                self.vp_register_on('option_list_option_highlighted', on_option_highlighted)
+            if not self._vp_option_selected_handler_set:
+                self._vp_option_selected_handler_set = True
+                self.vp_register_on('option_list_option_selected', self._on_option_selected)
+        else:
+            super().observe(attr, cb, remove)
 
 
 class Placeholder(widgets.Placeholder, _WidgetMixin):
