@@ -9,7 +9,7 @@ import anywidget
 import ipywidgets as iw
 
 from vuepy import VueComponent
-from vuepy.compiler_sfc.codegen_backends import CodegenBackendMgr
+from vuepy.compiler_sfc.codegen_backends import IPYWIDGETS_BACKEND
 from vuepy.compiler_sfc.codegen_backends.backend import ICodegenBackend
 from vuepy.compiler_sfc.codegen_backends.backend import IDocumentNode
 from vuepy.compiler_sfc.codegen_backends.backend import IHTMLNode
@@ -169,6 +169,7 @@ class IwCodegenBackend(ICodegenBackend):
     """
     ipywidgets codegen backend
     """
+    NAME = IPYWIDGETS_BACKEND
 
     @classmethod
     def get_template_component(cls) -> Type[VueComponent]:

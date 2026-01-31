@@ -19,6 +19,7 @@ except ImportError as e:
     raise ImportError(err_msg) from e
 
 from vuepy import VueComponent
+from vuepy.compiler_sfc.codegen_backends import PANEL_BACKEND
 from vuepy.compiler_sfc.codegen_backends.backend import ICodegenBackend
 from vuepy.compiler_sfc.codegen_backends.backend import IDocumentNode
 from vuepy.compiler_sfc.codegen_backends.backend import IHTMLNode
@@ -177,6 +178,7 @@ class PnCodegenBackend(ICodegenBackend):
     """
     panel codegen backend
     """
+    NAME = PANEL_BACKEND
 
     @classmethod
     def get_template_component(cls) -> Type[VueComponent]:
