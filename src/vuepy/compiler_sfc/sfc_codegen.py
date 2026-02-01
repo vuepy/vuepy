@@ -20,6 +20,7 @@ from vuepy.compiler_sfc.codegen import logger
 from vuepy.reactivity.effect_scope import EffectScope
 from vuepy.runtime.core.api_lifecycle import OnBeforeMount
 from vuepy.runtime.core.api_lifecycle import OnMounted
+from vuepy.runtime.core.api_lifecycle import SetupContext as SetupContextManager
 from vuepy.runtime.core.api_setup_helpers import DefineProps
 from vuepy.runtime.core.api_setup_helpers import defineEmits
 from vuepy.runtime.core.api_setup_helpers import defineModel
@@ -210,7 +211,20 @@ class SFCType:
     def gen(
         self, props: dict, context: SetupContext | dict, app: "App", is_root=False
     ) -> "SFC":
-        setup_ret = self.setup(props, context, app) if self.setup else {}
+        with SetupContextManager(app) as setup_ctx:
+            try:
+                setup_ret = self.setup(props, context, app) if self.setup else {}
+            except Exception as e:
+                logger.error(f"Error in setup function: {e}")
+                raise e
+            for var_name, var in setup_ctx.get_vars().items():
+                if var_name in setup_ret:
+                    raise ValueError(f"Variable {var_name} already exists in setup_ret")
+                # There may be cases where different variable names point to the same object.
+                # When registering callbacks with sfc_widget_node.on, 
+                # it will check if the callback has already been registered to avoid duplicate registration.
+                setup_ret[var_name] = var
+
         return SFC(
             context,
             props,
