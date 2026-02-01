@@ -17,44 +17,22 @@ from vuepy.runtime.core.api_setup_helpers import defineEmits
 
 logger = log.getLogger(__name__)
 
-class _WidgetMixin:
-    style: reactive[str] = reactive("", init=False)
 
-    def __init__(self) -> None:
-        self._on_keyup_cb = {}
-        self._vp_on_mount_cb = []
-    
-    def vp_set_on_mount(self, cb: Callable[["Self"], None]):
-        if not hasattr(self, '_vp_on_mount_cb'):
-            self._vp_on_mount_cb = []
-        self._vp_on_mount_cb.append(cb)
-    
-    def on_mount(self):
-        if not hasattr(self, '_vp_on_mount_cb'):
-            return
+class VOnEventMixin:
+    """
+    @event='xxx' support: keyup, keydown, click, mouse_move, mouse_up, mouse_down, ...
+    """
 
-        for cb in self._vp_on_mount_cb:
-            cb(self)
-
-    def _watch_style(self) -> None:
-        self.set_styles(self.style)
-
-    def observe(self, attr: str, cb, remove=False):
-        # watch 通过检测wrap函数的参数个数来决定传入几个参数，直接传cb无法检测，默认传2个参数，导致报错
-        def cb_with_one_param(v):
-            cb(v)
-
-        self.app.watch(self, attr, cb_with_one_param)
-
-    def action_keyup(self, key, *args):
+    def action_vp_keyup(self, key, *args):
         cb = self._on_keyup_cb[key]
         cb(*args)
 
-    def register_on_keyup(self, key, cb):
+    def vp_register_on_keyup(self, key, cb):
         if not hasattr(self, '_on_keyup_cb'):
             self._on_keyup_cb = {}
         self._on_keyup_cb[key] = cb
-        self.bind(key, f"keyup('{key}')", description=cb.__doc__, key_display=cb.__name__)
+        # bind key will trigger action_vp_keyup(key)
+        self.bind(key, f"vp_keyup('{key}')", description=cb.__doc__) # key_display=cb.__name__)
 
     def bind(
         self,
@@ -93,6 +71,10 @@ class _WidgetMixin:
     #     self._on_mouse_move_cb = cb
 
     def vp_register_on(self, event: str, cb):
+        """
+        dynamic create on_{event} function for textual widget
+        event: click, mouse_move, mouse_up, mouse_down, ...
+        """
         # todo add event check
         on_event_func_name = f"on_{event}"
         event_handler_func_name = f"_vp_{event}_handler"
@@ -116,6 +98,36 @@ class _WidgetMixin:
     #         cb(*args, **kwargs)
 
     #     setattr(self, f"on_{event}", MethodType(on_xxx, self))
+
+
+class _WidgetMixin(VOnEventMixin):
+    style: reactive[str] = reactive("", init=False)
+
+    def __init__(self) -> None:
+        self._on_keyup_cb = {}
+        self._vp_on_mount_cb = []
+
+    def vp_set_on_mount(self, cb: Callable[["Self"], None]):
+        if not hasattr(self, '_vp_on_mount_cb'):
+            self._vp_on_mount_cb = []
+        self._vp_on_mount_cb.append(cb)
+
+    def on_mount(self):
+        if not hasattr(self, '_vp_on_mount_cb'):
+            return
+
+        for cb in self._vp_on_mount_cb:
+            cb(self)
+
+    def _watch_style(self) -> None:
+        self.set_styles(self.style)
+
+    def observe(self, attr: str, cb, remove=False):
+        # watch 通过检测wrap函数的参数个数来决定传入几个参数，直接传cb无法检测，默认传2个参数，导致报错
+        def cb_with_one_param(v):
+            cb(v)
+
+        self.app.watch(self, attr, cb_with_one_param)
 
 
 class Modal(ModalScreen, _WidgetMixin):
@@ -288,6 +300,22 @@ class HBox(HorizontalScroll, _WidgetMixin):
             overflow-y: auto;
         }
     '''
+    # def __init__(self, *args, **kwargs):
+
+    #     def r(this):
+    #         def on_key(self, event: widgets.Key) -> None:
+    #             print(f"key: {event.key}, event: {event}")
+
+    #         # setattr(self, "on_key", MethodType(on_key, self))
+    #         setattr(self, "_on_key", on_key)
+
+    #     # self.vp_set_on_mount(r)
+    #     r(self)
+    #     super().__init__(*args, **kwargs)
+
+    # def on_key(self, event: widgets.Key) -> None:
+    #     # print(f"key: {event.key}, event: {event}")
+    #     self._on_key(event)
 
 
 class KeyPanel(widgets.KeyPanel, _WidgetMixin):

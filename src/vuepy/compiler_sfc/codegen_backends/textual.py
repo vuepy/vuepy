@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from types import MethodType
 from typing import Callable, Dict, Type, TypeVar
 
 from vuepy.compiler_sfc.sfc_codegen import SFC
@@ -55,15 +56,53 @@ class CollectionRootWidget(VerticalScroll):
     }
     """
 
+class VOnEventMixin:
+    """
+    @event='xxx' support: keyup, keydown, click, mouse_move, mouse_up, mouse_down, ...
+    """
+
+    def action_vp_keyup(self, key, *args):
+        cb = self._on_keyup_cb[key]
+        cb(*args)
+
+    def vp_register_on_keyup(self, key, cb):
+        if not hasattr(self, '_on_keyup_cb'):
+            self._on_keyup_cb = {}
+        self._on_keyup_cb[key] = cb
+        # bind key will trigger action_vp_keyup(key)
+        self.bind(key, f"vp_keyup('{key}')", description=cb.__doc__ or '-') #, key_display='xxx')
+        # self.refresh_bindings()
+
+    def vp_register_on(self, event: str, cb):
+        """
+        dynamic create on_{event} function for textual widget
+        event: click, mouse_move, mouse_up, mouse_down, ...
+        """
+        # todo add event check
+        on_event_func_name = f"on_{event}"
+        event_handler_func_name = f"_vp_{event}_handler"
+
+        def on_event_func(this, event):
+            if hasattr(this, event_handler_func_name):
+                return getattr(this, event_handler_func_name)(event)
+
+        if not hasattr(self, on_event_func_name):
+            setattr(self.__class__, on_event_func_name, on_event_func)
+
+        def event_handler(this, event):
+            return cb(event)
+
+        setattr(self, event_handler_func_name, MethodType(event_handler, self))
+
 
 # todo _WidgetMixin
-class TextualDocRootWidget(App):
+class TextualDocRootWidget(App, VOnEventMixin):
     MODES = {
         'default_body': 'default_body',
     }
 
     BINDINGS = [
-        # ('x', 'keyup("x")', ''),  # for example
+        # ('x', 'vp_keyup("x")', 'D'),  # for example
     ]
 
     def __init__(self, *args, **kwargs):
@@ -139,7 +178,7 @@ class TextualNode(INode[TextualWidget]):
     def on(self, ev: str, cb: Callable, remove=False):
         if ev.startswith('keyup.'):
             ev = ev[6:].replace('.', '+')
-            return self._widget.register_on_keyup(ev, cb)
+            return self._widget.vp_register_on_keyup(ev, cb)
 
         func_name = f"register_on_{ev}"
         on_event = getattr(self._widget, func_name, None)
@@ -233,14 +272,13 @@ class TextualSFCNode(
 
         self.cls = TextualRootWidget
         if (not is_root_component) and sfc.style_str:
-            _SFCRootWidget = type(
+            self.cls = type(
                 f'_SFCRootWidget_{id(self)}',
                 (TextualRootWidget,),
                 {
                     'DEFAULT_CSS': sfc.style_str,
                 }
             )
-            self.cls = _SFCRootWidget
 
         super().__init__(self.cls(id=self._id), props, emitter)
     
@@ -301,7 +339,6 @@ class TextualHTMLNode(
     @outer_html.setter
     def outer_html(self, val):
         # Trigger change callbacks if value changed
-        print("outer_html chagned")
         self._widget.update(val)
         if self._vp_change_callbacks:
             for callback in self._vp_change_callbacks:
