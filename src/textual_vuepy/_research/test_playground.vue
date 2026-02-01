@@ -10,7 +10,7 @@
     <Button label='exit' @click="exit()" style='dock: right;'/>
   </HBox>
   <HBox id='main-container' style='height: 1fr; overflow-x: auto;'>
-    <VBox id='editor-container' style='width: 1fr;'>
+    <VBox id='editor-container' :style='f"width: {eidotr_width.value}fr;"'>
       <TextArea v-if="mode.value == 'edit'"
         v-model="code.value" language="python" code_editor
         placeholder="edit SFC code here"/>
@@ -49,6 +49,10 @@ show_style = ref(False)
 sleep_time = ref("0.002")
 mode = ref("edit")
 selected_file = ref("")
+
+@computed
+def eidotr_width():
+    return 1 if mode.value == 'edit' else 0.5
 
 @computed
 def show_view():
