@@ -10,7 +10,7 @@ class TestCompileTraceback(unittest.TestCase):
 
     def setUp(self):
         self.app = App({}).use(wui)
-        self.vm = SFC({}, {}, {'l': [1, 2, 3]}, '', app=self.app)
+        self.vm = SFC({}, {}, {'l': [1, 2, 3]}, '', '', '', app=self.app)
         self.compiler = DomCompiler(self.vm, self.app)
 
     def test_v_for_start_error(self):
