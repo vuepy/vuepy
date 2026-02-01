@@ -26,6 +26,10 @@ class ScriptCompiler:
 
     @staticmethod
     def compile_script_block(code_str, source_file_path, script_start_line=None):
+        if script_start_line is not None:
+            placeholder_code = '\n' * (script_start_line - 1)
+            code_str = placeholder_code + code_str
+
         module = ast.parse(code_str)
         func_name = 'setup'
         func_ast = ast.FunctionDef(
@@ -50,13 +54,13 @@ class ScriptCompiler:
 
         module.body = [func_ast]
         
-        if script_start_line is not None:
-            script_start_line -= 1
-            func_ast.lineno = script_start_line
-            line_offset = script_start_line
-            for node in ast.walk(func_ast):
-                if hasattr(node, 'lineno') and node.lineno and node != func_ast:
-                    node.lineno += line_offset
+        # if script_start_line is not None:
+        #     script_start_line -= 1
+        #     func_ast.lineno = script_start_line
+        #     line_offset = script_start_line
+        #     for node in ast.walk(func_ast):
+        #         if hasattr(node, 'lineno') and node.lineno and node != func_ast:
+        #             node.lineno += line_offset
         
         ast.fix_missing_locations(module)
         # use the actual file path instead of '<ast>'
