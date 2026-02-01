@@ -147,6 +147,23 @@ x = 1 / 0
         
         self._test_app_and_assert_traceback(App, import_line, 10)
 
+    def test_traceback_format5_from_var(self):
+        import_line = __import__('inspect').currentframe().f_lineno
+        sfc_content = """
+            <template>
+            <div>Test</div>
+            </template>
+            <script lang="py">
+            from vuepy import ref
+            x = 1 / 0  # Error from var
+            def f():
+                pass
+            </script>
+        """
+        App = import_sfc(sfc_content, raw_content=True)
+        
+        self._test_app_and_assert_traceback(App, import_line, 7)
+
     def test_traceback_with_multiple_errors(self):
         """Test when there are multiple errors, the error stack can display correctly"""
         import_line = __import__('inspect').currentframe().f_lineno
