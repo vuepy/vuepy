@@ -17,6 +17,8 @@ def find_content_start_line(sub_content, content_lines):
     for line_num, line in enumerate(content_lines):
         if sub_content_lines[compare_line] in line:
             compare_line += 1
+        else:
+            compare_line = 0
 
         if compare_line == sub_content_lc:
             return line_num + 1 - compare_line + 1

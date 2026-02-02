@@ -4,6 +4,7 @@
 from __future__ import annotations
 from types import MethodType
 
+from textual.widget import Widget
 from textual.widgets.option_list import Option as OptionItem
 from textual.widgets.selection_list import Selection as SelectionItem
 
@@ -22,6 +23,17 @@ class Dialog(VTextualComponent):
         footer = slot_footer if isinstance(slot_footer, list) else [slot_footer]
         _params.setdefault('name', f"dialog_{id(self)}")
         return widgets.Modal(body=body, footer=footer, **_params)
+
+
+@vtextual.ns_register()
+class Display(VTextualComponent):
+    def _render(self, ctx, attrs, props, params, setup_returned):
+        _params = {**props, **attrs, **params}
+        obj: type[Widget] | Widget = _params.pop('obj')
+        if isinstance(obj, type) and issubclass(obj, Widget):
+            return obj(**_params)
+        else:
+            return obj
 
 
 @vtextual.ns_register()
