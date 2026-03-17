@@ -37,7 +37,6 @@ class DepStore:
     def values(self) -> List[Dep]:
         return self._store.values()
 
-
     def get(self, target) -> Dep:
         return self._store.get(gen_hash_key(target))
 
@@ -251,7 +250,7 @@ def trigger(
 
     deps: List[Dep] = []
     if trigger_type in (TriggerOpTypes.CLEAR, TriggerOpTypes.ITER):
-        deps.extend(depsMap.values())
+        deps.extend(depsMap.values)
     else:
         if key in depsMap:
             deps.append(depsMap.get(key))
