@@ -66,6 +66,6 @@ def import_sfc(sfc_file, raw_content=False):
                             source_start_line=sfc_start_line
                         )
         except Exception:
-            pass
+            return sfc_compiler.compile(textwrap.dedent(sfc_file), raw_content)
     
     return sfc_compiler.compile(sfc_file, raw_content)

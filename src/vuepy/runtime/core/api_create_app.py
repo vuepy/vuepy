@@ -236,7 +236,17 @@ class App:
 
         if self.tt_app.message_:
             print(self.tt_app.message_)
-        sys.exit(self.tt_app.return_code)
+
+        is_in_ipython = False
+        try:
+            from IPython import get_ipython
+            if get_ipython() is not None:
+                is_in_ipython = True
+        except ImportError:
+            pass
+
+        if not is_in_ipython:
+            sys.exit(self.tt_app.return_code)
 
 
 class VuePlugin:
