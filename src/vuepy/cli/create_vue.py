@@ -64,13 +64,16 @@ def create_project(args):
     log_info("Done.")
 
 
-def add_arg_parser(parser: argparse.ArgumentParser):
-    # create <your project name> [--template vue]
-    subparsers = parser.add_subparsers(help='create vue help')
+def register_subcommand(subparsers):
     p = subparsers.add_parser('create', help='create a new app')
-    # p.add_argument('project_name', type=str, help='The name of the project.')
     p.add_argument('--template', type=str, default='vue', help='The template to use.')
     p.set_defaults(func=create_project)
+
+
+def add_arg_parser(parser: argparse.ArgumentParser):
+    # create <your project name> [--template vue]
+    subparsers = parser.add_subparsers(help='sub-command help')
+    register_subcommand(subparsers)
 
 
 if __name__ == '__main__':
