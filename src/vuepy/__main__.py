@@ -17,12 +17,8 @@ def main():
     if not hasattr(args, 'func'):
         parser.print_help()
         exit(0)
-    try:
-        args.func(args)
-    except Exception as e:
-        print(f"error {e}")
-        parser.print_help()
-        exit(1)
+
+    args.func(args)
 
 
 if __name__ == '__main__':

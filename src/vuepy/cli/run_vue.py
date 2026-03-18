@@ -5,7 +5,7 @@ import argparse
 import importlib
 import json
 
-from vuepy.compiler_sfc.codegen_backends import IPYWIDGETS_BACKEND
+from vuepy.compiler_sfc.codegen_backends import TEXTUAL_BACKEND
 from vuepy.runtime.core.api_create_app import create_app
 from vuepy.runtime.core.import_sfc import import_sfc
 
@@ -60,8 +60,8 @@ def register_subcommand(subparsers):
     p.add_argument(
         '--backend',
         type=str,
-        default=IPYWIDGETS_BACKEND,
-        help='Backend of codegen: ipywidgets, panel, textual, etc. default: ipywidgets',
+        default=TEXTUAL_BACKEND,
+        help='Backend of codegen: ipywidgets, panel, textual, etc. default: textual',
     )
     p.add_argument(
         '--plugins',
