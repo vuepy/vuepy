@@ -158,8 +158,8 @@ class Modal(ModalScreen, _WidgetMixin):
 
         value = kwargs.pop('value', False)
         super().__init__(*args, **kwargs)
-        self.value = value
         self.emits = defineEmits(['open', 'close'])
+        self.value = value
 
     def _watch_style(self):
         if not hasattr(self, 'dialog'):

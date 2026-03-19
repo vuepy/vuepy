@@ -414,7 +414,10 @@ class RadioSet(VTextualComponent):
 @vtextual.ns_register()
 class RichLog(VTextualComponent):
     v_model_default = 'lines'
-    PARAMS_STORE_TRUE = []
+    PARAMS_STORE_TRUE = [
+        ('markup', False),
+        ('wrap', False),
+    ]
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}
