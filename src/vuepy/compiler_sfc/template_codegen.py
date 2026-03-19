@@ -271,7 +271,12 @@ class VueCompCodeGen:
         # v-on
         for ev, func_ast in comp_ast.v_on.items():
             def _event_handle(*args, _func_ast=func_ast, **kwargs):
-                return _func_ast.eval(ns, {'__vp_args': args, '__vp_kwargs': kwargs})
+                try:
+                    return _func_ast.eval(ns, {'__vp_args': args, '__vp_kwargs': kwargs})
+                except TypeError as e:
+                    if 'takes 0 positional arguments but' in str(e) and 'was given' in str(e):
+                        return _func_ast.eval(ns)
+                    raise
 
             # cls.add_event_listener(widget, ev, _event_handle)
             widget.on(ev, wrap_callback(_event_handle))
