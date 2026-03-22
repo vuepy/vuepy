@@ -122,9 +122,11 @@ class PnSFCNode(
     def __init__(
         self,
         props: Dict[str, DefineProp],
-        emitter: defineEmits
+        emitter: defineEmits,
+        sfc: "SFC" = None,
+        is_root: bool = False,
     ):
-        super().__init__(SFCRootWidget(), props, emitter)
+        super().__init__(SFCRootWidget(), props, emitter, sfc, is_root)
 
 
 class PnDocumentNode(
@@ -207,7 +209,7 @@ class PnCodegenBackend(ICodegenBackend):
         sfc: "SFC" = None,
         is_root: bool = False,
     ) -> PnSFCNode:
-        return PnSFCNode(props, emitter)
+        return PnSFCNode(props, emitter, sfc, is_root)
 
     @classmethod
     def gen_document_node(cls, vue_root) -> PnDocumentNode:

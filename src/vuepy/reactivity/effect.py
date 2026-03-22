@@ -287,17 +287,23 @@ def triggerEffects(
         debuggerEventExtraInfo: DebuggerEventExtraInfo = None
 ):
     effects = dep if isinstance(dep, list) else list(dep)
-    logger.debug("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
-    logger.debug("🚀trigger effects%s len(%s) start", id(effects), len(effects))
+    logger.debug("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
+    logger.debug("🚀trigger %s effects%s len(%s) start", dep, id(effects), len(effects))
+    effect_trigger_count = 0
     for effect in list(effects):
         if effect.computed:
+            effect_trigger_count += 1
+            logger.debug("trigger %s computed effect %s", effect_trigger_count, effect)
             trigggerEffect(effect, debuggerEventExtraInfo)
 
     for effect in list(effects):
         if not effect.computed:
+            effect_trigger_count += 1
+            logger.debug("trigger %s effect %s", effect_trigger_count, effect)
             trigggerEffect(effect, debuggerEventExtraInfo)
+
     logger.debug("effects%s len(%s) end🚀", id(effects), len(effects))
-    logger.debug("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
+    logger.debug("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
 
 
 def trigggerEffect(effect: ReactiveEffect, debuggerEventExtraInfo=None):

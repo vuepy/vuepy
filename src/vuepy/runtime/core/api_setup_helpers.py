@@ -101,8 +101,14 @@ class defineEmits:
 
     def add_event_listener(self, event, callback, remove=False):
         cb_dispatcher = self.get_cb_dispatcher(event)
-        if cb_dispatcher:
-            cb_dispatcher.register_callback(callback, remove)
+        # if cb_dispatcher:
+        #     cb_dispatcher.register_callback(callback, remove)
+        #     return
+        if cb_dispatcher is None:
+            self.add_event(event)
+            cb_dispatcher = self.get_cb_dispatcher(event)
+
+        cb_dispatcher.register_callback(callback, remove)
 
     def clear_events(self):
         self.events_to_cb_dispatcher = {}
@@ -115,10 +121,11 @@ class defineEmits:
         :param kwargs: payload
         :return:
         """
-        handlers = self.events_to_cb_dispatcher.get(event)
-        if not handlers:
+        cb_dispatcher = self.events_to_cb_dispatcher.get(event)
+        logger.debug("defineEmits:%s emit(%s, %s)", self, event, args)
+        if not cb_dispatcher:
             raise Exception(f"Event {event} not supported.")
-        handlers(*args, **kwargs)
+        cb_dispatcher(*args, **kwargs)
 
 
 class defineModel:
@@ -129,19 +136,29 @@ class defineModel:
     # DEFAULT_KEY = 'modelValue'
     DEFAULT_KEY = 'value'
 
-    def __init__(self, model_key: str | dict = DEFAULT_KEY):
+    def __init__(self, model_key: str | dict = DEFAULT_KEY, value=None):
         self.model_key = model_key
-        self.prop = DefineProp(model_key)
+        self.prop = DefineProp(model_key, value)
         self.update_event = f'update:{self.model_key}'
+        self._emit: defineEmits = None
 
     @property
     def value(self):
+        # TODO: hasOwn(props, name) ? props[name] : localRef.value
         return self.prop.value
 
     @value.setter
     def value(self, val):
         logger.debug("defineModel:%s set value %s to %s", self.model_key, self.prop.value, val)
         self.prop.value = val
+        if self._emit:
+            self._emit(self.update_event, val)
+    
+    def register_emit(self, emit):
+        if self._emit:
+            raise Exception(f"defineModel {self.model_key} already has emit {self.emit}")
+        self._emit = emit
+        self._emit.add_event(self.update_event)
 
 
 def get_caller_args(frame):
@@ -151,12 +168,12 @@ def get_caller_args(frame):
     caller_name = frame.f_code.co_name
     caller_func = frame.f_globals.get(caller_name)
     if not caller_func:
-        logger.warn("can't get caller_func<%s>", caller_name)
+        logger.warning("can't get caller_func<%s>", caller_name)
         return []
 
     argspec = inspect.getfullargspec(caller_func)
     if not argspec.args:
-        logger.warn("get caller_func<%s> args is None", caller_name)
+        logger.warning("get caller_func<%s> args is None", caller_name)
         return []
 
     return [frame.f_locals.get(arg_name) for arg_name in argspec.args]

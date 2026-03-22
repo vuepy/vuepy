@@ -166,6 +166,17 @@ class INode(Generic[W], ABC):
     def hasattr(self, name: str) -> bool:
         raise NotImplementedError
 
+    def __getattr__(self, name: str):
+        # __getattr__ is only called when normal attribute lookup fails,
+        # so INode's own attributes always take priority.
+        widget = object.__getattribute__(self, '_widget')
+        try:
+            return getattr(widget, name)
+        except AttributeError:
+            raise AttributeError(
+                f"Attribute {name} not found in {self}) and {self.__class__.__name__}.widget {widget}"
+            )
+
     def __repr__(self):
         return f"<{self.__class__.__module__}.{self.__class__.__name__}" \
                f"({self._widget!r}) object at {hex(id(self))}>"
@@ -190,15 +201,30 @@ class ISFCNode(INode[W], ABC):
         self,
         widget,
         props: Dict[str, DefineProp],
-        emitter: defineEmits
+        emitter: defineEmits,
+        sfc: "SFC" = None,
+        is_root: bool = False,
     ):
         super().__init__(widget)
+        self.sfc = sfc
         self._emitter = emitter
         self._props = props
 
     def on(self, event: str | SFCLifeCycle, callback: callable, remove=False):
         # return handler?
         self._emitter.add_event_listener(event, callback, remove)
+
+    def observe(self, callback, attr: str = None, remove=False):
+        v_model = None
+        for _, model in self.sfc.define_models:
+            if model.model_key == attr:
+                v_model = model
+                break
+
+        if not v_model:
+            raise ValueError(f"SFC {self} model has no model key {attr}")
+
+        self.on(v_model.update_event, callback, remove)
 
     def emit(self, event, *args, **kwargs):
         return self._emitter(event, *args, **kwargs)
@@ -224,6 +250,17 @@ class ISFCNode(INode[W], ABC):
         else:
             # len(default) == 0 raise AttributeError
             return getattr(self._widget, name)
+
+    def __getattr__(self, name: str):
+        # __getattr__ is only called when normal attribute lookup fails,
+        # so ISFCNode's own attributes always take priority.
+        sfc = object.__getattribute__(self, 'sfc')
+        try:
+            return sfc.setup_returned[name]
+        except KeyError:
+            raise AttributeError(
+                f"Attribute {name} not found in {self}) and {self.__class__.__name__}.sfc {sfc}"
+            )
     
     def create_widget(self, children):
         self.replace_children(children)
@@ -310,6 +347,9 @@ class DynamicComponent(VueComponent):
 
     def _render_component(self, component_cls, comp_ast):
         from vuepy.compiler_sfc.template_codegen import VueCompCodeGen
+        if component_cls is None:
+            return None
+
         if isinstance(component_cls, str):
             comp_ast.tag = component_cls
             return VueCompCodeGen._gen(comp_ast, self.children, self.vm, self.ns, self.app)
@@ -320,8 +360,9 @@ class DynamicComponent(VueComponent):
     def render(self, ctx, props, setup_returned) -> INode:
         component_name_or_cls = self.v_is_expr.eval(self.ns)
         widget = self._render_component(component_name_or_cls, self.comp_ast)
+        children = (widget,) if widget else ()
         self._container_node = self.app.codegen_backend.gen_widget_collection_node(
-            (widget,), kind="component",
+            children, kind="component",
         )
 
         def _get_is_value():

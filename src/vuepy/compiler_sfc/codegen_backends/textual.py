@@ -168,9 +168,13 @@ class TextualDocRootWidget(App, VOnEventMixin):
 
 
 class TextualNode(INode[TextualWidget]):
+    """
+    TextualNode is a node that represents a **textual widget**.
+    """
     ATTR_MAP = {
         'class': 'classes',
     }
+
     def __init__(self, widget, *args, app=None, **kwargs):
         self._widget = widget
         self._app = app
@@ -262,8 +266,14 @@ class TextualSFCNode(
     ISFCNode[TextualRootWidget],
     TextualNode[TextualRootWidget],
 ):
+    """
+    TextualSFCNode is a node that represents a **SFC widget from .vue file**.
+    """
     def __init__(
-        self, props: Dict[str, DefineProp], emitter: defineEmits, sfc: SFC,
+        self,
+        props: Dict[str, DefineProp],
+        emitter: defineEmits,
+        sfc: SFC,
         is_root_component: bool = False
     ):
         self._id = f'sfc-{id(self)}'
@@ -280,7 +290,8 @@ class TextualSFCNode(
                 }
             )
 
-        super().__init__(self.cls(id=self._id), props, emitter)
+        widget = self.cls(id=self._id)
+        super().__init__(widget, props, emitter, sfc, is_root_component)
     
     def create_widget(self, children):
         _children = [self.convert_to_widget(c) for c in children]

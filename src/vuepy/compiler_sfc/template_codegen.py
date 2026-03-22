@@ -47,36 +47,75 @@ class VueCompCodeGen:
 
             def _if_cond():
                 return comp_ast.v_if.eval(ns)
+            
+            created = False
+            if not _if_cond():
+                dummy: INode = app.codegen_backend.gen_widget_collection_node((), kind="v-if")
+            else:
+                w = cls._gen(comp_ast, node.children, vm, ns, app)
+                created = True
+                dummy: INode = app.codegen_backend.gen_widget_collection_node((w,), kind="v-if")
+            
+            is_support_display = hasattr(dummy.unwrap(), 'display')
+            if is_support_display:
+                @watch(_if_cond, WatchOptions(immediate=False))
+                def _change_v_if_widget(cond, old, on_cleanup):
+                    nonlocal created
+                    if not created and cond:
+                        w = cls._gen(comp_ast, node.children, vm, ns, app)
+                        dummy.replace_children((w,))
+                        created = True
+                    dummy.unwrap().display = cond
+            else:
+                @watch(_if_cond, WatchOptions(immediate=False))
+                def _change_v_if_widget(cond, old, on_cleanup):
+                    # dummy.children = (cls._gen(comp_ast, node.children, vm, ns, app),) if cond else ()
+                    dummy.replace_children(
+                        (cls._gen(comp_ast, node.children, vm, ns, app),) if cond else ())
 
-            dummy: INode = app.codegen_backend.gen_widget_collection_node(
-                (cls._gen(comp_ast, node.children, vm, ns, app),) if _if_cond() else (),
-                kind="v-if",
-            )
+            # dummy: INode = app.codegen_backend.gen_widget_collection_node(
+            #     # (cls._gen(comp_ast, node.children, vm, ns, app),) if _if_cond() else (),
+            #     (cls._gen(comp_ast, node.children, vm, ns, app), ),
+            #     kind="v-if",
+            # )
+            # is_support_display = hasattr(dummy.unwrap(), 'display')
+            # if is_support_display:
+            #     dummy.unwrap().display = _if_cond()
 
-            @watch(_if_cond, WatchOptions(immediate=False))
-            def _change_v_if_widget(cond, old, on_cleanup):
-                # dummy.children = (cls._gen(comp_ast, node.children, vm, ns, app),) if cond else ()
-                dummy.replace_children(
-                    (cls._gen(comp_ast, node.children, vm, ns, app),) if cond else ())
+            # @watch(_if_cond, WatchOptions(immediate=False))
+            # def _change_v_if_widget(cond, old, on_cleanup):
+            #     # dummy.children = (cls._gen(comp_ast, node.children, vm, ns, app),) if cond else ()
+            #     dummy.replace_children(
+            #         (cls._gen(comp_ast, node.children, vm, ns, app),) if cond else ())
 
             return dummy
         # v-show
         elif comp_ast.v_show:
             # dummy = widgets.VBox()
             w = cls._gen(comp_ast, node.children, vm, ns, app)
+            is_support_display = hasattr(w.unwrap(), 'display')
 
             def _if_show():
                 return comp_ast.v_show.eval(ns)
 
-            dummy: INode = app.codegen_backend.gen_widget_collection_node(
-                (w,) if _if_show() else (),
-                kind="v-show",
-            )
+            # for textual, support display attribute
+            if is_support_display:
+                w.unwrap().display = _if_show()
+                dummy: INode = app.codegen_backend.gen_widget_collection_node((w,), kind="v-show")
 
-            @watch(_if_show, WatchOptions(immediate=False))
-            def _show_widget(curr_show, old, on_cleanup):
-                # dummy.children = (w,) if curr_show else ()
-                dummy.replace_children((w,) if curr_show else ())
+                @watch(_if_show, WatchOptions(immediate=False))
+                def _show_widget(curr_show, old, on_cleanup):
+                    w.unwrap().display = curr_show
+            else:
+                dummy: INode = app.codegen_backend.gen_widget_collection_node(
+                    (w,) if _if_show() else (),
+                    kind="v-show",
+                )
+
+                @watch(_if_show, WatchOptions(immediate=False))
+                def _show_widget(curr_show, old, on_cleanup):
+                    # dummy.children = (w,) if curr_show else ()
+                    dummy.replace_children((w,) if curr_show else ())
 
             return dummy
         else:
@@ -245,21 +284,27 @@ class VueCompCodeGen:
                         val = change
 
                     setattr(_obj, _attr, val)
-                    # compile to: #B
-                    if isinstance(_obj, defineModel) and isinstance(_vm, SFC):
-                        logger.debug("%s emit(%s, %s)", _vm, _obj.update_event, val)
-                        # step #1
-                        # _vm.sfc_widget_node._s1_emit(_obj.update_event, val)
-                        # getattr(_vm.sfc_widget_node, SFC.EMIT_FN)(_obj.update_event, val)
-                        _vm.sfc_widget_node.emit(_obj.update_event, val)
+                    # emit by defineModel(value.setter)
+                    # # compile to: #B
+                    # if isinstance(_obj, defineModel) and isinstance(_vm, SFC):
+                    #     logger.debug("%s emit(%s, %s)", _vm, _obj.update_event, val)
+                    #     # step #1
+                    #     # _vm.sfc_widget_node._s1_emit(_obj.update_event, val)
+                    #     # getattr(_vm.sfc_widget_node, SFC.EMIT_FN)(_obj.update_event, val)
+                    #     _vm.sfc_widget_node.emit(_obj.update_event, val)
 
                 return _
 
             obj, attr = ns.get_obj_and_attr(attr_chain)
-            if isinstance(obj, defineModel) and isinstance(vm, SFC):
-                observe_name = obj.update_event
-            else:
-                observe_name = widget_attr
+            # todo 是否可以删除
+            # if isinstance(obj, defineModel) and isinstance(vm, SFC):
+            #     observe_name = obj.update_event
+            # else:
+            #     observe_name = widget_attr
+            observe_name = widget_attr
+            # Parent:vm 观察 Child:widget.observe_name 的变化，变化时 
+            # vm 设置自己的 _obj.attr = new_value
+            # 如果 _obj 是 defineModel，则 vm 还要 emit updat_event 给上层的Parent
             widget.observe(wrap_callback(listener(vm, obj, attr)), observe_name)
 
             # cls.add_event_listener(
@@ -275,7 +320,7 @@ class VueCompCodeGen:
                     return _func_ast.eval(ns, {'__vp_args': args, '__vp_kwargs': kwargs})
                 except TypeError as e:
                     if 'takes 0 positional arguments but' in str(e) and 'was given' in str(e):
-                        return _func_ast.eval(ns)
+                        return _func_ast.eval(ns, {'__vp_args': [], '__vp_kwargs': {}})
                     raise
 
             # cls.add_event_listener(widget, ev, _event_handle)
@@ -289,7 +334,9 @@ class VueCompCodeGen:
                 logger.error(err_msg)
                 raise ValueError(err_msg)
 
-            _ref.value = component if isinstance(component_cls, SFCType) else widget
+            # TODO add docs
+            # _ref.value = component if isinstance(component_cls, SFCType) else widget
+            _ref.value = widget
 
         return widget
 

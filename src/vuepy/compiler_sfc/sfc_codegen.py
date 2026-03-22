@@ -59,8 +59,11 @@ class SFC(VueComponent):
         self.file = file
         self.scope: EffectScope = EffectScope(True)
 
+        # compile defineModel and defineEmits
         props = self._get_props()
         emitter = self.define_emits[1] if self.define_emits else defineEmits([])
+        for _, model in self.define_models:
+            model.register_emit(emitter)
         for event in self._get_events():
             emitter.add_event(event)
 
