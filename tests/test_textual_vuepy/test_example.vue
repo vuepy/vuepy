@@ -30,4 +30,4 @@ HBox {
     height: 1fr;
     align: center middle;
 }
-</style>""", raw_content=True)
+</style>
