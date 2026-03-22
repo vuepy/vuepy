@@ -3,8 +3,12 @@
 # ---------------------------------------------------------
 from __future__ import annotations
 
+import os
+from pathlib import Path
 from types import MethodType
-from typing import Callable
+from typing import Callable, Iterable
+
+from textual.reactive import var
 
 from textual import widgets
 from textual.containers import HorizontalScroll, VerticalScroll
@@ -72,9 +76,12 @@ class VOnEventMixin:
 
     def vp_register_on(self, event: str, cb):
         """
-        dynamic create on_{event} function for textual widget
+        dynamic create on_{event} original function for textual widget
         event: click, mouse_move, mouse_up, mouse_down, ...
         """
+        if not hasattr(self, '_vp_emits'):
+            self._vp_emits = defineEmits([])
+
         # todo add event check
         on_event_func_name = f"on_{event}"
         event_handler_func_name = f"_vp_{event}_handler"
@@ -83,12 +90,16 @@ class VOnEventMixin:
             if hasattr(this, event_handler_func_name):
                 return getattr(this, event_handler_func_name)(event)
 
+        # set on_{event} method for class
         if not hasattr(self, on_event_func_name):
             setattr(self.__class__, on_event_func_name, on_event_func)
 
-        def event_handler(this, event):
-            return cb(event)
+        self._vp_emits.add_event_listener(event, cb)
+        def event_handler(this, payload):
+            # return cb(event)
+            return self._vp_emits(event, payload)
 
+        # set _vp_{event}_handler method for instance
         setattr(self, event_handler_func_name, MethodType(event_handler, self))
 
     # def register_on(self, event: str, cb):
@@ -256,6 +267,53 @@ class Digits(widgets.Digits, _WidgetMixin):
 
 class DirectoryTree(widgets.DirectoryTree, _WidgetMixin):
     pass
+
+
+class FilterableDirectoryTree(DirectoryTree):
+    """DirectoryTree：支持 ``filter_query`` + ``filter_paths``，配合 ``reload`` 刷新。"""
+
+    filter_query: var[str] = var("", init=False)
+
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        filter_query: str = "",
+        name: str | None = None,
+        id: str | None = None,
+        classes: str | None = None,
+        disabled: bool = False,
+    ) -> None:
+        super().__init__(path, name=name, id=id, classes=classes, disabled=disabled)
+        self.filter_query = filter_query
+
+    @staticmethod
+    def _subtree_has_matching_file(root: Path, q: str) -> bool:
+        """子树内是否存在文件名（basename）包含子串 q 的普通文件。"""
+        try:
+            root = root.expanduser().resolve()
+        except OSError:
+            return False
+        try:
+            for _dirpath, _dirnames, filenames in os.walk(root, followlinks=False):
+                if any(q in name.lower() for name in filenames):
+                    return True
+        except (OSError, PermissionError):
+            pass
+        return False
+
+    def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
+        q = (self.filter_query or "").strip().lower()
+        if not q:
+            return super().filter_paths(paths)
+        out: list[Path] = []
+        for p in paths:
+            if self._safe_is_dir(p):
+                if self._subtree_has_matching_file(p, q):
+                    out.append(p)
+            elif q in p.name.lower():
+                out.append(p)
+        return out
 
 
 class Footer(widgets.Footer, _WidgetMixin):

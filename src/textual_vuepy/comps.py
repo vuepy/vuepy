@@ -147,7 +147,7 @@ class DirectoryTree(VTextualComponent):
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}
-        return widgets.DirectoryTree(**_params)
+        return widgets.FilterableDirectoryTree(**_params)
 
 
 @vtextual.ns_register()
