@@ -1,9 +1,14 @@
 # ---------------------------------------------------------
 # Copyright (c) vuepy.org. All rights reserved.
 # ---------------------------------------------------------
+from __future__ import annotations
+
 import argparse
 import importlib
 import json
+import shlex
+import sys
+from pathlib import Path
 
 from vuepy.compiler_sfc.codegen_backends import TEXTUAL_BACKEND
 from vuepy.runtime.core.api_create_app import create_app
@@ -27,15 +32,51 @@ def _import_plugin(plugin_path: str):
             raise ImportError(f"Cannot import plugin '{plugin_path}': {e}")
 
 
+def _flatten_plugins(args) -> list[str]:
+    plugins: list[str] = []
+    for p in args.plugins:
+        if isinstance(p, list):
+            plugins.extend(p)
+        else:
+            plugins.append(p)
+    return plugins
+
+
+def _textual_serve_run_command(vue_file: str, args) -> str:
+    """子进程执行的命令：与当前 CLI 一致，但不带 --servable（避免再次起 HTTP 服务）。"""
+    vue_path = str(Path(vue_file).resolve())
+    parts = [sys.executable, "-m", "vuepy", "run", vue_path, "--backend", "textual"]
+    for pl in _flatten_plugins(args):
+        parts.extend(["--plugins", pl])
+    return shlex.join(parts)
+
+
 def run_vue(args):
     vue_file = args.vue_file
+
+    if args.servable and args.backend == TEXTUAL_BACKEND:
+        try:
+            from textual_serve.server import Server
+        except ImportError as e:
+            raise ImportError(
+                "`vuepy run --servable` in textual backend needs textual-serve, please execute: pip install textual-serve"
+            ) from e
+        run_command = _textual_serve_run_command(vue_file, args)
+        server = Server(
+            run_command,
+            args.serve_host,
+            args.serve_port,
+            title=args.serve_title or run_command,
+            public_url=args.serve_public_url,
+        )
+        server.serve(debug=args.serve_debug)
+        return
+
     App = import_sfc(vue_file)
 
     app = create_app(App, backend=args.backend, servable=args.servable)
 
-    plugins = []
-    for p in args.plugins:
-        plugins.extend(p) if isinstance(p, list) else plugins.append(p)
+    plugins = _flatten_plugins(args)
 
     for plugin_path in plugins:
         plugin = _import_plugin(plugin_path)
@@ -82,6 +123,35 @@ def register_subcommand(subparsers):
         '--servable',
         required=False,
         action='store_true',
-        help='Make the app servable (for panel backend)',
+        help=(
+            '可服务模式：panel 后端走 Panel.servable()；textual 后端则启动 textual-serve '
+            '（子进程执行不带本选项的同一 vuepy run 命令）'
+        ),
+    )
+    p.add_argument(
+        '--serve-host',
+        default='127.0.0.1',
+        help='与 --servable 且 textual 后端联用：HTTP 监听地址（默认 127.0.0.1）',
+    )
+    p.add_argument(
+        '--serve-port',
+        type=int,
+        default=8000,
+        help='与 --servable 且 textual 后端联用：HTTP 端口（默认 8000）',
+    )
+    p.add_argument(
+        '--serve-title',
+        default=None,
+        help='与 --servable 且 textual 后端联用：浏览器页标题（默认用启动命令）',
+    )
+    p.add_argument(
+        '--serve-public-url',
+        default=None,
+        help='与 --servable 且 textual 后端联用：对外展示的 URL（默认根据 host/port 推断）',
+    )
+    p.add_argument(
+        '--serve-debug',
+        action='store_true',
+        help='与 --servable 且 textual 后端联用：传给 textual-serve 的 debug 模式',
     )
     p.set_defaults(func=run_vue)
