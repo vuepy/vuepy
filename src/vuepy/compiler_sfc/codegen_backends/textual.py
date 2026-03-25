@@ -423,4 +423,5 @@ class TextualCodegenBackend(ICodegenBackend):
     
     @classmethod
     def is_servable(cls) -> bool:
+        # textual 的 Web 服务由 `vuepy run --servable`（cli/run_vue.py + textual-serve）完成，不经由 App.mount
         return False

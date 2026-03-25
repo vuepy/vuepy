@@ -265,6 +265,7 @@ class DomCompiler(HTMLParser):
             else:
                 pass
 
+            # for textual modal
             if hasattr(widget, 'unwrap') and hasattr(widget.unwrap(), 'attach'):
                 widget.unwrap().attach()
             else:

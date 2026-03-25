@@ -182,19 +182,27 @@ class VueCompCodeGen:
         else:
             component = component_cls()
 
-        widget: INode = component.render(ctx, props, {})
-
+        widget: INode = None
         if comp_ast.tag == 'slot' and isinstance(vm, SFC):
             _slot_name = comp_ast.kwargs.get('name', 'default')
-            _slot = vm._context.get('slots', {}).get(_slot_name)
+            _slot = vm._context.get('slots', {}).get(_slot_name) or slots.get(_slot_name)
             if _slot:
                 # widget.children = _slot
                 # widget.replace_children(_slot)
-                widget = component.render(
-                    {**ctx, 'slots': {'default': _slot}},
-                    props,
-                    {},
-                )
+                if isinstance(_slot, list):
+                    if len(_slot) > 1:
+                        widget = component.render(
+                            {**ctx, 'slots': {'default': _slot}},
+                            props,
+                            {},
+                        )
+                    else:
+                        widget = _slot[0]
+                else:
+                    widget = _slot
+
+        if widget is None:
+            widget: INode = component.render(ctx, props, {})
 
         # v-slot
         if comp_ast.v_slot:
