@@ -31,9 +31,6 @@
 from pathlib import Path
 from vuepy import ref, import_sfc
 
-ShimmerText = import_sfc(Path(__file__).parent / "ShimmerText.vue")
-
-
 # 要显示的文字
 text = ref("Thinking...")
 # 高亮宽度（同时亮起的字符数），Input 绑定字符串
@@ -41,7 +38,7 @@ highlight_width = ref("3")
 # 动画帧间隔（秒），Input 绑定字符串
 interval = ref("0.1")
 # 是否运行中
-shimmer_running = ref(False)
+shimmer_running = ref(True)
 
 
 def start_shimmer():

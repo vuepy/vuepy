@@ -3,13 +3,18 @@
 # ---------------------------------------------------------
 from __future__ import annotations
 from types import MethodType
+from pathlib import Path
 
 from textual.widget import Widget
 from textual.widgets.option_list import Option as OptionItem
 from textual.widgets.selection_list import Selection as SelectionItem
+from vuepy import import_sfc
 
 from textual_vuepy.core import VTextualComponent, vtextual
 from textual_vuepy import widgets
+
+CURRENT_DIR = Path(__file__).parent
+COMPONENTS_DIR = CURRENT_DIR / 'components'
 
 
 @vtextual.ns_register()
@@ -591,3 +596,9 @@ class Welcome(VTextualComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}
         return widgets.Welcome(**_params)
+
+
+ShimmerText = import_sfc(COMPONENTS_DIR / 'ShimmerText.vue')
+Spinner = import_sfc(COMPONENTS_DIR / 'Spinner.vue')
+vtextual.ns_register('ShimmerText')(ShimmerText)
+vtextual.ns_register('Spinner')(Spinner)

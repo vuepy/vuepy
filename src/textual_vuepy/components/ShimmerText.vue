@@ -4,13 +4,14 @@
 
 <script lang="py">
 """
-可复用的流动高亮文本组件。
+Reusable shimmer/highlight text component.
+
 
 Props:
-  - text: 要显示的文字，默认 "Thinking"
-  - highlight_width: 同时高亮的字符数，默认 3
-  - interval: 动画帧间隔（秒），默认 0.09
-  - running: 是否运行动画，由父组件控制
+  - text: text to display, default "Thinking"
+  - highlight_width: number of characters highlighted at once, default 3
+  - interval: animation frame interval in seconds, default 0.09
+  - running: whether the animation is running, controlled by the parent component
 """
 from vuepy import ref, onMounted, defineProps, watch
 from vuepy.reactivity.watch import WatchOptions
@@ -54,7 +55,7 @@ def get_running():
 
 
 def build_shimmer_display():
-    """根据 pos 构建流动高亮文本：[dim]前半[/][bold white]高亮段[/][dim]后半[/]"""
+    """build pos based shimmer display: [dim]part1[/][bold white]part2[/][dim]part3[/]"""
     t = get_text()
     w = get_highlight_width()
     p = pos.value % (len(t) + 1)
