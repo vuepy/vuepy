@@ -10,6 +10,7 @@ import shlex
 import sys
 from pathlib import Path
 
+from vuepy import VuepyAppStore
 from vuepy.compiler_sfc.codegen_backends import TEXTUAL_BACKEND
 from vuepy.runtime.core.api_create_app import create_app
 from vuepy.runtime.core.import_sfc import import_sfc
@@ -43,9 +44,12 @@ def _flatten_plugins(args) -> list[str]:
 
 
 def _textual_serve_run_command(vue_file: str, args) -> str:
-    """子进程执行的命令：与当前 CLI 一致，但不带 --servable（避免再次起 HTTP 服务）。"""
-    vue_path = str(Path(vue_file).resolve())
-    parts = [sys.executable, "-m", "vuepy", "run", vue_path, "--backend", "textual"]
+    """Shell command for the child process: same as this CLI but without --servable (avoids nested HTTP serve)."""
+    if vue_file in VuepyAppStore.get_all_registry():
+        target = vue_file
+    else:
+        target = str(Path(vue_file).resolve())
+    parts = [sys.executable, "-m", "vuepy", "run", target, "--backend", "textual"]
     for pl in _flatten_plugins(args):
         parts.extend(["--plugins", pl])
     return shlex.join(parts)
@@ -53,6 +57,9 @@ def _textual_serve_run_command(vue_file: str, args) -> str:
 
 def run_vue(args):
     vue_file = args.vue_file
+
+    if args.backend == TEXTUAL_BACKEND:
+        _load_builtin_app_registrations()
 
     if args.servable and args.backend == TEXTUAL_BACKEND:
         try:
@@ -72,7 +79,10 @@ def run_vue(args):
         server.serve(debug=args.serve_debug)
         return
 
-    App = import_sfc(vue_file)
+    if vue_file in VuepyAppStore.get_all_registry():
+        App = VuepyAppStore.get(vue_file)
+    else:
+        App = import_sfc(vue_file)
 
     app = create_app(App, backend=args.backend, servable=args.servable)
 
@@ -91,18 +101,45 @@ def run_vue(args):
     app.mount()
 
 
+def _load_builtin_app_registrations() -> None:
+    """Import modules that register apps with VuepyAppStore (e.g. textual_vuepy.apps)."""
+    try:
+        import textual_vuepy.apps  # noqa: F401
+    except ImportError:
+        pass
+
+
+def _run_subcommand_epilog() -> str:
+    _load_builtin_app_registrations()
+    apps = VuepyAppStore.get_all_registry()
+    if not apps:
+        return (
+            "\nVuepyAppStore: (no registered names). "
+            "Packages such as textual_vuepy register names when imported."
+        )
+    lines = ["", "VuepyAppStore registered names (valid as vue_file):"]
+    for app_name, app in apps.items():
+        lines.append(f"  - {app_name}: {app.setup.__doc__.strip()}")
+    return "\n".join(lines)
+
+
 def register_subcommand(subparsers):
-    p = subparsers.add_parser('run', help='run a Vuepy app from a .vue file')
+    p = subparsers.add_parser(
+        "run",
+        help="Run a Vuepy app from a .vue file or a VuepyAppStore name.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=_run_subcommand_epilog(),
+    )
     p.add_argument(
         'vue_file',
         type=str,
-        help='Path to the .vue file to run',
+        help='Path to a .vue file, or a VuepyAppStore name listed in the epilog below.',
     )
     p.add_argument(
         '--backend',
         type=str,
         default=TEXTUAL_BACKEND,
-        help='Backend of codegen: ipywidgets, panel, textual, etc. default: textual',
+        help='Codegen backend: ipywidgets, panel, textual, etc. (default: textual).',
     )
     p.add_argument(
         '--plugins',
@@ -124,34 +161,34 @@ def register_subcommand(subparsers):
         required=False,
         action='store_true',
         help=(
-            '可服务模式：panel 后端走 Panel.servable()；textual 后端则启动 textual-serve '
-            '（子进程执行不带本选项的同一 vuepy run 命令）'
+            'Servable mode: panel backend uses Panel.servable(); textual backend starts '
+            'textual-serve (child runs the same vuepy run command without this flag).'
         ),
     )
     p.add_argument(
         '--serve-host',
         default='127.0.0.1',
-        help='与 --servable 且 textual 后端联用：HTTP 监听地址（默认 127.0.0.1）',
+        help='With --servable and textual backend: HTTP bind address (default 127.0.0.1).',
     )
     p.add_argument(
         '--serve-port',
         type=int,
         default=8000,
-        help='与 --servable 且 textual 后端联用：HTTP 端口（默认 8000）',
+        help='With --servable and textual backend: HTTP port (default 8000).',
     )
     p.add_argument(
         '--serve-title',
         default=None,
-        help='与 --servable 且 textual 后端联用：浏览器页标题（默认用启动命令）',
+        help='With --servable and textual backend: browser page title (default: run command).',
     )
     p.add_argument(
         '--serve-public-url',
         default=None,
-        help='与 --servable 且 textual 后端联用：对外展示的 URL（默认根据 host/port 推断）',
+        help='With --servable and textual backend: public URL shown to users (default from host/port).',
     )
     p.add_argument(
         '--serve-debug',
         action='store_true',
-        help='与 --servable 且 textual 后端联用：传给 textual-serve 的 debug 模式',
+        help='With --servable and textual backend: enable textual-serve debug mode.',
     )
     p.set_defaults(func=run_vue)
