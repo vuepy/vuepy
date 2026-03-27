@@ -31,7 +31,14 @@ class AppLayout(IPywidgetsComponent):
 class VBox(IPywidgetsComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
-        return ipywui.widgets.VBox(children=slots.get('default', []), **props, **attrs, **params)
+        children = []
+        # handle slots
+        for _, child in slots.items():
+            if isinstance(child, list):
+                children.extend(child)
+            else:
+                children.append(child)
+        return ipywui.widgets.VBox(children=children, **props, **attrs, **params)
 
 
 class Template(VBox):
@@ -47,14 +54,28 @@ class Slot(VBox):
 class Box(IPywidgetsComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
-        return ipywui.widgets.VBox(children=slots.get('default', []), **props, **attrs, **params)
+        children = []
+        # handle slots
+        for _, child in slots.items():
+            if isinstance(child, list):
+                children.extend(child)
+            else:
+                children.append(child)
+        return ipywui.widgets.VBox(children=children, **props, **attrs, **params)
 
 
 @wui.register()
 class HBox(IPywidgetsComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
-        return ipywui.widgets.HBox(children=slots.get('default', []), **props, **attrs, **params)
+        children = []
+        # handle slots
+        for _, child in slots.items():
+            if isinstance(child, list):
+                children.extend(child)
+            else:
+                children.append(child)
+        return ipywui.widgets.HBox(children=children, **props, **attrs, **params)
 
 
 @wui.register()

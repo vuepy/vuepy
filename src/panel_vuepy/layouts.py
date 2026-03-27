@@ -347,8 +347,13 @@ class WidgetBox(VPanelComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
         _params = {**props, **attrs, **params}
-        children = slots.get('default', [])
-
+        children = []
+        # handle slots
+        for _, child in slots.items():
+            if isinstance(child, list):
+                children.extend(child)
+            else:
+                children.append(child)
         return pn.WidgetBox(*children, **_params)
 
 
@@ -363,7 +368,13 @@ class Column(VPanelComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
         _params = {**props, **attrs, **params}
-        children = slots.get('default', [])
+        children = []
+        # handle slots
+        for _, child in slots.items():
+            if isinstance(child, list):
+                children.extend(child)
+            else:
+                children.append(child)
         w = pn.Column(*children, **_params)
         return w
 
@@ -378,6 +389,12 @@ class Row(VPanelComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         slots = ctx.get('slots', {})
         _params = {**props, **attrs, **params}
-        children = slots.get('default', [])
+        children = []
+        # handle slots
+        for _, child in slots.items():
+            if isinstance(child, list):
+                children.extend(child)
+            else:
+                children.append(child)
         w = pn.Row(*children, **_params)
         return w
