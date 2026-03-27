@@ -12,16 +12,22 @@ from vuepy.compiler_sfc import sfc_compiler
 
 def find_content_start_line(sub_content, content_lines):
     sub_content_lines = sub_content.split('\n')
+    offset = 0
+    if sub_content_lines[0] == '':
+        offset = -1
+        sub_content_lines = sub_content_lines[1:]
+
     sub_content_lc = len(sub_content_lines)
     compare_line = 0
     for line_num, line in enumerate(content_lines):
-        if sub_content_lines[compare_line] in line:
+        sub_content_line = sub_content_lines[compare_line]
+        if sub_content_line in line:
             compare_line += 1
         else:
             compare_line = 0
 
         if compare_line == sub_content_lc:
-            return line_num + 1 - compare_line + 1
+            return offset + line_num + 1 - compare_line + 1
 
     return None
 
