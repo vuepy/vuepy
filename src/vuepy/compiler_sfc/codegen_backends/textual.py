@@ -290,12 +290,19 @@ class TextualSFCNode(
                 }
             )
 
-        widget = self.cls(id=self._id)
+        fallthrough_attrs = {
+            key: value for key, value in sfc._context.get('attrs', {}).items() if key not in props
+        }
+        if 'class' in fallthrough_attrs:
+            fallthrough_attrs['classes'] = fallthrough_attrs.pop('class')
+        self._fallthrough_attrs = {'id': self._id, **fallthrough_attrs}
+
+        widget = self.cls(**self._fallthrough_attrs)
         super().__init__(widget, props, emitter, sfc, is_root_component)
     
     def create_widget(self, children):
         _children = [self.convert_to_widget(c) for c in children]
-        self._widget = self.cls(*_children, id=self._id)
+        self._widget = self.cls(*_children, **self._fallthrough_attrs)
 
 
 TextualDocBodyWidget = Screen
@@ -377,7 +384,8 @@ class TextualCodegenBackend(ICodegenBackend):
     def get_template_component(cls) -> Type[VueComponent]:
         from textual_vuepy.comps import VBox
         from functools import partial
-        return partial(VBox, id='template')
+        # return partial(VBox, id='template')
+        return VBox
 
     @classmethod
     def gen_widget_collection_node(

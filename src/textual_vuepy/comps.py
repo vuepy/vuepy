@@ -46,7 +46,13 @@ class VBox(VTextualComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}
         slots = ctx.get('slots', {})
-        children = slots.get('default', [])
+        children = []
+        # handle slots
+        for _, child in slots.items():
+            if isinstance(child, list):
+                children.extend(child)
+            else:
+                children.append(child)
         return widgets.VBox(*children, **_params)
 
 
@@ -55,7 +61,13 @@ class HBox(VTextualComponent):
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}
         slots = ctx.get('slots', {})
-        children = slots.get('default', [])
+        children = []
+        # handle slots
+        for _, child in slots.items():
+            if isinstance(child, list):
+                children.extend(child)
+            else:
+                children.append(child)
         return widgets.HBox(*children, **_params)
 
 

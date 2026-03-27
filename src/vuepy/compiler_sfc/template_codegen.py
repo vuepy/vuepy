@@ -146,11 +146,14 @@ class VueCompCodeGen:
             return dynamic_component.render({}, {}, {})
         
         component_cls: Type[VueComponent] = component_cls or vm.component(comp_ast.tag)
-        slots = {'default': []}
+        # Depends on the order of slot addition
+        slots = {}
         for child in children or []:
             slot_name = getattr(child, 'v_slot', 'default')
             child = VueHtmlCompCodeGen.gen_from_fn(child, app) if callable(child) else child
             if slot_name == 'default':
+                if not slot_name in slots:
+                    slots[slot_name] = []
                 slots[slot_name].append(child)
             else:
                 slots[slot_name] = child
