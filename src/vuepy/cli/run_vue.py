@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import json
+import os
 import shlex
 import sys
 from pathlib import Path
@@ -50,9 +51,32 @@ def _textual_serve_run_command(vue_file: str, args) -> str:
     else:
         target = str(Path(vue_file).resolve())
     parts = [sys.executable, "-m", "vuepy", "run", target, "--backend", "textual"]
+    if getattr(args, "dev", False):
+        parts.append("--dev")
+    if getattr(args, "devtools_host", None) is not None:
+        parts.extend(["--devtools-host", str(args.devtools_host)])
+    if getattr(args, "devtools_port", None) is not None:
+        parts.extend(["--devtools-port", str(args.devtools_port)])
     for pl in _flatten_plugins(args):
         parts.extend(["--plugins", pl])
     return shlex.join(parts)
+
+
+def _apply_textual_dev_environment(args) -> None:
+    """Mirror ``textual run --dev``: merge TEXTUAL features and optional devtools host/port."""
+    try:
+        from textual.features import parse_features
+    except ImportError:
+        return
+    features = set(parse_features(os.environ.get("TEXTUAL", "")))
+    if getattr(args, "dev", False):
+        features.add("debug")
+        features.add("devtools")
+    os.environ["TEXTUAL"] = ",".join(sorted(features))
+    if getattr(args, "devtools_host", None) is not None:
+        os.environ["TEXTUAL_DEVTOOLS_HOST"] = str(args.devtools_host)
+    if getattr(args, "devtools_port", None) is not None:
+        os.environ["TEXTUAL_DEVTOOLS_PORT"] = str(args.devtools_port)
 
 
 def run_vue(args):
@@ -60,6 +84,7 @@ def run_vue(args):
 
     if args.backend == TEXTUAL_BACKEND:
         _load_builtin_app_registrations()
+        _apply_textual_dev_environment(args)
 
     if args.servable and args.backend == TEXTUAL_BACKEND:
         try:
@@ -155,6 +180,27 @@ def register_subcommand(subparsers):
         required=False,
         action='store_true',
         help='Print the vue source code before running',
+    )
+    p.add_argument(
+        '--dev',
+        action='store_true',
+        help=(
+            'Textual backend only: enable development mode (TEXTUAL debug + devtools), '
+            'same idea as ``textual run --dev``.'
+        ),
+    )
+    p.add_argument(
+        '--devtools-host',
+        default=None,
+        metavar='HOST',
+        help='Textual backend only: devtools console host (sets TEXTUAL_DEVTOOLS_HOST).',
+    )
+    p.add_argument(
+        '--devtools-port',
+        type=int,
+        default=None,
+        metavar='PORT',
+        help='Textual backend only: devtools console port (sets TEXTUAL_DEVTOOLS_PORT).',
     )
     p.add_argument(
         '--servable',
