@@ -12,6 +12,10 @@ def onKeyStroke(key, cb):
 
 
 def useMouse():
+    """
+    Returns:
+        tuple[Ref[int], Ref[int]]: The x and y coordinates of the mouse relative to the screen.
+    """
     x = ref(0)
     y = ref(0)
 

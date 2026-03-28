@@ -6,7 +6,7 @@ from vuepy import create_app, import_sfc
 
 
 def create_rgb_vue_app():
-    RGBVueApp = import_sfc(pathlib.Path(__file__).parent / "test_example.vue")
+    RGBVueApp = import_sfc(pathlib.Path(__file__).parent / "test_onKeyStroke.vue")
     vue_app = create_app(RGBVueApp, backend="textual")
     # vue_app.provide(TextualProvides.APP_MIXIN, RGBAppMixin)
     vue_app.mount(run=False)
@@ -49,16 +49,16 @@ def test_rgb_vue_snapshot(snap_compare):
         await pilot.press("r")
 
     # assert snap_compare('./test_example.py:RGBVueApp', run_before=run_before)
-    assert snap_compare('./test_example.py', run_before=run_before)
+    assert snap_compare('./test_onKeyStroke.py', run_before=run_before)
 
 
 if __name__ == "__main__":
     '''
-    测试使用
+    For testing:
     pip install pytest-asyncio
     pip install pytest-textual-snapshot
-    pytest --asyncio-mode=auto test_example.py -v
-    更新 snapshot 使用
+    pytest --asyncio-mode=auto test_onKeyStroke.py -v
+    To update snapshots:
     pytest --snapshot-update
     '''
     app = create_rgb_vue_app()
