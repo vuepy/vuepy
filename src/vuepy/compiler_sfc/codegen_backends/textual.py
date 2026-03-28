@@ -379,6 +379,7 @@ class TextualCodegenBackend(ICodegenBackend):
     textual codegen backend
     """
     NAME = TEXTUAL_BACKEND
+    ESCAPE_MUSTACHE_TEXT = False
 
     @classmethod
     def get_template_component(cls) -> Type[VueComponent]:
@@ -431,5 +432,6 @@ class TextualCodegenBackend(ICodegenBackend):
     
     @classmethod
     def is_servable(cls) -> bool:
-        # textual 的 Web 服务由 `vuepy run --servable`（cli/run_vue.py + textual-serve）完成，不经由 App.mount
+        # textual's web service is completed by `vuepy run --servable` 
+        # (cli/run_vue.py + textual-serve), not by App.mount
         return False

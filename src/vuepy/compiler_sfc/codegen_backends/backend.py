@@ -49,6 +49,9 @@ class ICodegenBackend(metaclass=ABCMeta):
     codegen backend interface
     """
     NAME = ''
+    # Whether {{ }} in template text nodes should be HTML-escaped (ipywidgets/panel).
+    # False for terminal / non-HTML backends so < > display literally.
+    ESCAPE_MUSTACHE_TEXT = True
 
     @classmethod
     def get_template_component(cls) -> Type[VueComponent]:

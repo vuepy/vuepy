@@ -226,7 +226,12 @@ class DomCompiler(HTMLParser):
             def __handle_data_gen_html(_ns=ns, _i=i, _should_render=should_render):
                 if _should_render:
                     logger.debug("for_stmt_gen_html index=%s <%s> tmpl=`%s`", _i, tag, data)
-                    return VueHtmlTemplateRender.render(data, _ns, _i)
+                    escape = getattr(
+                        self.app.codegen_backend, "ESCAPE_MUSTACHE_TEXT", True
+                    )
+                    return VueHtmlTemplateRender.render(
+                        data, _ns, _i, escape_html=escape
+                    )
                 else:
                     return data
 

@@ -144,13 +144,14 @@ class VueHtmlTemplateRender:
     DELIMITERS_PATTERN = r"\{\{\s*(.*?)\s*\}\}"
 
     @staticmethod
-    def _replace(ns: VueCompNamespace, for_idx):
+    def _replace(ns: VueCompNamespace, for_idx, escape_html: bool = True):
         def warp(match):
             expr_str = match.group(1)
             expr_ast = VueCompExpr.parse(expr_str)
             # TODO html可以设置value，按需更新
             _value = expr_ast.eval(ns)
-            return html.escape(str(_value))
+            s = str(_value)
+            return html.escape(s) if escape_html else s
 
         return warp
 
@@ -159,8 +160,12 @@ class VueHtmlTemplateRender:
         return bool(re.search(cls.DELIMITERS_PATTERN, template))
 
     @classmethod
-    def render(cls, template, ns: VueCompNamespace, for_idx=-1):
-        result = re.sub(cls.DELIMITERS_PATTERN, cls._replace(ns, for_idx), template)
+    def render(cls, template, ns: VueCompNamespace, for_idx=-1, escape_html: bool = True):
+        result = re.sub(
+            cls.DELIMITERS_PATTERN,
+            cls._replace(ns, for_idx, escape_html=escape_html),
+            template,
+        )
         return result
 
 
