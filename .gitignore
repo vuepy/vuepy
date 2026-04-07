@@ -1,5 +1,6 @@
 # vim.gitignore
 *.s[a-w][a-z]
+!*.svg
 *.un~
 Session.vim
 .netrwhist
