@@ -17,11 +17,18 @@ from textual_vuepy.vueuse import onKeyStroke, useMouse
 def switch_color(color):
     app.tt_app.screen.styles.background = color
 
+
+def switch_color_ctrl_a():
+    """to_blue"""
+    switch_color('blue')
+
+
 x, y = useMouse()
 
 onKeyStroke('r', lambda: switch_color('red'))
 onKeyStroke('g', lambda: switch_color('green'))
 onKeyStroke('b', lambda: switch_color('blue'))
+onKeyStroke('ctrl+a', switch_color_ctrl_a)
 
 </script>
 <style>

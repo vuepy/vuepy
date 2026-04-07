@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+import re
 from types import MethodType
 from typing import Callable, Dict, Type, TypeVar
 
@@ -178,10 +179,18 @@ class TextualNode(INode[TextualWidget]):
     def __init__(self, widget, *args, app=None, **kwargs):
         self._widget = widget
         self._app = app
+    
+    def _keyup_vue_to_textual(self, keys_str):
+        keys = keys_str.split('.')
+        pattern = re.compile(r'^shift\.[a-z]$')
+        if pattern.match(keys_str):
+            keys = [keys[1].upper()]
+        return '+'.join(keys)
 
     def on(self, ev: str, cb: Callable, remove=False):
         if ev.startswith('keyup.'):
-            ev = ev[6:].replace('.', '+')
+            # ev = ev[6:].replace('.', '+')
+            ev = self._keyup_vue_to_textual(ev.replace('keyup.', ''))
             return self._widget.vp_register_on_keyup(ev, cb)
 
         func_name = f"register_on_{ev}"
