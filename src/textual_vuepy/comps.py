@@ -434,6 +434,7 @@ class RichLog(VTextualComponent):
     PARAMS_STORE_TRUE = [
         ('markup', False),
         ('wrap', False),
+        ('highlight', False),
     ]
 
     def _render(self, ctx, attrs, props, params, setup_returned):

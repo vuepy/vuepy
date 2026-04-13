@@ -38,15 +38,11 @@ def quit_app():
 
 @onMounted
 def _focus_log():
-    def _go():
-        node = key_log.value
-        if node is None:
-            return
-        rl = node.unwrap()
-        rl.highlight = True
-        rl.focus()
-
-    app.tt_app.call_later(_go)
+    node = key_log.value
+    if node is None:
+        return
+    rl = node.unwrap()
+    rl.focus()
 
 
 class KeyHandlerMixin:
