@@ -215,6 +215,8 @@ class SFCType:
         self, props: dict, context: SetupContext | dict, app: "App", is_root=False
     ) -> "SFC":
         with SetupContextManager(app) as setup_ctx:
+            setup_ctx._vuepy_internal_props = props
+            setup_ctx._vuepy_internal_ctx = context
             try:
                 setup_ret = self.setup(props, context, app) if self.setup else {}
             except Exception as e:

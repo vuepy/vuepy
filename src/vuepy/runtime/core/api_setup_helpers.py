@@ -48,15 +48,32 @@ class CallbackDispatcher:
 
 def defineProps(props: dict | list):
     """
-    props = defineProps('p1')
-    props.p1.value
-    """
-    frame = inspect.currentframe().f_back
-    caller_args = get_caller_args(frame)
-    init_props = caller_args[0] if caller_args else {}
-    init_attrs = caller_args[1].get('attrs', {}) if len(caller_args) >= 2 else {}
-    init_vals = {**init_props, **init_attrs}
+    def setup(props, ctx, app):
+        props = defineProps('p1')
+        props.p1.value
+    ->
+    def setup(props, ctx, app):
+        init_props = props
+        init_attrs = ctx.get('attrs', {})
+        init_vals = {**init_props, **init_attrs}
 
+        props = DefineProps(props, init_vals)
+    """
+    from vuepy.runtime.core.api_lifecycle import _get_active_setup_context
+    active_ctx = _get_active_setup_context()
+
+    # fix: in nuitka, get_caller_args returns [None, None, None], causing init_props and init_attrs to be empty
+    if active_ctx and hasattr(active_ctx, '_vuepy_internal_props'):
+        init_props = active_ctx._vuepy_internal_props
+        ctx_obj = getattr(active_ctx, '_vuepy_internal_ctx', {})
+        init_attrs = ctx_obj.get('attrs', {}) if isinstance(ctx_obj, dict) else {}
+    else:
+        frame = inspect.currentframe().f_back
+        caller_args = get_caller_args(frame)
+        init_props = caller_args[0] if caller_args and caller_args[0] is not None else {}
+        init_attrs = caller_args[1].get('attrs', {}) if len(caller_args) >= 2 and caller_args[1] is not None else {}
+
+    init_vals = {**init_props, **init_attrs}
     return DefineProps(props, init_vals)
 
 

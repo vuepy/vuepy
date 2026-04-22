@@ -30,7 +30,7 @@ from vuepy.runtime.core.api_lifecycle import onMounted
 from vuepy.runtime.core.api_setup_helpers import defineEmits
 from vuepy.runtime.core.api_setup_helpers import defineModel
 from vuepy.runtime.core.api_setup_helpers import defineProps
-from vuepy.runtime.core.import_sfc import import_sfc
+from vuepy.runtime.core.import_sfc import import_sfc, import_sfc_aot
 from vuepy.utils.appstore import VuepyAppStore
 from vuepy.version import VERSION
 
@@ -41,6 +41,7 @@ __all__ = [
     'VuepyAppStore',
     'create_app',
     'import_sfc',
+    'import_sfc_aot',
     'VueComponent',
     'VuePlugin',
     'VueOptions',
