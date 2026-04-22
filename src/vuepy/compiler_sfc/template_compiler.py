@@ -22,7 +22,7 @@ from vuepy.compiler_core.utils import VueCompNamespace
 from vuepy.compiler_dom.codegen import VueHtmlCompCodeGen
 from vuepy.compiler_dom.codegen import VueHtmlTemplateRender
 from vuepy.compiler_dom.codegen import v_for_stack_to_iter
-from vuepy.compiler_sfc.codegen_backends.ipywidgets import IwNode
+from vuepy.compiler_sfc.codegen_backends.backend import INode
 from vuepy.compiler_sfc.sfc_codegen import SFC
 from vuepy.compiler_sfc.template_codegen import VueCompCodeGen
 from vuepy.reactivity.watch import watch
@@ -254,7 +254,7 @@ class DomCompiler(HTMLParser):
                 return
 
             widget = self._gen_widget(_node, _node.v_for_scopes)
-            widget._vtag = (widget.unwrap() if isinstance(widget, IwNode) else widget).__class__.__name__
+            widget._vtag = (widget.unwrap() if isinstance(widget, INode) else widget).__class__.__name__
             # not v-for
             if not _node.v_for_scopes:
                 if callable(widget):

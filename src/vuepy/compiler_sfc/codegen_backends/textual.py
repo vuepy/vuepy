@@ -110,8 +110,10 @@ class TextualDocRootWidget(App, VOnEventMixin):
         self._on_mount = []
         if 'css' in kwargs:
             self.CSS = kwargs.pop('css')
-        if 'css_path' in kwargs:
-            self.CSS_PATH = kwargs.pop('css_path')
+        
+        css_path = kwargs.pop('css_path', None)
+        if css_path:
+            self.CSS_PATH = css_path
 
         super().__init__(*args, **kwargs)
         self.message_ = ''

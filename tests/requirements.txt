@@ -1,3 +1,4 @@
 pytest
+pytest-xdist
 pytest-asyncio
 pytest-textual-snapshot

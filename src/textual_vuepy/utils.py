@@ -23,18 +23,21 @@ def fix_stdin() -> Optional[int]:
     # Resolve the controlling terminal device path (Windows: CONIN$, Unix: /dev/tty).
     tty_path = "CONIN$" if sys.platform == "win32" else "/dev/tty"
 
+    tty_file = None
     try:
         # Open the TTY for interactive input.
         tty_file = open(tty_path, "r", encoding="utf-8")
-
         # Point FD 0 at the TTY so the TUI sees a real terminal for keyboard/mouse.
         os.dup2(tty_file.fileno(), 0)
-
         # Keep sys.stdin consistent with FD 0 (avoids stale Python-level stdin).
         sys.stdin = tty_file
-
-        return pipe_stdin
-
     except Exception as e:
-        print(f"can't reset terminal input: {e}")
-        sys.exit(1)
+        if pipe_stdin is not None:
+            os.close(pipe_stdin)
+
+        if tty_file is not None:
+            tty_file.close()
+
+        raise ValueError(f"can't reset terminal input: {e}") from e
+
+    return pipe_stdin
