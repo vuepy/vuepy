@@ -53,3 +53,6 @@ resource/log
 *.html.py
 
 .idea
+
+# vuepy aot
+*_vue_aot_*.py
