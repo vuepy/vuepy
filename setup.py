@@ -22,7 +22,7 @@ ipywidgets_requires = [
 # This call to setup() does all the work
 setup(
     name="vuepy-core",
-    version="0.1.11",
+    version="0.1.12",
     description="Vue.py is a progressive, incrementally-adoptable Python framework for building GUI in Jupyter and TUI in CLI.",
     long_description=README,
     long_description_content_type="text/markdown",

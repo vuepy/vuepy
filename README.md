@@ -11,38 +11,47 @@
 </h1>
 <samp>
   <p align="center">
-    <span>a progressive, incrementally-adoptable Python framework <br>for building web interface in Jupyter Notebook.</span>
+    <span>a progressive, incrementally-adoptable Python framework <br>for building <b>Jupyter web interfaces</b> &amp; <b>terminal TUI apps</b>.</span>
       <br>
       <a href="#installation">installation</a> .
       <a href="https://www.vuepy.org/guide/introduction.html">docs</a> .
       <!--<a href="">discord</a> .-->
-      <a href="https://www.vuepy.org/guide/quick-start.html">learn</a>
+      <a href="https://www.vuepy.org/guide/quick-start.html">learn</a> .
+      <a href="https://www.vuepy.org/textual_vuepy/quick-start.html">TUI</a>
   </p>
 </samp>
 
 ## About
 
-Vue.py (pronounced /vjuːpaɪ/, like "view py") is a reactive Python framework for building web interface in Jupyter. It is built upon standard HTML, CSS, and Python, offering a declarative and component-based programming model that aids in the efficient development of user interfaces. Vue.py is capable of handling both simple and complex interfaces.
+Vue.py (pronounced /vjuːpaɪ/, like "view py") is a reactive Python framework for building **Jupyter web interfaces** and **terminal TUI applications**. Built upon standard HTML, CSS, and Python, it offers a declarative and component-based programming model — the same `.vue` SFC syntax works across all backends.
 
-* 🛠️ create custom web interface using pure Python in Jupyter
-* 🤖 prototype within .ipynb or .py files
+* 🛠️ create custom web interfaces using pure Python in Jupyter
+* 🖥️ build terminal TUI apps with [Textual-vuepy](https://www.vuepy.org/textual_vuepy/quick-start.html) — run anywhere, deploy via web with `textual-serve`
+* 🤖 prototype within `.ipynb` or `.py` files, or run directly with `vuepy run App.vue`
 * 🪄 reactive: update the data, vuepy will reactively update all dependent view components
 * 🚀 batteries-included: built-in [IPywUI](https://vuepy.org/ipywui/overview.html) includes 37+ commonly used UI components
 * 🚀 batteries-included: [Panel-vuepy](https://vuepy.org/panel_vuepy/quick-start.html) includes 130+ commonly used UI components
-* 🧩 extensible: can easily integrate third-party python libraries such as plotly, bokeh, panel, pandas, ipyleaflet etc
+* 🚀️ batteries-included: [Textual-vuepy](https://vuepy.org/textual_vuepy/quick-start.html) wraps all Textual widgets as Vue components for terminal TUI
+* 🧩 extensible: easily integrate third-party libraries such as plotly, bokeh, panel, pandas, ipyleaflet, etc.
 * 🖐️ interactive: bind sliders, buttons, plots, and more to Python — no callbacks required
-* 🚀 run in Jupyter, JupyterLab, VSCode, Cursor, Google Colab and more
-* ✨ generate UI interface with one click through AI-driven conversation interface. provide [llms.txt](https://www.vuepy.org/llms.txt), [llms-ctx.txt](https://www.vuepy.org/llms-ctx.txt), [llms-ctx-ipywui.md](), [llm-ctx-panel-vuepy.md]()
+* 🚀 run in Jupyter, JupyterLab, VSCode, Cursor, Google Colab, terminal and more
+* ✨ generate UI interface with one click through AI. provides [llms.txt](https://www.vuepy.org/llms.txt), [llms-ctx.txt](https://www.vuepy.org/llms-ctx.txt)
 
 ## Installation
 
 **Vue.py** is available on [PyPI](https://pypi.org/project/vuepy-core/):
 
 ```bash
-pip install vuepy-core
+# Jupyter web interface (default)
+pip install vuepy-core[all]
+
+# Terminal TUI apps (includes Textual-vuepy)
+pip install 'vuepy-core[textual]'
 ```
 
 ## Usage
+
+### Jupyter Web Interface
 
 ```python
 from vuepy import ref, create_app
@@ -54,7 +63,6 @@ def setup(*args):
         count.value += 1
     
     return locals()
-
 
 app = create_app({
     'setup': setup,
@@ -69,7 +77,40 @@ app.mount()
 
 ![](https://github.com/vuepy/vuepy/blob/master/docs/assets/readme-demo.gif?raw=true)
 
-Read [the documentation](https://www.vuepy.org/guide/quick-start.html) to learn more.
+### Terminal TUI App
+
+Write a `.vue` SFC file and run it directly from the command line:
+
+```vue
+<!-- App.vue -->
+<template>
+  <VBox style="height: 1fr; align: center middle;">
+    <Label :label="f'Count: {count.value}'" />
+    <HBox>
+      <Button label="+" @click="increment()" />
+      <Button label="-" @click="decrement()" />
+    </HBox>
+  </VBox>
+</template>
+
+<script lang="py">
+from vuepy import ref
+
+count = ref(0)
+
+def increment():
+    count.value += 1
+
+def decrement():
+    count.value -= 1
+</script>
+```
+
+```bash
+vuepy run App.vue
+```
+
+Read [the documentation](https://www.vuepy.org/guide/quick-start.html) to learn more, or check out [Textual-vuepy docs](https://www.vuepy.org/textual_vuepy/quick-start.html) for terminal TUI apps.
 
 ## Learn more
 
@@ -108,6 +149,11 @@ Check out our [docs](https://www.vuepy.org/guide/introduction.html), the `exampl
       <a target="_blank" href="https://github.com/vuepy/vuepy/blob/master/examples/vleaflet_travel/travel.ipynb">Read more</a>, 
       <a target="_blank" href="https://www.vuepy.org/vleaflet/overview.html">docs</a>
     </td>
+  </tr>
+  <tr>
+    <td>🖥️ Terminal TUI</td>
+    <td>Textual-vuepy: build terminal TUI apps with the same .vue syntax, run via <code>vuepy run App.vue</code></td>
+    <td><a target="_blank" href="https://www.vuepy.org/textual_vuepy/quick-start.html">docs</a></td>
   </tr>
   <!--
   <tr>
