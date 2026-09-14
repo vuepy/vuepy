@@ -396,7 +396,12 @@ class ProgressBar(VTextualComponent):
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}
-        return widgets.ProgressBar(**_params)
+        progress = _params.pop('progress', None)
+        _w = widgets.ProgressBar(**_params)
+        if progress is not None:
+            _params['value'] = progress
+            _w.progress = progress
+        return _w
 
 
 @vtextual.ns_register()
