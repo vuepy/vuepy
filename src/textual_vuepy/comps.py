@@ -81,6 +81,7 @@ class Button(VTextualComponent):
     v_model_default = 'label'
     PARAMS_STORE_TRUE = [
         ('disabled', False),
+        ('flat', False),
     ]
     CONTENT_SLOT = ('default', 'label')
 
@@ -115,13 +116,19 @@ class Collapsible(VTextualComponent):
 
 @vtextual.ns_register()
 class ContentSwitcher(VTextualComponent):
-    v_model_default = 'index'
+    # Textual: constructor `initial`, reactive attr `current` (str | None child id)
+    # https://textual.textualize.io/widgets/content_switcher/
+    v_model_default = 'current'
     PARAMS_STORE_TRUE = []
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}
         slots = ctx.get('slots', {})
         children = slots.get('default', [])
+        # v-model / :current 传入的是 reactive 属性名，构造时需映射为 initial
+        current = _params.pop(self.v_model_default, None)
+        if current is not None and not _params.get('initial'):
+            _params['initial'] = current
         return widgets.ContentSwitcher(*children, **_params)
 
 
@@ -132,18 +139,13 @@ class DataTable(VTextualComponent):
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}
-        cols = _params.pop('cols', [])
-        rows = _params.pop('rows', [])
+        cols = _params.pop('cols', None)
+        rows = _params.pop('rows', None)
         table = widgets.DataTable(**_params)
-
-        def on_mount(self):
-            self.add_columns(*cols)
-            self.add_rows(rows)
-
-        # todo
-        # setattr(table, 'on_mount', MethodType(on_mount, table))
-        on_mount(table)
-
+        if cols is not None:
+            table.cols = cols
+        if rows is not None:
+            table.rows = rows
         return table
 
 
@@ -360,16 +362,6 @@ class Option(VTextualComponent):
 
 
 @vtextual.ns_register()
-class OptionGroup(VTextualComponent):
-    v_model_default = 'label'
-    PARAMS_STORE_TRUE = []
-
-    def _render(self, ctx, attrs, props, params, setup_returned):
-        _params = {**props, **attrs, **params}
-        return widgets.OptionGroup(**_params)
-
-
-@vtextual.ns_register()
 class Placeholder(VTextualComponent):
     v_model_default = ''
     PARAMS_STORE_TRUE = []
@@ -381,12 +373,18 @@ class Placeholder(VTextualComponent):
 
 @vtextual.ns_register()
 class Pretty(VTextualComponent):
-    v_model_default = 'data'
+    # Textual: constructor positional `object`; update via Pretty.update()
+    # https://textual.textualize.io/widgets/pretty/
+    v_model_default = 'object'
     PARAMS_STORE_TRUE = []
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}
-        return widgets.Pretty(**_params)
+        # 兼容文档里曾用的 data 别名
+        obj = _params.pop('object', None)
+        if obj is None and 'data' in _params:
+            obj = _params.pop('data')
+        return widgets.Pretty(obj, **_params)
 
 
 @vtextual.ns_register()
@@ -522,13 +520,19 @@ class Switch(VTextualComponent):
 
 @vtextual.ns_register()
 class TabbedContent(VTextualComponent):
-    v_model_default = 'tabs'
+    # Textual: constructor `initial`, reactive attr `active` (tab pane id)
+    # https://textual.textualize.io/widgets/tabbed_content/
+    v_model_default = 'active'
     PARAMS_STORE_TRUE = []
 
     def _render(self, ctx, attrs, props, params, setup_returned):
         _params = {**props, **attrs, **params}
         slots = ctx.get('slots', {})
         children = slots.get('default', [])
+        # v-model / :active → 构造参数 initial
+        active = _params.pop('active', None)
+        if active is not None and not _params.get('initial'):
+            _params['initial'] = active
         tabbed_content = widgets.TabbedContent(**_params)
         for child in children:
             tabbed_content.compose_add_child(child)
@@ -560,7 +564,9 @@ class Tab(VTextualComponent):
 
 @vtextual.ns_register()
 class Tabs(VTextualComponent):
-    v_model_default = 'tabs'
+    # Textual: constructor + reactive attr `active` (tab id)
+    # https://textual.textualize.io/widgets/tabs/
+    v_model_default = 'active'
     PARAMS_STORE_TRUE = []
 
     def _render(self, ctx, attrs, props, params, setup_returned):

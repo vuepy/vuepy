@@ -1,5 +1,5 @@
 <template>
-  <Label :label="shimmer_display.value" />
+  <Label :label="shimmer_display.value" :style="props.style.value" />
 </template>
 
 <script lang="py">
@@ -12,12 +12,13 @@ Props:
   - highlight_width: number of characters highlighted at once, default 3
   - interval: animation frame interval in seconds, default 0.09
   - running: whether the animation is running, controlled by the parent component
+  - style: TCSS style string applied to the Label, default ""
 """
 from vuepy import ref, onMounted, defineProps, watch
 from vuepy.reactivity.watch import WatchOptions
 
 DEFAULT_INTERVAL = 0.1
-props = defineProps(['text', 'highlight_width', 'interval', 'running'])
+props = defineProps(['text', 'highlight_width', 'interval', 'running', 'style'])
 
 # 当前高亮起始位置
 pos = ref(0)

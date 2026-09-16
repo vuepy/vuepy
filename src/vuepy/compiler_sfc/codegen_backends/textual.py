@@ -306,14 +306,30 @@ class TextualSFCNode(
         }
         if 'class' in fallthrough_attrs:
             fallthrough_attrs['classes'] = fallthrough_attrs.pop('class')
+        # style / border_* 不能传给 Widget.__init__，需创建后设置
+        self._postset_attrs = {}
+        for key in ('style', 'border_title', 'border_subtitle'):
+            if key in fallthrough_attrs:
+                self._postset_attrs[key] = fallthrough_attrs.pop(key)
         self._fallthrough_attrs = {'id': self._id, **fallthrough_attrs}
 
         widget = self.cls(**self._fallthrough_attrs)
+        for key, value in self._postset_attrs.items():
+            if key == 'style':
+                widget.set_styles(value)
+            else:
+                setattr(widget, key, value)
         super().__init__(widget, props, emitter, sfc, is_root_component)
     
     def create_widget(self, children):
         _children = [self.convert_to_widget(c) for c in children]
+        # style 等已在 __init__ 里从 _fallthrough_attrs 剥离
         self._widget = self.cls(*_children, **self._fallthrough_attrs)
+        for key, value in self._postset_attrs.items():
+            if key == 'style':
+                self._widget.set_styles(value)
+            else:
+                setattr(self._widget, key, value)
 
 
 TextualDocBodyWidget = Screen

@@ -8,3 +8,4 @@ CUR_DIR = Path(__file__).parent
 
 VuepyAppStore.register("playground", import_sfc(CUR_DIR / "Playground.vue"))
 VuepyAppStore.register("keys", import_sfc(CUR_DIR / "Keys.vue"))
+VuepyAppStore.register("asciinema-player", import_sfc(CUR_DIR / "AsciinemaPlayer.vue"))

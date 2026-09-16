@@ -254,15 +254,78 @@ class Collapsible(widgets.Collapsible, _WidgetMixin):
 
 
 class ContentSwitcher(widgets.ContentSwitcher, _WidgetMixin):
-    pass
+    def _on_mount(self, event) -> None:
+        """Apply ``initial`` via the public ``current`` setter.
+
+        Upstream Textual assigns ``_reactive_current`` directly, which skips
+        reactive watchers. vuepy ``v-model`` watches ``current`` and would
+        otherwise keep the pre-mount ``None`` value forever.
+        """
+        initial = self._initial
+        with self.app.batch_update():
+            for child in self.children:
+                child.display = bool(initial) and child.id == initial
+        self.current = initial
+
+    def observe(self, attr: str, cb, remove=False):
+        # app.watch 会立刻用当前值回调；mount 前 current 仍是 None。
+        # 若已有 initial，跳过这次虚假的 None，避免污染 v-model。
+        if attr == "current":
+            initial = getattr(self, "_initial", None)
+
+            def cb_skip_premount_none(v):
+                if (
+                    v is None
+                    and initial
+                    and not self.is_mounted
+                ):
+                    return
+                cb(v)
+
+            return super().observe(attr, cb_skip_premount_none, remove)
+        return super().observe(attr, cb, remove)
 
 
 class DataTable(widgets.DataTable, _WidgetMixin):
-    pass
+    """``cols`` / ``rows`` 绑定通过 clear+add 更新，避免覆盖 Textual 内部 ``rows`` 字典。"""
+
+    def __init__(self, *args, **kwargs) -> None:
+        object.__setattr__(self, "_vp_cols", [])
+        object.__setattr__(self, "_vp_row_data", [])
+        object.__setattr__(self, "_vp_ready", False)
+        super().__init__(*args, **kwargs)
+        object.__setattr__(self, "_vp_ready", True)
+
+    def __setattr__(self, name, value):
+        # Textual 内部: self.rows = {}；vue 绑定传入 list / ListProxy
+        if name == "rows" and not isinstance(value, dict):
+            object.__setattr__(self, "_vp_row_data", [tuple(r) for r in value])
+            self._vp_rebuild()
+            return
+        if name == "cols":
+            object.__setattr__(self, "_vp_cols", list(value or []))
+            self._vp_rebuild()
+            return
+        super().__setattr__(name, value)
+
+    def _vp_rebuild(self) -> None:
+        if not getattr(self, "_vp_ready", False):
+            return
+        self.clear(columns=True)
+        if self._vp_cols:
+            self.add_columns(*self._vp_cols)
+        if self._vp_row_data:
+            self.add_rows(self._vp_row_data)
 
 
 class Digits(widgets.Digits, _WidgetMixin):
-    pass
+    @property
+    def value(self) -> str:
+        return self._value
+
+    @value.setter
+    def value(self, value: str) -> None:
+        self.update(value)
 
 
 class DirectoryTree(widgets.DirectoryTree, _WidgetMixin):
@@ -286,6 +349,10 @@ class FilterableDirectoryTree(DirectoryTree):
     ) -> None:
         super().__init__(path, name=name, id=id, classes=classes, disabled=disabled)
         self.filter_query = filter_query
+
+    def watch_filter_query(self, _query: str) -> None:
+        if self.is_mounted:
+            self.reload()
 
     @staticmethod
     def _subtree_has_matching_file(root: Path, q: str) -> bool:
@@ -403,7 +470,17 @@ class ListView(widgets.ListView, _WidgetMixin):
 
 
 class LoadingIndicator(widgets.LoadingIndicator, _WidgetMixin):
-    pass
+    """``show`` 映射到 ``display``，供 v-model 显隐控制。"""
+
+    show: var[bool] = var(True, init=False)
+
+    def __init__(self, *args, show: bool | None = None, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        if show is not None:
+            self.show = bool(show)
+
+    def watch_show(self, show: bool) -> None:
+        self.display = bool(show)
 
 
 class Log(widgets.Log, _WidgetMixin):
@@ -507,7 +584,22 @@ class Placeholder(widgets.Placeholder, _WidgetMixin):
 
 
 class Pretty(widgets.Pretty, _WidgetMixin):
-    pass
+    @property
+    def object(self):
+        return self._pretty_renderable._object
+
+    @object.setter
+    def object(self, value) -> None:
+        self.update(value)
+
+    # 兼容旧文档/示例里的 data 别名
+    @property
+    def data(self):
+        return self.object
+
+    @data.setter
+    def data(self, value) -> None:
+        self.update(value)
 
 
 class ProgressBar(widgets.ProgressBar, _WidgetMixin):
@@ -594,7 +686,20 @@ class Tab(widgets.Tab, _WidgetMixin):
 
 
 class TabbedContent(widgets.TabbedContent, _WidgetMixin):
-    pass
+    def observe(self, attr: str, cb, remove=False):
+        # mount 前 active 可能为空；跳过以免污染 v-model
+        if attr == "active":
+            initial = getattr(self, "_initial", None) or None
+
+            def cb_skip_premount(v):
+                if not self.is_mounted and initial and not v:
+                    return
+                if not self.is_mounted:
+                    return
+                cb(v)
+
+            return super().observe(attr, cb_skip_premount, remove)
+        return super().observe(attr, cb, remove)
 
 
 class TabPane(widgets.TabPane, _WidgetMixin):
@@ -602,7 +707,25 @@ class TabPane(widgets.TabPane, _WidgetMixin):
 
 
 class Tabs(widgets.Tabs, _WidgetMixin):
-    pass
+    def observe(self, attr: str, cb, remove=False):
+        # app.watch 会立刻回调；mount 前 active 仍是 ""。
+        # 跳过以免把 v-model 写成空串，并触发 watch_active 查询未挂载的 Underline。
+        if attr == "active":
+            def cb_skip_premount(v):
+                if not self.is_mounted:
+                    return
+                cb(v)
+
+            return super().observe(attr, cb_skip_premount, remove)
+        return super().observe(attr, cb, remove)
+
+    def watch_active(self, previously_active: str, active: str) -> None:
+        # Parent v-model 可能在 compose 完成前写入 active
+        if not self.is_mounted:
+            if active:
+                self._first_active = active
+            return
+        return super().watch_active(previously_active, active)
 
 
 class TextArea(widgets.TextArea, _WidgetMixin):
