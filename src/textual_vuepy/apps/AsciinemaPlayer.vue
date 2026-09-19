@@ -22,7 +22,7 @@
   <Label id="cast-status" :label="status.value" />
 
   <HBox id="cast-footer">
-    <Button id="btn-play" label="播放选中" @click="play_current()" />
+    <Button id="btn-play" label="播放选中" variant="primary" @click="play_current()" />
     <Button id="btn-quit" label="退出" variant="warning" @click="quit_app()" />
   </HBox>
 </VBox>
@@ -212,10 +212,11 @@ def _init():
 }
 
 #btn-play {
-    width: 1fr;
+    width: 12;
 }
 
 #btn-quit {
+    dock: right;
     width: 12;
 }
 </style>

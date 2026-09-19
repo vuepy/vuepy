@@ -25,6 +25,7 @@ def switch_color_ctrl_a():
 
 x, y = useMouse()
 
+# 可以通过vuepy run keys 获取对应快捷键的key
 onKeyStroke('r', lambda: switch_color('red'))
 onKeyStroke('g', lambda: switch_color('green'))
 onKeyStroke('b', lambda: switch_color('blue'))
