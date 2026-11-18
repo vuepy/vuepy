@@ -4,14 +4,15 @@
     <Input
       id="cast-dir"
       v-model="directory.value"
-      placeholder="录屏所在目录，回车扫描"
+      placeholder="Cast directory, press Enter to scan"
       @input_submitted="scan()"
     />
-    <Button id="btn-scan" label="扫描" @click="scan()" />
+    <Button id="btn-scan" label="Scan" @click="scan()" />
   </HBox>
 
-  <!-- 列表用 ref 命令式填充：v-for 绑定变化的列表会整棵重建组件树，
-       既会丢焦点，又会和模板里的 id 撞车 -->
+  <!-- Fill the list imperatively via ref: a v-for bound to a changing
+       list rebuilds the whole component tree, which drops focus and
+       collides with ids in the template -->
   <OptionList
     ref="cast_list"
     id="cast-list"
@@ -22,20 +23,22 @@
   <Label id="cast-status" :label="status.value" />
 
   <HBox id="cast-footer">
-    <Button id="btn-play" label="播放选中" variant="primary" @click="play_current()" />
-    <Button id="btn-quit" label="退出" variant="warning" @click="quit_app()" />
+    <Button id="btn-play" label="Play" variant="primary" @click="play_current()" />
+    <Button id="btn-quit" label="Quit" variant="warning" @click="quit_app()" />
   </HBox>
 </VBox>
 </template>
 
 <script lang="py">
-"""asciinema 录屏播放器。
+"""Asciinema recording player.
 """
 
 """
-扫描目录下的 *.cast.txt，选中一条就把终端交还给它回放：播放期间用
-``App.suspend()`` 挂起 TUI，按录制时的时间轴把原始字节写回 stdout，
-和 ``asciinema play`` 的原理一致，因此颜色、光标、全屏切换都能还原。
+Scan a directory for ``*.cast.txt``. Selecting one hands the terminal
+back for playback: while playing, ``App.suspend()`` suspends the TUI
+and writes the original bytes back to stdout along the recorded
+timeline, the same approach as ``asciinema play``, so colors, the
+cursor, and fullscreen switches are reproduced.
 """
 import json
 import sys
@@ -44,19 +47,19 @@ from pathlib import Path
 
 from vuepy import onMounted, ref
 
-PATTERNS = ("*.cast.txt", "*.cast")  # 文档站产出 .cast.txt，asciinema 默认 .cast
-IDLE_LIMIT = 2.0  # 超过这个秒数的静止会被压缩，避免等待录屏里的长时间空闲
+PATTERNS = ("*.cast.txt", "*.cast")  # docs site emits .cast.txt; asciinema defaults to .cast
+IDLE_LIMIT = 2.0  # idle longer than this is compressed, so long pauses are not waited out
 SPEED = 1.0
 
 cast_list = ref(None)
 directory = ref(str(Path.cwd()))
-status = ref("输入目录后回车扫描")
+status = ref("Enter a directory and press Enter to scan")
 
-found = []  # 与列表项一一对应的真实路径
+found = []  # real paths, one per list item
 
 
 def _cast_info(path):
-    """读 asciicast 头部与最后一个事件，拿到尺寸和时长。"""
+    """Read the asciicast header and the last event for size and duration."""
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
         header = json.loads(lines[0])
@@ -75,7 +78,7 @@ def _describe(path, root):
         label = path
     cols, rws, duration = _cast_info(path)
     if cols is None:
-        return f"{label}  (无法解析)"
+        return f"{label}  (unparseable)"
     return f"{label}  [{cols}x{rws}, {duration:.1f}s, {path.stat().st_size // 1024} KB]"
 
 
@@ -92,13 +95,13 @@ def scan():
     widget.add_options([_describe(p, root) for p in found])
 
     if not root.is_dir():
-        status.value = f"✗ 目录不存在：{root}"
+        status.value = f"✗ Directory does not exist: {root}"
     elif found:
-        status.value = f"找到 {len(found)} 个录屏，点击或回车播放"
-        widget.highlighted = 0  # 不预选的话回车不会触发 selected
+        status.value = f"Found {len(found)} recording(s). Click or press Enter to play"
+        widget.highlighted = 0  # without a highlight, Enter does not fire selected
         widget.focus()
     else:
-        status.value = f"✗ {root} 下没有 {' / '.join(PATTERNS)}"
+        status.value = f"✗ No {' / '.join(PATTERNS)} under {root}"
 
 
 def on_select(event):
@@ -112,25 +115,25 @@ def play_current():
 
 def play(index):
     if index is None or not (0 <= index < len(found)):
-        status.value = "✗ 先选一个录屏"
+        status.value = "✗ Select a recording first"
         return
 
     path = found[index]
     cols, _, _ = _cast_info(path)
     if cols and cols > app.tt_app.size.width:
-        status.value = f"⚠ 录制宽度 {cols} 超过当前终端，画面会换行错位"
+        status.value = f"⚠ Recorded width {cols} exceeds this terminal; output will wrap"
 
     try:
         with app.tt_app.suspend():
             _replay(path)
     except Exception as exc:
-        status.value = f"✗ 播放失败：{exc}"
+        status.value = f"✗ Playback failed: {exc}"
     else:
-        status.value = f"▶ 已播放 {path.name}"
+        status.value = f"▶ Played {path.name}"
 
 
 def _replay(path):
-    """按录制时间轴把 cast 里的输出写回真实终端。"""
+    """Write the cast output back to the real terminal along the recorded timeline."""
     out = sys.stdout
     out.write("\x1b[2J\x1b[H")
     out.flush()
@@ -159,7 +162,7 @@ def _replay(path):
             interrupted = True
 
     out.write("\x1b[0m\n")
-    input("播放结束，按回车返回 …" if not interrupted else "已中断，按回车返回 …")
+    input("Playback finished. Press Enter to return…" if not interrupted else "Interrupted. Press Enter to return…")
 
 
 def quit_app():
@@ -175,7 +178,7 @@ def _first_scan():
 
 @onMounted
 def _init():
-    # onMounted 触发时根控件还没挂进 App，v-for 此刻插不了节点，推迟一拍再扫描
+    # onMounted fires before the root widget is mounted, so defer the scan one tick
     app.tt_app.set_timer(0.1, _first_scan)
 </script>
 
