@@ -17,3 +17,7 @@ include src/vleaflet/components/Layers/*.vue
 include src/panel_vuepy/*.py
 
 include src/textual_vuepy/*.py
+include src/textual_vuepy/components/*.py
+include src/textual_vuepy/components/*.vue
+include src/textual_vuepy/apps/*.py
+include src/textual_vuepy/apps/*.vue
