@@ -3,7 +3,7 @@
 
 import os.path
 
-from setuptools import find_packages
+from setuptools import find_namespace_packages
 from setuptools import setup
 
 # The directory containing this file
@@ -22,7 +22,7 @@ ipywidgets_requires = [
 # This call to setup() does all the work
 setup(
     name="vuepy-core",
-    version="0.1.13-alpha",
+    version="0.1.13a1",
     description="Vue.py is a progressive, incrementally-adoptable Python framework for building GUI in Jupyter and TUI in CLI.",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -32,11 +32,16 @@ setup(
     author_email="leilux.dev@gmail.com",
     license="MIT",
     classifiers=[
-        "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3.7",
     ],
     python_requires='>=3.7',
-    packages=find_packages('src', exclude=('*widgets*', 'vuepy2')),
+    packages=find_namespace_packages(
+        'src',
+        exclude=(
+            'textual_vuepy._research',
+            'textual_vuepy._research.*',
+        ),
+    ),
     package_dir={'': 'src'},
     include_package_data=True,
     install_requires=[
