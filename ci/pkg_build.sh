@@ -5,9 +5,10 @@ SOURCE_ROOT=$(dirname "$HERE")
 
 cd "$SOURCE_ROOT"
 
-rm -rf dist
+rm -rf dist build ./*.egg-info
 
-python setup.py sdist bdist_wheel
+python -m pip install 'build>=1.2'
+python -m build
 
 #DIST_PATH=dist/*
 #

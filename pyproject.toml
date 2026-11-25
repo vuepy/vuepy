@@ -1,0 +1,88 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vuepy-core"
+version = "0.1.13a1"
+description = "Vue.py is a progressive, incrementally-adoptable Python framework for building GUI in Jupyter and TUI in CLI."
+readme = "README.md"
+requires-python = ">=3.7"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "vuepy.org", email = "leilux.dev@gmail.com" },
+]
+keywords = ["vue", "Web UI", "MVVM", "Jupyter", "Panel", "Textual", "TUI"]
+classifiers = [
+    "Programming Language :: Python :: 3.7",
+]
+
+[project.urls]
+Homepage = "https://www.vuepy.org"
+
+[project.scripts]
+vuepy = "vuepy.__main__:main"
+
+[project.optional-dependencies]
+ipywidgets = [
+    "ipywidgets",
+    "markdown",
+    "anywidget",
+]
+vleaflet = [
+    "ipywidgets",
+    "markdown",
+    "anywidget",
+    "ipyleaflet",
+]
+panel = [
+    "ipywidgets",
+    "markdown",
+    "anywidget",
+    "panel",
+    "jupyter_bokeh",
+    "ipywidgets_bokeh",
+]
+textual = [
+    "textual",
+]
+all = [
+    "ipywidgets",
+    "markdown",
+    "anywidget",
+    "ipyleaflet",
+    "panel",
+    "jupyter_bokeh",
+    "ipywidgets_bokeh",
+    "textual",
+]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = [
+    "vuepy*",
+    "ipywui*",
+    "vleaflet*",
+    "panel_vuepy*",
+    "textual_vuepy*",
+]
+exclude = [
+    "textual_vuepy._research",
+    "textual_vuepy._research.*",
+]
+namespaces = true
+
+[dependency-groups]
+dev = [
+    {include-group = "tests"},
+]
+tests = [
+    "pytest",
+    "pytest-xdist",
+    "pytest-asyncio",
+    "pytest-textual-snapshot",
+]

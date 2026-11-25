@@ -332,7 +332,19 @@ class TextualSFCNode(
                 setattr(self._widget, key, value)
 
 
-TextualDocBodyWidget = Screen
+class TextualDocBodyWidget(Screen):
+    def refresh(self, *regions, repaint=True, layout=False, recompose=False):
+        refreshed = super().refresh(
+            *regions, repaint=repaint, layout=layout, recompose=recompose
+        )
+        # Textual caches each widget's visual style independently of its
+        # ancestors. Changing the screen background otherwise leaves text
+        # (for example "mouse:0,0") on the previous background color.
+        if repaint:
+            for child in self.walk_children():
+                child.notify_style_update()
+        return refreshed
+
 
 class TextualDocumentNode(
     IDocumentNode[TextualDocRootWidget, TextualDocBodyWidget],
