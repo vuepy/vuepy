@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vuepy-core"
-version = "0.1.13a1"
+version = "0.1.13a2"
 description = "Vue.py is a progressive, incrementally-adoptable Python framework for building GUI in Jupyter and TUI in CLI."
 readme = "README.md"
 requires-python = ">=3.7"
