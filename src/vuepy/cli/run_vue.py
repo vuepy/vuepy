@@ -7,7 +7,6 @@ import argparse
 import importlib
 import json
 import os
-import shlex
 import sys
 from pathlib import Path
 
@@ -15,6 +14,7 @@ from vuepy import VuepyAppStore
 from vuepy.compiler_sfc.codegen_backends import TEXTUAL_BACKEND
 from vuepy.runtime.core.api_create_app import create_app
 from vuepy.runtime.core.import_sfc import import_sfc
+from vuepy.utils.shell_argv import join_shell_command
 
 
 def _import_plugin(plugin_path: str):
@@ -50,7 +50,13 @@ def _textual_serve_run_command(vue_file: str, args) -> str:
         target = vue_file
     else:
         target = str(Path(vue_file).resolve())
-    parts = [sys.executable, "-m", "vuepy", "run", target, "--backend", "textual"]
+    # textual-serve runs this via the platform shell (cmd.exe on Windows) and
+    # decodes stderr as UTF-8. -X utf8 makes a Python traceback UTF-8 instead
+    # of GBK bytes that show up as mojibake.
+    parts = [sys.executable]
+    if sys.platform == "win32":
+        parts.extend(["-X", "utf8"])
+    parts.extend(["-m", "vuepy", "run", target, "--backend", "textual"])
     if getattr(args, "dev", False):
         parts.append("--dev")
     if getattr(args, "devtools_host", None) is not None:
@@ -59,7 +65,7 @@ def _textual_serve_run_command(vue_file: str, args) -> str:
         parts.extend(["--devtools-port", str(args.devtools_port)])
     for pl in _flatten_plugins(args):
         parts.extend(["--plugins", pl])
-    return shlex.join(parts)
+    return join_shell_command(parts)
 
 
 def _apply_textual_dev_environment(args) -> None:

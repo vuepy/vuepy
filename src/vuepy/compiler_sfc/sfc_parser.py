@@ -117,7 +117,8 @@ class SFCMetadata:
     @classmethod
     def load(cls, sfc_file):
         sfc_file = pathlib.Path(sfc_file)
-        with open(sfc_file) as f:
+        # .vue sources are UTF-8. Windows Chinese locales default to GBK.
+        with open(sfc_file, encoding="utf-8") as f:
             raw_content = f.read()
 
         return cls.loads(raw_content, sfc_file)

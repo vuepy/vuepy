@@ -2,7 +2,6 @@
 import argparse
 import json
 import logging
-import shlex
 from pathlib import Path
 
 import IPython
@@ -18,6 +17,7 @@ from vuepy.compiler_sfc.sfc_parser import SFCMetadata
 from vuepy.runtime.core.api_create_app import create_app
 from vuepy.runtime.core.import_sfc import import_sfc
 from vuepy.utils.appstore import VuepyAppStore
+from vuepy.utils.shell_argv import split_shell_args
 
 logout = widgets.Output()
 
@@ -108,7 +108,7 @@ def vuepy_demo(vue_sfc):
     script_content = 0
     if sfc_metadata.script_src:
         _script_file = sfc_metadata.file.parent / sfc_metadata.script_src
-        with open(_script_file) as f:
+        with open(_script_file, encoding="utf-8") as f:
             _comment = f'# {sfc_metadata.script_src}\n\n'
             script_content = _comment + f.read()
 
@@ -263,7 +263,7 @@ def vuepy_run(vue_file, cell=''):
         add_show_code_params(parser)
         add_codegen_backend_params(parser)
         add_servable_params(parser)
-        args, _ = parser.parse_known_args(shlex.split(vue_file))
+        args, _ = parser.parse_known_args(split_shell_args(vue_file))
 
         cell_file_name = f"<magic-vuepy_run>"
         App = sfc_compiler.compile(
@@ -279,7 +279,7 @@ def vuepy_run(vue_file, cell=''):
         add_show_code_params(parser)
         add_codegen_backend_params(parser)
         add_servable_params(parser)
-        args, _ = parser.parse_known_args(shlex.split(vue_file))
+        args, _ = parser.parse_known_args(split_shell_args(vue_file))
         vue_file = args.vue_file
         if vue_file.startswith('$'):
             App = ipython.user_ns[vue_file[1:]]

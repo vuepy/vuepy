@@ -1,5 +1,9 @@
+import tempfile
 import unittest
+from pathlib import Path
+from unittest import mock
 
+from vuepy.compiler_sfc.sfc_parser import SFCMetadata
 from vuepy.compiler_sfc.sfc_parser import SFCParser
 from vuepy.compiler_sfc.sfc_parser import SFCTag
 
@@ -105,3 +109,24 @@ class TestFirstLevelTagValidator(unittest.TestCase):
         ).to_dict()
 
         self.assertEqual(expected_tag, sfc_tags[0].to_dict())
+
+
+class TestSFCMetadataLoad(unittest.TestCase):
+    def test_load_reads_utf8_when_system_encoding_is_gbk(self):
+        content = "<template>\n  <div>当前高亮</div>\n</template>\n"
+        encodings = []
+        real_open = open
+
+        def tracking_open(file, mode="r", *args, **kwargs):
+            if Path(file) == sfc_file:
+                encodings.append(kwargs.get("encoding"))
+            return real_open(file, mode, *args, **kwargs)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            sfc_file = Path(tmp) / "App.vue"
+            sfc_file.write_text(content, encoding="utf-8")
+            with mock.patch("builtins.open", tracking_open):
+                meta = SFCMetadata.load(sfc_file)
+
+        self.assertEqual(encodings, ["utf-8"])
+        self.assertIn("当前高亮", meta.template)

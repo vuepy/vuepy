@@ -14,6 +14,23 @@ from vuepy.cli import log_info
 HERE = Path(__file__).absolute().parent
 
 
+def render_app_vue(app_vue_path: Path, js_stubs_path: Path) -> None:
+    """Fill App.vue placeholders. Always read and write UTF-8.
+
+    Chinese Windows defaults to GBK. The install path can contain non-ASCII
+    characters, and a GBK write would not round-trip through the UTF-8 loader.
+    Forward slashes stay valid in the generated JS import on Windows.
+    """
+    with open(app_vue_path, "r", encoding="utf-8") as f:
+        app_vue = f.read()
+    app_vue = Template(app_vue).substitute({
+        'js_stubs_path': Path(js_stubs_path).as_posix(),
+        'ipywui_path': './ipywui',
+    })
+    with open(app_vue_path, "w", encoding="utf-8", newline="\n") as f:
+        f.write(app_vue)
+
+
 def is_valid_package_name(package_name):
     if len(package_name) > 214:
         return False
@@ -49,15 +66,7 @@ def create_project(args):
 
     shutil.copytree(ipywui_components_path, proj_dir / 'ipywui')
     shutil.copytree(template_dir, proj_dir, dirs_exist_ok=True)
-
-    with open(proj_dir / 'App.vue', 'r') as f:
-        app_vue = f.read()
-    app_vue = Template(app_vue).substitute({
-        'js_stubs_path': HERE.parent / 'js_stubs',
-        'ipywui_path': './ipywui',
-    })
-    with open(proj_dir / 'App.vue', 'w') as f:
-        f.write(app_vue)
+    render_app_vue(proj_dir / 'App.vue', HERE.parent / 'js_stubs')
 
     log_info("")
     log_info(f"Scaffolding project in ./{project_name}")
