@@ -37,6 +37,9 @@ echo "==> create virtualenv (python ${PYTHON_VERSION}): $VENV"
 uv venv --python "$PYTHON_VERSION" "$VENV" --no-project
 echo "==> $($VENV/bin/python -V) ($VENV/bin/python)"
 
+echo "==> clean cache vuepy-core"
+uv cache clean vuepy-core
+
 echo "==> install package: $PKG[all]"
 uv pip install --python "$VENV/bin/python" "$PKG[all]"
 

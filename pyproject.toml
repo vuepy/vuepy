@@ -82,7 +82,20 @@ all = [
 ]
 
 [tool.setuptools]
-include-package-data = true
+include-package-data = false
+
+[tool.setuptools.package-data]
+vuepy = ["js_stubs/*.js", "cli/template_vue/*"]
+ipywui = [
+    "components/*.vue",
+    "widgets/assets/css/*.css",
+    "widgets/custom/**/*",
+]
+vleaflet = ["components/**/*.vue"]
+textual_vuepy = ["components/*.vue", "apps/*.vue"]
+
+[tool.setuptools.exclude-package-data]
+ipywui = ["*.pyc"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
